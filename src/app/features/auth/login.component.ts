@@ -15,27 +15,14 @@ import {
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="cupertino-portal">
-      <!-- Meta Pill Superior de Seguridad -->
-      <div class="security-meta-bar">
-        <div class="security-left">
-          <span class="pulse-dot"></span>
-          <span>Entorno Académico Seguro • Ingeniería de Software 1 - Universidad El Bosque</span>
-        </div>
-        <div class="security-right">
-          <span>Encriptación TLS 1.3 &amp; SHA-256</span>
-          <span class="dot-sep">•</span>
-          <span>Audit Trail LR-v2.4</span>
-        </div>
-      </div>
-
-      <!-- Layout Dividido Estilo Cupertino (7 Cols Izquierda / 5 Cols Derecha) -->
+      <!-- Layout Dividido Minimalista Estilo Cupertino (7 Cols Izquierda / 5 Cols Derecha) -->
       <div class="portal-grid">
         <!-- Columna Izquierda: Portal Unificado Multi-Rol -->
         <section class="portal-card" aria-labelledby="login-title">
           <div class="portal-header">
             <div>
-              <p class="eyebrow">Portal Unificado</p>
-              <h1 id="login-title">Acceder a Inversiones LR</h1>
+              <p class="eyebrow">Inversiones LR</p>
+              <h1 id="login-title">Acceder a tu cuenta</h1>
             </div>
 
             <!-- Segmented Control Estilo iOS -->
@@ -49,9 +36,9 @@ import {
             <!-- Selector de Roles: 3 Cards Interactivas -->
             <div class="role-selector-block">
               <div class="role-selector-top">
-                <span class="section-label">Selecciona tu perfil de acceso</span>
+                <span class="section-label">Perfil de acceso</span>
                 <span class="active-profile-pill">
-                  Perfil Activo: {{ selectedRoleLabel }}
+                  {{ selectedRoleLabel }}
                 </span>
               </div>
 
@@ -67,8 +54,7 @@ import {
                     <span class="role-check" *ngIf="selectedRole === 'HUESPED'">●</span>
                   </div>
                   <h2>Huésped</h2>
-                  <p>Descubre, cotiza y reserva estancias verificadas en Colombia con garantía inmediata.</p>
-                  <span class="role-foot">Acceso Turista &amp; Corporativo</span>
+                  <p>Descubre, cotiza y reserva estancias verificadas en Colombia.</p>
                 </button>
 
                 <button
@@ -82,8 +68,7 @@ import {
                     <span class="role-check" *ngIf="selectedRole === 'ANFITRION'">●</span>
                   </div>
                   <h2>Anfitrión</h2>
-                  <p>Publica propiedades, gestiona calendarios y recibe pagos transparentes garantizados.</p>
-                  <span class="role-foot">Propietarios Verificados</span>
+                  <p>Publica propiedades, gestiona calendarios y recibe pagos garantizados.</p>
                 </button>
 
                 <button
@@ -94,11 +79,10 @@ import {
                 >
                   <div class="role-card-head">
                     <span class="role-icon">⌘</span>
-                    <span class="corp-badge">2FA Corp</span>
+                    <span class="role-check" *ngIf="selectedRole === 'ADMINISTRADOR'">●</span>
                   </div>
                   <h2>Admin</h2>
-                  <p>Gobernanza del sistema, auditoría de logs, moderación y control de transacciones.</p>
-                  <span class="role-foot">Inversiones LR Corp</span>
+                  <p>Moderación del catálogo, control de cuentas y auditoría.</p>
                 </button>
               </div>
             </div>
@@ -107,10 +91,7 @@ import {
             <form (ngSubmit)="onSubmit()" novalidate class="apple-form">
               <div class="apple-field">
                 <div class="field-top">
-                  <label for="login-email" class="apple-label">Correo Electrónico</label>
-                  <span class="domain-hint" *ngIf="selectedRole === 'ADMINISTRADOR'">
-                    Credencial inicial &#64;inversioneslr.com
-                  </span>
+                  <label for="login-email" class="apple-label">Correo electrónico</label>
                 </div>
                 <input
                   id="login-email"
@@ -164,7 +145,7 @@ import {
                     <span [class.filled]="passwordStrength >= 4"></span>
                   </div>
                   <div class="strength-labels">
-                    <span>Nivel de seguridad de contraseña</span>
+                    <span>Seguridad de contraseña</span>
                     <strong>{{ strengthFeedback }}</strong>
                   </div>
                 </div>
@@ -189,16 +170,26 @@ import {
 
             <!-- Divisor Sutil SSO -->
             <div class="sso-divider">
-              <span>o autentícate con</span>
+              <span>o continúa con</span>
             </div>
 
             <div class="sso-grid">
-              <button type="button" class="sso-btn" (click)="triggerSso('Apple ID')">
-                <span></span>
+              <button type="button" class="sso-btn" (click)="triggerSso('Apple')">
+                <svg class="sso-logo apple-logo" viewBox="0 0 170 170" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.69-7.86-12-14.46-6.19-9.47-11.02-20.73-14.49-33.8-3.47-13.06-5.2-25.12-5.2-36.19 0-14.46 3.59-26.68 10.77-36.65 7.18-9.98 16.27-15.08 27.27-15.31 4.79 0 10.23 1.25 16.32 3.76 6.09 2.5 10.15 3.79 12.18 3.86 1.7 0 5.92-1.36 12.67-4.07 6.75-2.72 12.39-3.87 16.92-3.46 12.87 1.02 23.01 5.73 30.43 14.12-11.39 6.89-16.96 16.29-16.71 28.2.25 9.4 3.97 17.29 11.16 23.66 7.19 6.38 15.68 10.02 25.48 10.92-2.12 6.53-4.78 12.87-7.98 19.01zM119.22 33.02c0-7.39 2.67-14.38 8.01-20.98 5.34-6.6 11.97-10.71 19.89-12.34.25 1.02.38 2.04.38 3.06 0 7.39-2.75 14.46-8.25 21.2-5.5 6.75-12.21 10.79-20.13 12.13-.12-.85-.18-1.7-.18-2.55z"
+                  />
+                </svg>
                 <span>Continuar con Apple</span>
               </button>
-              <button type="button" class="sso-btn" (click)="triggerSso('Google Workspace')">
-                <span>G</span>
+              <button type="button" class="sso-btn" (click)="triggerSso('Google')">
+                <svg class="sso-logo" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                </svg>
                 <span>Continuar con Google</span>
               </button>
             </div>
@@ -215,7 +206,7 @@ import {
             <p class="session-email">{{ activeSession.email }}</p>
 
             <div class="role-options">
-              <p class="role-options-title">Funciones protegidas habilitadas para tu rol:</p>
+              <p class="role-options-title">Funciones habilitadas para tu rol:</p>
               <ul *ngIf="activeSession.role === 'HUESPED'">
                 <li><a routerLink="/listings">Explorar alojamientos y reseñas públicas</a></li>
                 <li><a routerLink="/mis-reservas">Consultar mis reservas y cotizaciones</a></li>
@@ -231,12 +222,12 @@ import {
             </div>
 
             <button type="button" class="apple-btn-secondary" (click)="onLogout()">
-              Cerrar sesión e invalidar token
+              Cerrar sesión
             </button>
           </div>
         </section>
 
-        <!-- Columna Derecha: Panel de Confianza y Arquitectura Segura (5 Cols) -->
+        <!-- Columna Derecha: Panel Minimalista de Confianza (5 Cols) -->
         <aside class="trust-column">
           <div class="trust-card">
             <div class="trust-title-row">
@@ -244,7 +235,7 @@ import {
               <h3>Garantía Inversiones LR</h3>
             </div>
             <p class="trust-lead">
-              Infraestructura de marketplace diseñada para el ecosistema inmobiliario colombiano bajo estrictas normas de seguridad y confiabilidad.
+              Estancias verificadas con protección de pagos y control de acceso por rol en cada operación.
             </p>
 
             <div class="pillars-list">
@@ -252,53 +243,43 @@ import {
                 <span class="pillar-icon">◈</span>
                 <div>
                   <strong>Pagos en Custodia (Escrow)</strong>
-                  <p>El dinero se retiene de forma segura y solo se libera al anfitrión 24 horas después del check-in exitoso.</p>
+                  <p>Tu reserva se protege hasta confirmar el ingreso satisfactorio al alojamiento.</p>
                 </div>
               </div>
 
               <div class="pillar-item">
-                <span class="pillar-icon">🪪</span>
+                <span class="pillar-icon">✦</span>
                 <div>
-                  <strong>Validación de Identidad Biométrica</strong>
-                  <p>Verificación de cédulas de ciudadanía colombianas y control de acceso estricto por rol (RBAC).</p>
+                  <strong>Anfitriones y Propiedades Verificadas</strong>
+                  <p>Cada publicación pasa por revisión de calidad antes de aparecer en el catálogo público.</p>
                 </div>
               </div>
 
               <div class="pillar-item">
                 <span class="pillar-icon">⌘</span>
                 <div>
-                  <strong>Registro Inmutable en Audit Trail</strong>
-                  <p>Cada intento de inicio de sesión, bloqueo por rol o reserva genera un registro de auditoría inalterable.</p>
+                  <strong>Privacidad y Protección por Rol</strong>
+                  <p>Tus sesiones y operaciones están aisladas según los permisos de tu cuenta.</p>
                 </div>
               </div>
             </div>
 
-            <!-- Barra Visual Progresiva Monocromática Apple -->
             <div class="metrics-box">
               <div class="metrics-head">
-                <span>Métricas de Confiabilidad del Ecosistema</span>
+                <span>Índice de confianza</span>
                 <strong>99.8% Satisfacción</strong>
               </div>
               <div class="metrics-bar">
-                <span class="seg-primary" style="width: 72%"></span>
-                <span class="seg-secondary" style="width: 20%"></span>
-                <span class="seg-tertiary" style="width: 8%"></span>
+                <span class="seg-primary" style="width: 76%"></span>
+                <span class="seg-secondary" style="width: 18%"></span>
+                <span class="seg-tertiary" style="width: 6%"></span>
               </div>
               <div class="metrics-legend">
                 <span>● Reservas Exitosas</span>
                 <span>◐ En Custodia</span>
-                <span>○ Moderación</span>
+                <span>○ Verificación</span>
               </div>
             </div>
-          </div>
-
-          <div class="university-card">
-            <div>
-              <span class="uni-eyebrow">Universidad El Bosque</span>
-              <strong>Facultad de Ingeniería • Proyecto LR</strong>
-              <p>Soporte técnico directo: soporte&#64;inversioneslr.co</p>
-            </div>
-            <span class="uni-badge">UEB</span>
           </div>
         </aside>
       </div>
@@ -687,21 +668,32 @@ import {
       gap: 10px;
     }
     .sso-btn {
-      height: 42px;
-      border-radius: 12px;
-      border: 1px solid #e5e5ea;
-      background: #f5f5f7;
+      height: 44px;
+      border-radius: 13px;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
       color: #1d1d1f;
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 9px;
       cursor: pointer;
+      transition: all 0.16s ease;
     }
     .sso-btn:hover {
-      background: #ebebf0;
+      background: #f5f5f7;
+      border-color: #1d1d1f;
+    }
+    .sso-logo {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+      display: block;
+    }
+    .apple-logo {
+      margin-bottom: 1px;
     }
     .toast-banner {
       margin-top: 12px;

@@ -31,7 +31,7 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
           </div>
           <div class="footer-bottom">
             <p>
-              Inversiones LR Marketplace © 2026 — Ingeniería de Software 1 · Universidad El Bosque. Todos los derechos reservados.
+              Inversiones LR Marketplace © 2026. Todos los derechos reservados.
             </p>
             <div class="footer-links">
               <a href="#privacidad" (click)="$event.preventDefault()">Privacidad</a>
