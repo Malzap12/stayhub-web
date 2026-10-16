@@ -1,5 +1,6 @@
 import { LoginComponent } from './login.component';
 import {
+  checkRouteAccess,
   clearActiveSession,
   getActiveSession,
   SESSION_STORAGE_KEY,
@@ -60,4 +61,24 @@ describe('LoginComponent & AuthGuard (HU-002 · MA-37)', () => {
     expect(component.activeSession).toBeNull();
     expect(getActiveSession()).toBeNull();
   });
+
+  it('HU-003 CA1 & CA2: should redirect unauthenticated visitors to login and deny HUESPED on ANFITRION or ADMINISTRADOR routes', () => {
+    expect(checkRouteAccess(null)).toBe('REDIRECT_LOGIN');
+    expect(checkRouteAccess(null, ['HUESPED'])).toBe('REDIRECT_LOGIN');
+
+    const guestSession = {
+      token: 'jwt-guest',
+      email: 'huesped@stayhub.com',
+      name: 'Huésped',
+      role: 'HUESPED' as const,
+      expiresAt: Date.now() + 60000,
+    };
+
+    expect(checkRouteAccess(guestSession, ['HUESPED'])).toBe('ALLOW');
+    expect(checkRouteAccess(guestSession, ['ANFITRION'])).toBe('ACCESS_DENIED');
+    expect(checkRouteAccess(guestSession, ['ADMINISTRADOR'])).toBe(
+      'ACCESS_DENIED',
+    );
+  });
 });
+

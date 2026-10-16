@@ -41,12 +41,46 @@ export function clearActiveSession(): void {
   localStorage.removeItem('token');
 }
 
+export type AccessDecision = 'ALLOW' | 'REDIRECT_LOGIN' | 'ACCESS_DENIED';
+
+export function checkRouteAccess(
+  session: StoredSession | null,
+  allowedRoles?: Array<StoredSession['role']>,
+): AccessDecision {
+  if (!session) {
+    return 'REDIRECT_LOGIN';
+  }
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
+    return 'ACCESS_DENIED';
+  }
+  return 'ALLOW';
+}
+
 export const authGuard: CanActivateFn = () => {
   const router = inject(Router);
-  const session = getActiveSession();
-  if (session) {
+  const decision = checkRouteAccess(getActiveSession());
+  if (decision === 'ALLOW') {
     return true;
   }
   router.navigate(['/auth/login']);
   return false;
 };
+
+export function roleGuard(
+  allowedRoles: Array<StoredSession['role']>,
+): CanActivateFn {
+  return () => {
+    const router = inject(Router);
+    const decision = checkRouteAccess(getActiveSession(), allowedRoles);
+    if (decision === 'ALLOW') {
+      return true;
+    }
+    if (decision === 'REDIRECT_LOGIN') {
+      router.navigate(['/auth/login']);
+      return false;
+    }
+    router.navigate(['/acceso-denegado']);
+    return false;
+  };
+}
+

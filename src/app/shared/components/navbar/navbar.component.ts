@@ -22,11 +22,11 @@ import {
         <nav class="apple-nav-links" aria-label="Navegación principal">
           <a routerLink="/listings" routerLinkActive="active">Explorar</a>
 
-          <!-- CA1: Opciones específicas según el rol autenticado -->
+          <!-- CA1 & HU-003: Opciones específicas según el rol autenticado -->
           <ng-container *ngIf="session as user">
-            <a *ngIf="user.role === 'HUESPED'" routerLink="/listings">Mis Reservas</a>
-            <a *ngIf="user.role === 'ANFITRION'" routerLink="/listings">Mis Publicaciones</a>
-            <a *ngIf="user.role === 'ADMINISTRADOR'" routerLink="/listings">Moderación y Auditoría</a>
+            <a *ngIf="user.role === 'HUESPED'" routerLink="/mis-reservas">Mis Reservas</a>
+            <a *ngIf="user.role === 'ANFITRION'" routerLink="/anfitrion/publicaciones">Mis Publicaciones</a>
+            <a *ngIf="user.role === 'ADMINISTRADOR'" routerLink="/admin/moderacion">Moderación y Auditoría</a>
             <span class="role-pill">{{ user.role }}</span>
             <button type="button" class="apple-logout-btn" (click)="logout()">
               Cerrar sesión
