@@ -1,11 +1,58 @@
-/* Estilos globales */
+/* Sistema de Diseño Minimalista — Apple Cupertino Titanium & Space Black (Inversiones LR) */
+:root {
+  --apple-bg: #f5f5f7;
+  --apple-surface: #ffffff;
+  --apple-surface-subtle: #ebebf0;
+  --apple-surface-glass: rgba(255, 255, 255, 0.82);
+  --apple-text-primary: #1d1d1f;
+  --apple-text-secondary: #6e6e73;
+  --apple-text-tertiary: #86868b;
+  --apple-border: #d2d2d7;
+  --apple-border-subtle: rgba(0, 0, 0, 0.07);
+  --apple-ink: #1d1d1f;
+  --apple-ink-hover: #000000;
+  --apple-focus-ring: rgba(29, 29, 31, 0.22);
+  --apple-red: #d70015;
+  --apple-red-bg: #fff2f4;
+  --apple-green: #248a3d;
+  --apple-green-bg: #f2fbf5;
+  --apple-radius-lg: 24px;
+  --apple-radius-md: 14px;
+  --apple-radius-pill: 980px;
+  --apple-shadow: 0 14px 36px rgba(0, 0, 0, 0.045), 0 2px 6px rgba(0, 0, 0, 0.025);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Plus Jakarta Sans', 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
 body {
-  background-color: #f8fafc;
-  color: #1e293b;
+  background-color: var(--apple-bg);
+  color: var(--apple-text-primary);
+  line-height: 1.47059;
+  letter-spacing: -0.022em;
+  min-width: 360px;
 }
+
+a {
+  color: var(--apple-text-primary);
+  text-decoration: none;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+a:hover {
+  opacity: 0.78;
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--apple-focus-ring);
+  outline-offset: 2px;
+}
+
