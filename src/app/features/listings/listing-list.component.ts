@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 
 export interface PublicReviewItem {
   id: string;
@@ -23,7 +22,7 @@ export interface PublicListingItem {
 @Component({
   selector: 'app-listing-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <section class="cupertino-catalog">
       <div class="catalog-hero">

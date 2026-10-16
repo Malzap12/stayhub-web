@@ -109,7 +109,7 @@ import {
                 <div class="field-top">
                   <label for="login-email" class="apple-label">Correo Electrónico</label>
                   <span class="domain-hint" *ngIf="selectedRole === 'ADMINISTRADOR'">
-                    Credencial inicial @inversioneslr.com
+                    Credencial inicial &#64;inversioneslr.com
                   </span>
                 </div>
                 <input
