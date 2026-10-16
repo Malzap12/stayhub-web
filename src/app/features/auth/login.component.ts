@@ -944,7 +944,21 @@ export class LoginComponent {
   restrictedError = '';
   activeSession: StoredSession | null = getActiveSession();
 
-  constructor(private readonly router?: Router) {}
+  constructor(private readonly router?: Router) {
+    if (this.activeSession) {
+      this.navigateByRole(this.activeSession.role);
+    }
+  }
+
+  private navigateByRole(role: 'HUESPED' | 'ANFITRION' | 'ADMINISTRADOR'): void {
+    if (role === 'ADMINISTRADOR') {
+      this.router?.navigate(['/admin/moderacion']);
+    } else if (role === 'ANFITRION') {
+      this.router?.navigate(['/anfitrion/publicaciones']);
+    } else {
+      this.router?.navigate(['/listings']);
+    }
+  }
 
   get selectedRoleLabel(): string {
     if (this.selectedRole === 'ANFITRION') return 'Anfitrión';
@@ -1044,6 +1058,7 @@ export class LoginComponent {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
       localStorage.setItem('token', session.token);
       this.activeSession = session;
+      this.navigateByRole(session.role);
     } catch {
       if (
         cleanEmail === 'admin@inversioneslr.com' &&
@@ -1059,6 +1074,7 @@ export class LoginComponent {
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
         localStorage.setItem('token', session.token);
         this.activeSession = session;
+        this.navigateByRole(session.role);
       } else {
         this.authError = LoginComponent.GENERIC_ERROR_MESSAGE;
       }
