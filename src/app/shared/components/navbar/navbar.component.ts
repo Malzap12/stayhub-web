@@ -14,31 +14,66 @@ import {
   template: `
     <header class="apple-navbar">
       <div class="apple-navbar-inner">
-        <a routerLink="/" class="apple-brand">
-          <span class="brand-dot" aria-hidden="true"></span>
-          <span>Inversiones LR</span>
+        <!-- Marca Inversiones LR -->
+        <a routerLink="/listings" class="apple-brand">
+          <span class="brand-monogram" aria-hidden="true">LR</span>
+          <div class="brand-text">
+            <span class="brand-title">Inversiones LR</span>
+            <span class="brand-subtitle">Marketplace</span>
+          </div>
         </a>
 
-        <nav class="apple-nav-links" aria-label="Navegación principal">
-          <a routerLink="/listings" routerLinkActive="active">Explorar</a>
+        <!-- Dock Central Estilo iOS / Cupertino -->
+        <nav class="apple-dock" aria-label="Navegación principal">
+          <a routerLink="/listings" routerLinkActive="active">Explorar Alojamientos</a>
+          <a routerLink="/mis-reservas" routerLinkActive="active">Mis Reservas</a>
+          <a routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
+          <a routerLink="/admin/moderacion" routerLinkActive="active">Administración</a>
+        </nav>
 
-          <!-- CA1 & HU-003: Opciones específicas según el rol autenticado -->
+        <!-- Cluster Derecho: Moneda COP/USD + Perfil / Acceso -->
+        <div class="apple-actions">
+          <div class="currency-toggle" role="group" aria-label="Moneda">
+            <button
+              type="button"
+              [class.active]="currency === 'COP'"
+              (click)="currency = 'COP'"
+            >
+              COP
+            </button>
+            <button
+              type="button"
+              [class.active]="currency === 'USD'"
+              (click)="currency = 'USD'"
+            >
+              USD
+            </button>
+          </div>
+
+          <div class="v-divider" aria-hidden="true"></div>
+
           <ng-container *ngIf="session as user">
-            <a *ngIf="user.role === 'HUESPED'" routerLink="/mis-reservas">Mis Reservas</a>
-            <a *ngIf="user.role === 'ANFITRION'" routerLink="/anfitrion/publicaciones">Mis Publicaciones</a>
-            <a *ngIf="user.role === 'ADMINISTRADOR'" routerLink="/admin/moderacion">Moderación y Auditoría</a>
-            <span class="role-pill">{{ user.role }}</span>
+            <div class="profile-chip">
+              <span class="avatar-circle">{{ user.name.charAt(0).toUpperCase() }}</span>
+              <div class="profile-meta">
+                <span class="profile-name">{{ user.name }}</span>
+                <span class="profile-role">{{ user.role }}</span>
+              </div>
+            </div>
             <button type="button" class="apple-logout-btn" (click)="logout()">
-              Cerrar sesión
+              Salir
             </button>
           </ng-container>
 
-          <!-- Visitante no autenticado -->
           <ng-container *ngIf="!session">
-            <a routerLink="/auth/login" routerLinkActive="active">Iniciar sesión</a>
-            <a routerLink="/auth/register" class="apple-nav-cta">Registrarse</a>
+            <a routerLink="/auth/login" routerLinkActive="active" class="login-link">
+              Iniciar sesión
+            </a>
+            <a routerLink="/auth/register" class="apple-nav-cta">
+              Registrarse
+            </a>
           </ng-container>
-        </nav>
+        </div>
       </div>
     </header>
   `,
@@ -47,88 +82,191 @@ import {
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.84);
+      backdrop-filter: saturate(180%) blur(24px);
+      -webkit-backdrop-filter: saturate(180%) blur(24px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.07);
     }
     .apple-navbar-inner {
-      max-width: 1120px;
+      max-width: 1240px;
       margin: 0 auto;
-      height: 52px;
-      padding: 0 20px;
+      height: 64px;
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
     }
     .apple-brand {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1d1d1f;
+      gap: 10px;
       text-decoration: none;
-      letter-spacing: -0.02em;
+      color: #1d1d1f;
     }
-    .brand-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #0071e3;
-    }
-    .apple-nav-links {
-      display: flex;
+    .brand-monogram {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: #1d1d1f;
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-flex;
       align-items: center;
-      gap: 18px;
-      font-size: 0.8125rem;
+      justify-content: center;
+      letter-spacing: -0.03em;
     }
-    .apple-nav-links a {
-      color: #1d1d1f;
-      opacity: 0.8;
-      text-decoration: none;
-      font-weight: 500;
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.05;
     }
-    .apple-nav-links a:hover,
-    .apple-nav-links a.active {
-      opacity: 1;
-    }
-    .role-pill {
-      background: #f5f5f7;
-      color: #1d1d1f;
-      border: 1px solid #d2d2d7;
-      padding: 3px 10px;
-      border-radius: 980px;
-      font-size: 0.7rem;
+    .brand-title {
+      font-size: 0.98rem;
       font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #1d1d1f;
     }
-    .apple-nav-cta {
-      background: #0071e3;
-      color: #ffffff !important;
-      opacity: 1 !important;
+    .brand-subtitle {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #86868b;
+      margin-top: 2px;
+    }
+    .apple-dock {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      background: #f0f0f3;
+      border-radius: 980px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .apple-dock a {
       padding: 6px 14px;
       border-radius: 980px;
-      font-weight: 600 !important;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #515154;
+      text-decoration: none;
+      transition: all 0.18s ease;
+    }
+    .apple-dock a:hover {
+      color: #1d1d1f;
+      opacity: 1;
+    }
+    .apple-dock a.active {
+      background: #ffffff;
+      color: #1d1d1f;
+      font-weight: 600;
+      box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+    }
+    .apple-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .currency-toggle {
+      display: inline-flex;
+      padding: 2px;
+      background: #f0f0f3;
+      border-radius: 980px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .currency-toggle button {
+      border: none;
+      background: transparent;
+      padding: 3px 9px;
+      border-radius: 980px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #6e6e73;
+      cursor: pointer;
+    }
+    .currency-toggle button.active {
+      background: #ffffff;
+      color: #1d1d1f;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .v-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .profile-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .avatar-circle {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #1d1d1f;
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .profile-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+    .profile-name {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+    .profile-role {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #6e6e73;
+      letter-spacing: 0.04em;
+    }
+    .login-link {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #515154;
+    }
+    .apple-nav-cta {
+      background: #1d1d1f;
+      color: #ffffff !important;
+      padding: 7px 15px;
+      border-radius: 980px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none;
     }
     .apple-nav-cta:hover {
-      background: #0077ed;
+      background: #000000;
+      opacity: 1;
     }
     .apple-logout-btn {
-      background: transparent;
+      background: #f5f5f7;
       border: 1px solid #d2d2d7;
       color: #1d1d1f;
       padding: 5px 12px;
       border-radius: 980px;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
     }
-    .apple-logout-btn:hover {
-      background: #f5f5f7;
+    @media (max-width: 900px) {
+      .apple-dock {
+        display: none;
+      }
     }
   `],
 })
 export class NavbarComponent {
+  currency: 'COP' | 'USD' = 'COP';
+
   constructor(private readonly router?: Router) {}
 
   get session(): StoredSession | null {
@@ -140,3 +278,4 @@ export class NavbarComponent {
     this.router?.navigate(['/auth/login']);
   }
 }
+

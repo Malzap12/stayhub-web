@@ -95,13 +95,14 @@ export interface PublicListingItem {
     }
     .apple-badge {
       display: inline-block;
-      background: rgba(0, 113, 227, 0.1);
-      color: #0071e3;
-      font-size: 0.75rem;
+      background: #1d1d1f;
+      color: #ffffff;
+      font-size: 0.72rem;
       font-weight: 600;
-      padding: 4px 12px;
+      letter-spacing: 0.04em;
+      padding: 5px 14px;
       border-radius: 980px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .catalog-hero h1 {
       font-size: 2rem;
@@ -123,10 +124,10 @@ export interface PublicListingItem {
     }
     .listing-card {
       background: #ffffff;
-      border-radius: 20px;
-      padding: 22px;
+      border-radius: 24px;
+      padding: 24px;
       border: 1px solid rgba(0, 0, 0, 0.06);
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -176,10 +177,10 @@ export interface PublicListingItem {
       font-size: 0.78rem;
     }
     .apple-secondary-btn, .close-btn {
-      background: #f5f5f7;
-      color: #0071e3;
+      background: #1d1d1f;
+      color: #ffffff;
       border: none;
-      padding: 7px 14px;
+      padding: 8px 15px;
       border-radius: 980px;
       font-size: 0.78rem;
       font-weight: 600;
@@ -188,10 +189,10 @@ export interface PublicListingItem {
     .detail-panel {
       margin-top: 28px;
       background: #ffffff;
-      border-radius: 20px;
-      padding: 24px;
-      border: 1px solid rgba(0, 113, 227, 0.25);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+      border-radius: 24px;
+      padding: 26px;
+      border: 1px solid rgba(29, 29, 31, 0.14);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.05);
     }
     .detail-header {
       display: flex;

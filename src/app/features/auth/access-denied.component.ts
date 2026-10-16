@@ -64,10 +64,10 @@ import { getActiveSession, StoredSession } from '../../core/guards/auth.guard';
     }
     .apple-primary-link {
       display: inline-block;
-      background: #0071e3;
+      background: #1d1d1f;
       color: #ffffff;
       text-decoration: none;
-      padding: 10px 20px;
+      padding: 11px 22px;
       border-radius: 980px;
       font-size: 0.875rem;
       font-weight: 600;
