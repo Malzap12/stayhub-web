@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AvailabilityPeriod, Listing } from '../../shared/models/listing.model';
 
 @Component({
   selector: 'app-host-availability',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="host-shell">
       <header class="host-header">
@@ -17,6 +18,7 @@ import { AvailabilityPeriod, Listing } from '../../shared/models/listing.model';
             Configura las ventanas de fechas en que tu alojamiento está habilitado para recibir reservas.
           </p>
         </div>
+        <a routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
       </header>
 
       <div class="alert-success" *ngIf="successMessage" role="status">
@@ -101,6 +103,21 @@ import { AvailabilityPeriod, Listing } from '../../shared/models/listing.model';
       margin-bottom: 24px;
       padding-bottom: 18px;
       border-bottom: 1px solid #e5e5ea;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .new-listing-btn {
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: #1d1d1f;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      white-space: nowrap;
     }
     .eyebrow {
       font-size: 0.74rem;
