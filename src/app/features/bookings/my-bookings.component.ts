@@ -2,7 +2,6 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Booking, BookingStatus } from '../../shared/models/booking.model';
-import { getActiveSession } from '../../core/guards/auth.guard';
 
 @Component({
   selector: 'app-my-bookings',
@@ -849,7 +848,7 @@ export class MyBookingsComponent {
   defaultImage =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuDBzLb4D0hXTtv94YgrWMhNgADYVAoLJcmapt80ln2soBQUUBy3oShdBd4G1QtRCxOjFmc57ejII1muyXGvGVLKcAY5w0xes8kqHdV_mRJ30LorfhTepvJyN0pQd2arlng8xqWXsQ8bEvxzpDRaJr2Z5BMkb7E3yt4oPZZ4bo4xytWiDYdJ68OOK7vGg_7GXuRjvSk9WOP4JawgX_ezJSmmpqi-bc_UXmWQKrH5rR_rNYdVAxfqqt7q';
 
-  session = getActiveSession();
+
   selectedStatus: 'TODAS' | BookingStatus = 'TODAS';
   searchQuery = '';
   feedbackMessage = '';
