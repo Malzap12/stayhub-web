@@ -5,6 +5,15 @@ export type ListingStatus =
   | 'PAUSADA'
   | 'BLOQUEADA';
 
+export interface AvailabilityPeriod {
+  id: string;
+  listingId: string;
+  startDate: string;
+  endDate: string;
+  availableForBooking: boolean;
+  createdAt?: string;
+}
+
 export interface Listing {
   id: string;
   title: string;
