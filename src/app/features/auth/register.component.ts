@@ -272,7 +272,8 @@ export interface RegisterFormModel {
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     input:focus {
-      border-color: var(--apple-blue, #0071e3);
+      border-color: var(--apple-ink, #1d1d1f);
+      outline: none;
     }
     input.input-error {
       border-color: var(--apple-red, #d70015);
@@ -307,8 +308,8 @@ export interface RegisterFormModel {
       width: 100%;
       padding: 14px 20px;
       border: none;
-      border-radius: var(--apple-radius-pill, 980px);
-      background: var(--apple-blue, #0071e3);
+      border-radius: 14px;
+      background: var(--apple-ink, #1d1d1f);
       color: #ffffff;
       font-size: 0.95rem;
       font-weight: 600;
@@ -316,7 +317,7 @@ export interface RegisterFormModel {
       transition: background-color 0.2s ease, transform 0.1s ease;
     }
     .apple-btn-primary:hover:not(:disabled) {
-      background: var(--apple-blue-hover, #0077ed);
+      background: var(--apple-ink-hover, #000000);
     }
     .apple-btn-primary:disabled {
       opacity: 0.6;

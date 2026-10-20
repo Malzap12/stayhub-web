@@ -1,30 +1,32 @@
-/* Sistema de Diseño Minimalista — Apple Cupertino (Inversiones LR) */
+/* Sistema de Diseño Minimalista — Apple Cupertino Titanium & Space Black (Inversiones LR) */
 :root {
   --apple-bg: #f5f5f7;
   --apple-surface: #ffffff;
-  --apple-surface-glass: rgba(255, 255, 255, 0.78);
+  --apple-surface-subtle: #ebebf0;
+  --apple-surface-glass: rgba(255, 255, 255, 0.82);
   --apple-text-primary: #1d1d1f;
   --apple-text-secondary: #6e6e73;
+  --apple-text-tertiary: #86868b;
   --apple-border: #d2d2d7;
-  --apple-border-subtle: rgba(0, 0, 0, 0.08);
-  --apple-blue: #0071e3;
-  --apple-blue-hover: #0077ed;
-  --apple-blue-focus: rgba(0, 113, 227, 0.28);
+  --apple-border-subtle: rgba(0, 0, 0, 0.07);
+  --apple-ink: #1d1d1f;
+  --apple-ink-hover: #000000;
+  --apple-focus-ring: rgba(29, 29, 31, 0.22);
   --apple-red: #d70015;
   --apple-red-bg: #fff2f4;
   --apple-green: #248a3d;
   --apple-green-bg: #f2fbf5;
-  --apple-radius-lg: 20px;
-  --apple-radius-md: 12px;
+  --apple-radius-lg: 24px;
+  --apple-radius-md: 14px;
   --apple-radius-pill: 980px;
-  --apple-shadow: 0 12px 32px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
+  --apple-shadow: 0 14px 36px rgba(0, 0, 0, 0.045), 0 2px 6px rgba(0, 0, 0, 0.025);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Plus Jakarta Sans', 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -38,18 +40,19 @@ body {
 }
 
 a {
-  color: var(--apple-blue);
+  color: var(--apple-text-primary);
   text-decoration: none;
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 a:hover {
-  text-decoration: underline;
+  opacity: 0.78;
 }
 
 button:focus-visible,
 input:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--apple-blue-focus);
+  outline: 2px solid var(--apple-focus-ring);
   outline-offset: 2px;
 }
+
