@@ -1,3 +1,10 @@
+export type ListingStatus =
+  | 'BORRADOR'
+  | 'PENDIENTE_REVISION'
+  | 'ACTIVA'
+  | 'PAUSADA'
+  | 'BLOQUEADA';
+
 export interface Listing {
   id: string;
   title: string;
@@ -5,6 +12,22 @@ export interface Listing {
   city: string;
   capacity: number;
   pricePerNight: number;
-  status: 'BORRADOR' | 'PENDIENTE_REVISION' | 'ACTIVA' | 'PAUSADA' | 'BLOQUEADA';
+  status: ListingStatus;
   amenities: string[];
+  hostId?: string;
+  hostName?: string;
+  requestedAt?: string;
+  returnReason?: string;
+  imageUrl?: string;
+}
+
+export interface HostModerationNotification {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  hostName: string;
+  type: 'APROBADA' | 'DEVUELTA';
+  message: string;
+  reason?: string;
+  createdAt: string;
 }

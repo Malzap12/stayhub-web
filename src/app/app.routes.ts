@@ -30,8 +30,8 @@ export const routes: Routes = [
     path: 'admin/moderacion',
     canActivate: [roleGuard(['ADMINISTRADOR'])],
     loadComponent: () =>
-      import('./features/listings/listing-list.component').then(
-        (m) => m.ListingListComponent,
+      import('./features/listings/admin-moderation.component').then(
+        (m) => m.AdminModerationComponent,
       ),
   },
   {
