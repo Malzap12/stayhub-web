@@ -292,7 +292,7 @@ import {
             <button type="button" class="close-icon" (click)="showRecoveryModal = false">✕</button>
           </div>
           <p>
-            Ingresa el correo electrónico asociado a tu cuenta en Inversiones LR. Te enviaremos un enlace de un solo uso a tu buzón simulado.
+            Ingresa el correo electrónico asociado a tu cuenta en Inversiones LR. Te enviaremos un enlace de un solo uso a tu correo electrónico.
           </p>
           <input
             type="email"
@@ -1008,13 +1008,15 @@ export class LoginComponent {
 
     this.showRecoveryModal = false;
     this.recoveryEmail = '';
-    await fetch('/api/auth/password-recovery', {
+    const response = await fetch('/api/auth/password-recovery', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     }).catch(() => null);
+    const body = await response?.json().catch(() => ({}));
+    const delivery = body?.delivery === 'EMAIL' ? 'EMAIL' : 'SIMULATED';
 
-    await this.router?.navigate(['/auth/recuperar'], { queryParams: { email } });
+    await this.router?.navigate(['/auth/recuperar'], { queryParams: { email, delivery } });
   }
 
   clearErrors(): void {

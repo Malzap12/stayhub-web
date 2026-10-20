@@ -13,7 +13,8 @@ export interface SimulatedMail {
   sentAt: string;
 }
 
-export type RecoveryStep = 'request' | 'mailbox' | 'reset' | 'done';
+export type RecoveryStep = 'request' | 'mailbox' | 'sent' | 'checking' | 'reset' | 'done';
+export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
 
 @Component({
   selector: 'app-password-recovery',
@@ -26,12 +27,15 @@ export type RecoveryStep = 'request' | 'mailbox' | 'reset' | 'done';
           <p class="apple-eyebrow">Inversiones LR · Seguridad</p>
           <h1 id="recovery-title">Recupera tu contraseña</h1>
           <p class="apple-subtitle">
-            Te enviaremos un enlace de un solo uso a tu <strong>buzón simulado</strong>.
+            Te enviaremos un enlace de un solo uso a tu <strong>correo electrónico</strong>.
           </p>
         </header>
 
         <!-- CA1 y CA4: solicitud con confirmación genérica -->
+        <p *ngIf="step === 'checking'" class="field-hint" role="status">Validando tu enlace…</p>
+
         <form *ngIf="step === 'request'" (ngSubmit)="requestRecovery()" novalidate class="apple-form">
+          <div *ngIf="tokenError" class="banner-error" role="alert">{{ tokenError }}</div>
           <div class="apple-field">
             <label for="recovery-email" class="apple-label">Correo electrónico</label>
             <input
@@ -53,6 +57,22 @@ export type RecoveryStep = 'request' | 'mailbox' | 'reset' | 'done';
             {{ loading ? 'Enviando...' : 'Enviar enlace de recuperación' }}
           </button>
         </form>
+
+        <!-- HU-004A: enlace enviado al correo real -->
+        <section *ngIf="step === 'sent'" class="apple-form" aria-live="polite">
+          <div class="banner-success" role="status">
+            <strong>Revisa tu correo</strong>
+            <span>{{ confirmationMessage }}</span>
+          </div>
+          <p class="field-hint">
+            Enviamos el enlace a <strong>{{ email }}</strong>. Vence en pocos minutos y solo se puede usar una vez.
+            Si no lo ves, revisa la carpeta de spam.
+          </p>
+          <button type="button" class="apple-btn-secondary" (click)="requestRecovery()" [disabled]="loading">
+            Reenviar enlace
+          </button>
+          <button type="button" class="link-btn" (click)="restart()">Usar otro correo</button>
+        </section>
 
         <!-- Buzón simulado (AMB-33, SUP-11) -->
         <section *ngIf="step === 'mailbox'" class="apple-form" aria-live="polite">
@@ -334,6 +354,7 @@ export class PasswordRecoveryComponent implements OnInit {
   confirmPassword = '';
   mailbox: SimulatedMail[] = [];
   confirmationMessage = '';
+  delivery: RecoveryDelivery = 'SIMULATED';
   tokenError = '';
   successMessage = '';
   submitted = false;
@@ -342,13 +363,48 @@ export class PasswordRecoveryComponent implements OnInit {
   constructor(private readonly route?: ActivatedRoute) {}
 
   ngOnInit(): void {
-    const email = this.route?.snapshot.queryParamMap.get('email');
+    const params = this.route?.snapshot.queryParamMap;
+    const token = params?.get('token');
+    const email = params?.get('email');
+
+    if (token) {
+      this.openEmailLink(token).catch(() => undefined);
+      return;
+    }
     if (email) {
       this.email = email;
+      this.delivery = params?.get('delivery') === 'EMAIL' ? 'EMAIL' : 'SIMULATED';
       this.confirmationMessage = PasswordRecoveryComponent.CONFIRMATION_MESSAGE;
-      this.step = 'mailbox';
-      this.loadMailbox().catch(() => undefined);
+      this.showDeliveryStep().catch(() => undefined);
     }
+  }
+
+  /** HU-004A CA2 y CA3: el enlace del correo abre el paso de nueva contraseña si sigue vigente. */
+  async openEmailLink(token: string): Promise<void> {
+    this.step = 'checking';
+    try {
+      const response = await fetch(
+        `/api/auth/password-recovery/token-status?token=${encodeURIComponent(token)}`,
+      );
+      const status = await response.json().catch(() => ({}));
+      if (response.ok && status?.valid) {
+        this.useToken(token);
+        return;
+      }
+      this.tokenError = status?.message || PasswordRecoveryComponent.INVALID_TOKEN_MESSAGE;
+    } catch {
+      this.tokenError = 'No fue posible validar el enlace. Intenta de nuevo.';
+    }
+    this.step = 'request';
+  }
+
+  private async showDeliveryStep(): Promise<void> {
+    if (this.delivery === 'EMAIL') {
+      this.step = 'sent';
+      return;
+    }
+    await this.loadMailbox();
+    this.step = 'mailbox';
   }
 
   /** Validación lineal (sin backtracking) de nombre@dominio.tld. */
@@ -402,14 +458,15 @@ export class PasswordRecoveryComponent implements OnInit {
       });
       const body = await response.json().catch(() => ({}));
       this.confirmationMessage = body?.message || PasswordRecoveryComponent.CONFIRMATION_MESSAGE;
+      this.delivery = body?.delivery === 'EMAIL' ? 'EMAIL' : 'SIMULATED';
     } catch {
       this.confirmationMessage = PasswordRecoveryComponent.CONFIRMATION_MESSAGE;
     }
 
-    await this.loadMailbox();
+    this.tokenError = '';
+    await this.showDeliveryStep();
     this.submitted = false;
     this.loading = false;
-    this.step = 'mailbox';
   }
 
   async loadMailbox(): Promise<void> {
@@ -465,6 +522,11 @@ export class PasswordRecoveryComponent implements OnInit {
   }
 
   async requestNewToken(): Promise<void> {
+    if (!this.email.trim()) {
+      this.submitted = false;
+      this.step = 'request';
+      return;
+    }
     this.tokenError = '';
     await this.requestRecovery();
   }

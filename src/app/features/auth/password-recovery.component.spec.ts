@@ -127,4 +127,46 @@ describe('PasswordRecoveryComponent (HU-004 · Recuperar la contraseña simulado
     expect(component.step).toBe('mailbox');
     expect(component.mailbox[0].token).toBe('token-123');
   });
+
+  describe('HU-004A · Recuperación por correo electrónico', () => {
+    it('CA1: con entrega por correo muestra "Revisa tu correo" sin consultar el buzón simulado', async () => {
+      fetchSpy.and.returnValue(
+        jsonResponse({ message: PasswordRecoveryComponent.CONFIRMATION_MESSAGE, delivery: 'EMAIL' }),
+      );
+      component.email = 'olvido@stayhub.com';
+
+      await component.requestRecovery();
+
+      expect(component.step).toBe('sent');
+      expect(component.delivery).toBe('EMAIL');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('CA2: el enlace vigente del correo abre el paso de nueva contraseña', async () => {
+      fetchSpy.and.returnValue(jsonResponse({ valid: true, expiresAt: '2026-10-20T04:00:00.000Z' }));
+
+      await component.openEmailLink('token-correo');
+
+      expect(fetchSpy.calls.mostRecent().args[0]).toBe(
+        '/api/auth/password-recovery/token-status?token=token-correo',
+      );
+      expect(component.step).toBe('reset');
+      expect(component.token).toBe('token-correo');
+    });
+
+    it('CA3: el enlace vencido o usado muestra el error y permite pedir uno nuevo con el correo', async () => {
+      fetchSpy.and.returnValue(
+        jsonResponse({ valid: false, message: PasswordRecoveryComponent.INVALID_TOKEN_MESSAGE }),
+      );
+
+      await component.openEmailLink('token-usado');
+
+      expect(component.step).toBe('request');
+      expect(component.tokenError).toBe(PasswordRecoveryComponent.INVALID_TOKEN_MESSAGE);
+
+      component.step = 'reset';
+      await component.requestNewToken();
+      expect(component.step).toBe('request');
+    });
+  });
 });
