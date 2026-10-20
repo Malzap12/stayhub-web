@@ -54,6 +54,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'auth/recuperar',
+    loadComponent: () =>
+      import('./features/auth/password-recovery.component').then(
+        (m) => m.PasswordRecoveryComponent,
+      ),
+  },
+  {
     path: 'register',
     redirectTo: 'auth/register',
     pathMatch: 'full',

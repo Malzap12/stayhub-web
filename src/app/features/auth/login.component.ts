@@ -292,7 +292,7 @@ import {
             <button type="button" class="close-icon" (click)="showRecoveryModal = false">✕</button>
           </div>
           <p>
-            Ingresa el correo electrónico asociado a tu cuenta en Inversiones LR. Te enviaremos un enlace de un solo uso con verificación de seguridad.
+            Ingresa el correo electrónico asociado a tu cuenta en Inversiones LR. Te enviaremos un enlace de un solo uso a tu buzón simulado.
           </p>
           <input
             type="email"
@@ -999,12 +999,22 @@ export class LoginComponent {
     this.ssoToast = `Autenticación federada simulada vía ${provider} para perfil ${this.selectedRoleLabel}`;
   }
 
-  sendRecovery(): void {
-    this.showRecoveryModal = false;
-    if (this.recoveryEmail.trim()) {
-      this.ssoToast = `Enlace de recuperación enviado a ${this.recoveryEmail.trim()} (auditoría registrada)`;
-      this.recoveryEmail = '';
+  /** HU-004 CA1 y CA4: solicita el enlace y abre el buzón simulado con confirmación genérica. */
+  async sendRecovery(): Promise<void> {
+    const email = this.recoveryEmail.trim().toLowerCase();
+    if (!email) {
+      return;
     }
+
+    this.showRecoveryModal = false;
+    this.recoveryEmail = '';
+    await fetch('/api/auth/password-recovery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => null);
+
+    this.router?.navigate(['/auth/recuperar'], { queryParams: { email } });
   }
 
   clearErrors(): void {
