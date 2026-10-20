@@ -341,13 +341,13 @@ export class PasswordRecoveryComponent implements OnInit {
 
   constructor(private readonly route?: ActivatedRoute) {}
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
     const email = this.route?.snapshot.queryParamMap.get('email');
     if (email) {
       this.email = email;
       this.confirmationMessage = PasswordRecoveryComponent.CONFIRMATION_MESSAGE;
-      await this.loadMailbox();
       this.step = 'mailbox';
+      this.loadMailbox().catch(() => undefined);
     }
   }
 
