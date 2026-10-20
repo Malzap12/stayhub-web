@@ -16,27 +16,27 @@ describe('MyBookingsComponent · HU-034', () => {
   });
 
   it('CA1: debe listar reservas y permitir filtrar por estado (RF-048)', () => {
-    expect(component.bookings.length).toBe(5);
+    expect(component.bookings).toHaveSize(5);
 
     component.setStatusFilter('CONFIRMADA');
-    expect(component.filteredBookings.length).toBe(1);
+    expect(component.filteredBookings).toHaveSize(1);
     expect(component.filteredBookings[0].status).toBe('CONFIRMADA');
 
     component.setStatusFilter('COMPLETADA');
-    expect(component.filteredBookings.length).toBe(1);
+    expect(component.filteredBookings).toHaveSize(1);
     expect(component.filteredBookings[0].status).toBe('COMPLETADA');
   });
 
   it('CA2: debe soportar búsqueda por ciudad o ID y paginar resultados (RNF-022)', () => {
     component.searchQuery = 'Cartagena';
     component.onSearchChange();
-    expect(component.filteredBookings.length).toBe(1);
+    expect(component.filteredBookings).toHaveSize(1);
     expect(component.filteredBookings[0].listingCity).toBe('Cartagena');
 
     component.searchQuery = '';
     component.pageSize = 2;
     expect(component.totalPages).toBe(3);
-    expect(component.paginatedBookings.length).toBe(2);
+    expect(component.paginatedBookings).toHaveSize(2);
 
     component.goToPage(2);
     expect(component.currentPage).toBe(2);
