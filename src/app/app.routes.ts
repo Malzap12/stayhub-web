@@ -27,6 +27,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'anfitrion/publicaciones/nueva',
+    canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/listings/listing-draft-form.component').then(
+        (m) => m.ListingDraftFormComponent,
+      ),
+  },
+  {
     path: 'admin/moderacion',
     canActivate: [roleGuard(['ADMINISTRADOR'])],
     loadComponent: () =>
