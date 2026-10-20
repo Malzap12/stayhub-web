@@ -11,7 +11,7 @@ import { AvailabilityPeriod, Listing } from '../../shared/models/listing.model';
     <section class="host-shell">
       <header class="host-header">
         <div>
-          <span class="eyebrow">HU-019 · Panel de Anfitrión (EP-04)</span>
+          <span class="eyebrow">Panel de Anfitrión</span>
           <h1>Registrar periodos disponibles</h1>
           <p class="subtitle">
             Configura las ventanas de fechas en que tu alojamiento está habilitado para recibir reservas.

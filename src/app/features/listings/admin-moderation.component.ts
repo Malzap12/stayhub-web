@@ -11,7 +11,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
     <section class="moderation-shell">
       <header class="moderation-header">
         <div>
-          <span class="eyebrow">HU-050 · Panel de Administración</span>
+          <span class="eyebrow">Panel de Administración</span>
           <h1>Cola de revisión de publicaciones</h1>
           <p class="subtitle">
             Revisa las solicitudes pendientes ordenadas por fecha de solicitud, aprueba las que cumplen los estándares
@@ -84,7 +84,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
       <!-- CA2 & CA3: Trazabilidad de resultados (Búsqueda pública, Borradores del anfitrión y Notificaciones) -->
       <div class="outcomes-grid">
         <section class="outcome-panel">
-          <h3>CA2 · Visibles en búsquedas (Estado ACTIVA)</h3>
+          <h3>Publicaciones activas en búsqueda</h3>
           <p class="empty-inline" *ngIf="activeSearchListings.length === 0">
             Ninguna publicación aprobada en esta sesión aún.
           </p>
@@ -97,7 +97,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
         </section>
 
         <section class="outcome-panel">
-          <h3>CA3 · Vista del Anfitrión (Borradores devueltos y motivos)</h3>
+          <h3>Publicaciones devueltas (Borrador)</h3>
           <p class="empty-inline" *ngIf="returnedDraftListings.length === 0">
             Ninguna publicación devuelta en esta sesión aún.
           </p>
