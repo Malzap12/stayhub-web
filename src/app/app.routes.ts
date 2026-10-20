@@ -22,8 +22,8 @@ export const routes: Routes = [
     path: 'anfitrion/publicaciones',
     canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
     loadComponent: () =>
-      import('./features/listings/listing-list.component').then(
-        (m) => m.ListingListComponent,
+      import('./features/listings/host-availability.component').then(
+        (m) => m.HostAvailabilityComponent,
       ),
   },
   {
@@ -59,4 +59,3 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
 ];
-
