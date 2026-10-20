@@ -542,7 +542,7 @@ export class ListingDraftFormComponent implements OnInit {
     }
 
     const price = this.form.pricePerNight;
-    if (price !== null && !(price > 0)) {
+    if (price !== null && (!Number.isFinite(price) || price <= 0)) {
       errors.pricePerNight = 'El precio por noche debe ser mayor que 0.';
     }
 
