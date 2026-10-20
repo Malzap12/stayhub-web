@@ -351,12 +351,26 @@ export class PasswordRecoveryComponent implements OnInit {
     }
   }
 
+  /** Validación lineal (sin backtracking) de nombre@dominio.tld. */
+  static isValidEmail(email: string): boolean {
+    const [local, domain, ...rest] = email.split('@');
+    return (
+      rest.length === 0 &&
+      Boolean(local) &&
+      Boolean(domain) &&
+      !/\s/.test(email) &&
+      domain.includes('.') &&
+      !domain.startsWith('.') &&
+      !domain.endsWith('.')
+    );
+  }
+
   get emailError(): string {
     const email = this.email.trim();
     if (!email) {
       return 'El correo electrónico es obligatorio.';
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!PasswordRecoveryComponent.isValidEmail(email)) {
       return 'Ingresa un correo electrónico con formato válido.';
     }
     return '';

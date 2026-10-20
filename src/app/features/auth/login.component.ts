@@ -1014,7 +1014,7 @@ export class LoginComponent {
       body: JSON.stringify({ email }),
     }).catch(() => null);
 
-    this.router?.navigate(['/auth/recuperar'], { queryParams: { email } });
+    await this.router?.navigate(['/auth/recuperar'], { queryParams: { email } });
   }
 
   clearErrors(): void {

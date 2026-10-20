@@ -64,6 +64,13 @@ describe('PasswordRecoveryComponent (HU-004 · Recuperar la contraseña simulado
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('valida el formato del correo sin expresiones con backtracking', () => {
+    expect(PasswordRecoveryComponent.isValidEmail('olvido@stayhub.com')).toBeTrue();
+    ['', 'sin-arroba', 'a@b', 'a@@b.com', '@stayhub.com', 'a@.com', 'a@stayhub.', 'a b@stayhub.com'].forEach(
+      (email) => expect(PasswordRecoveryComponent.isValidEmail(email)).withContext(email).toBeFalse(),
+    );
+  });
+
   it('CA2: define la nueva contraseña con un token válido', async () => {
     fetchSpy.and.returnValue(jsonResponse({ message: 'Tu contraseña fue actualizada.' }));
     component.useToken(mail.token);
