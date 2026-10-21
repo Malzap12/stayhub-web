@@ -26,33 +26,14 @@ import {
         <!-- Dock Central Estilo iOS / Cupertino -->
         <nav class="apple-dock" aria-label="Navegación principal">
           <a routerLink="/listings" routerLinkActive="active">Explorar Alojamientos</a>
-          <a routerLink="/mis-reservas" routerLinkActive="active">Mis Reservas</a>
-          <a routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
-          <a routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
-          <a routerLink="/admin/moderacion" routerLinkActive="active">Administración</a>
+          <a *ngIf="canViewMyBookings" routerLink="/mis-reservas" routerLinkActive="active">Mis Reservas</a>
+          <a *ngIf="isAnfitrion" routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
+          <a *ngIf="isAnfitrion" routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
+          <a *ngIf="isAdmin" routerLink="/admin/moderacion" routerLinkActive="active">Administración</a>
         </nav>
 
-        <!-- Cluster Derecho: Moneda COP/USD + Perfil / Acceso -->
+        <!-- Cluster Derecho: Perfil / Acceso -->
         <div class="apple-actions">
-          <div class="currency-toggle" role="group" aria-label="Moneda">
-            <button
-              type="button"
-              [class.active]="currency === 'COP'"
-              (click)="currency = 'COP'"
-            >
-              COP
-            </button>
-            <button
-              type="button"
-              [class.active]="currency === 'USD'"
-              (click)="currency = 'USD'"
-            >
-              USD
-            </button>
-          </div>
-
-          <div class="v-divider" aria-hidden="true"></div>
-
           <ng-container *ngIf="session as user">
             <div class="profile-chip">
               <span class="avatar-circle">{{ user.name.charAt(0).toUpperCase() }}</span>
@@ -170,33 +151,6 @@ import {
       align-items: center;
       gap: 12px;
     }
-    .currency-toggle {
-      display: inline-flex;
-      padding: 2px;
-      background: #f0f0f3;
-      border-radius: 980px;
-      border: 1px solid rgba(0, 0, 0, 0.06);
-    }
-    .currency-toggle button {
-      border: none;
-      background: transparent;
-      padding: 3px 9px;
-      border-radius: 980px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      color: #6e6e73;
-      cursor: pointer;
-    }
-    .currency-toggle button.active {
-      background: #ffffff;
-      color: #1d1d1f;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    }
-    .v-divider {
-      width: 1px;
-      height: 20px;
-      background: rgba(0, 0, 0, 0.1);
-    }
     .profile-chip {
       display: inline-flex;
       align-items: center;
@@ -266,12 +220,26 @@ import {
   `],
 })
 export class NavbarComponent {
-  currency: 'COP' | 'USD' = 'COP';
-
   constructor(private readonly router?: Router) {}
 
   get session(): StoredSession | null {
     return getActiveSession();
+  }
+
+  get isHuesped(): boolean {
+    return this.session?.role === 'HUESPED';
+  }
+
+  get isAnfitrion(): boolean {
+    return this.session?.role === 'ANFITRION' || this.session?.role === 'ADMINISTRADOR';
+  }
+
+  get isAdmin(): boolean {
+    return this.session?.role === 'ADMINISTRADOR';
+  }
+
+  get canViewMyBookings(): boolean {
+    return this.session?.role === 'HUESPED' || this.session?.role === 'ADMINISTRADOR';
   }
 
   logout(): void {
@@ -279,4 +247,3 @@ export class NavbarComponent {
     this.router?.navigate(['/auth/login']);
   }
 }
-
