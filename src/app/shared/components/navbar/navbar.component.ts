@@ -35,13 +35,13 @@ import {
         <!-- Cluster Derecho: Perfil / Acceso -->
         <div class="apple-actions">
           <ng-container *ngIf="session as user">
-            <div class="profile-chip">
+            <a routerLink="/mi-perfil" class="profile-chip" title="Ver mi perfil">
               <span class="avatar-circle">{{ user.name.charAt(0).toUpperCase() }}</span>
               <div class="profile-meta">
                 <span class="profile-name">{{ user.name }}</span>
                 <span class="profile-role">{{ user.role }}</span>
               </div>
-            </div>
+            </a>
             <button type="button" class="apple-logout-btn" (click)="logout()">
               Salir
             </button>
@@ -155,6 +155,7 @@ import {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      text-decoration: none;
     }
     .avatar-circle {
       width: 30px;

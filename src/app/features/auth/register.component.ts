@@ -9,8 +9,12 @@ export interface RegisterFormModel {
   name: string;
   email: string;
   password: string;
+  phone?: string;
   role: PublicRole;
 }
+
+/** Mismo formato que valida el API: 7 a 15 dígitos, con indicativo y separadores opcionales. */
+const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
 
 @Component({
   selector: 'app-register',
@@ -115,6 +119,31 @@ export interface RegisterFormModel {
               role="alert"
             >
               {{ duplicateEmailError || emailError }}
+            </p>
+          </div>
+
+          <!-- Teléfono opcional (HU-006) -->
+          <div class="apple-field">
+            <label for="register-phone" class="apple-label">Teléfono <span class="field-optional">(opcional)</span></label>
+            <input
+              id="register-phone"
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+              placeholder="Ej. +57 300 123 4567"
+              [(ngModel)]="form.phone"
+              (blur)="touched.phone = true"
+              [class.input-error]="(touched.phone || submitted) && phoneError"
+              [attr.aria-invalid]="(touched.phone || submitted) && !!phoneError"
+              aria-describedby="phone-error"
+            />
+            <p
+              *ngIf="(touched.phone || submitted) && phoneError"
+              id="phone-error"
+              class="field-error"
+              role="alert"
+            >
+              {{ phoneError }}
             </p>
           </div>
 
@@ -225,6 +254,10 @@ export interface RegisterFormModel {
     }
     .apple-required {
       color: var(--apple-red, #d70015);
+    }
+    .field-optional {
+      font-weight: 400;
+      color: var(--apple-text-secondary, #6e6e73);
     }
     .apple-segmented {
       display: grid;
@@ -350,6 +383,7 @@ export class RegisterComponent {
     name: '',
     email: '',
     password: '',
+    phone: '',
     role: 'HUESPED',
   };
 
@@ -357,6 +391,7 @@ export class RegisterComponent {
     name: false,
     email: false,
     password: false,
+    phone: false,
   };
 
   submitted = false;
@@ -404,11 +439,20 @@ export class RegisterComponent {
     return '';
   }
 
+  get phoneError(): string {
+    const phone = this.form.phone?.trim() ?? '';
+    if (phone && !PHONE_REGEX.test(phone)) {
+      return 'Ingresa un teléfono válido: solo números, espacios o guiones (7 a 15 dígitos).';
+    }
+    return '';
+  }
+
   isFormValid(): boolean {
     return (
       !this.nameError &&
       !this.emailError &&
       !this.passwordError &&
+      !this.phoneError &&
       this.availableRoles.includes(this.form.role)
     );
   }
@@ -433,6 +477,7 @@ export class RegisterComponent {
           name: this.form.name.trim(),
           email: normalizedEmail,
           password: this.form.password,
+          phone: this.form.phone?.trim() || undefined,
           role: this.form.role,
         }),
       });
