@@ -118,6 +118,16 @@ interface ActivationFailure {
                   <li *ngFor="let field of failure.missing">{{ field }}</li>
                 </ul>
               </div>
+
+              <!-- HU-019: periodos en que el alojamiento recibe reservas -->
+              <a
+                *ngIf="item.status !== 'BLOQUEADA'"
+                class="availability-link"
+                routerLink="/anfitrion/publicaciones"
+                [queryParams]="{ listing: item.id }"
+              >
+                Gestionar periodos disponibles →
+              </a>
             </li>
           </ul>
 
@@ -343,6 +353,13 @@ interface ActivationFailure {
     .activate-btn:disabled {
       opacity: 0.6;
       cursor: progress;
+    }
+    .availability-link {
+      align-self: flex-start;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #0066cc;
+      text-decoration: none;
     }
     .hint {
       font-size: 0.78rem;
