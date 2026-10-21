@@ -16,10 +16,16 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
   BLOQUEADA: 'Bloqueada',
 };
 
+interface ActivationFailure {
+  message: string;
+  missing: string[];
+}
+
 /**
  * HU-012 · Consultar mis publicaciones (CA1, CA2, RF-016, RN-005).
  * El anfitrión ve sus publicaciones con título, ciudad, precio y estado,
  * y el motivo del administrador cuando fueron devueltas o bloqueadas.
+ * HU-013 · Desde un borrador puede solicitar la activación (RF-017).
  */
 @Component({
   selector: 'app-my-listings',
@@ -37,6 +43,8 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
       </header>
 
       <p class="loading" *ngIf="loading" role="status">Cargando tus publicaciones…</p>
+
+      <div class="alert-success" *ngIf="successMessage" role="status">{{ successMessage }}</div>
 
       <div class="alert-error" *ngIf="errorMessage" role="alert">
         {{ errorMessage }}
@@ -88,6 +96,27 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
               >
                 <strong>{{ reasonTitle(item) }}</strong>
                 <p>{{ item.adminReason }}</p>
+              </div>
+
+              <!-- HU-013 CA1: solicitar la activación desde BORRADOR -->
+              <div class="card-actions" *ngIf="item.status === 'BORRADOR'">
+                <button
+                  type="button"
+                  class="activate-btn"
+                  [disabled]="activatingId === item.id"
+                  (click)="requestActivation(item)"
+                >
+                  {{ activatingId === item.id ? 'Enviando a revisión…' : 'Solicitar activación' }}
+                </button>
+                <span class="hint">El administrador la revisará antes de que aparezca en las búsquedas.</span>
+              </div>
+
+              <!-- HU-013 CA2: campos faltantes devueltos por el sistema -->
+              <div class="activation-error" *ngIf="activationErrors[item.id] as failure" role="alert">
+                <strong>{{ failure.message }}</strong>
+                <ul *ngIf="failure.missing.length > 0">
+                  <li *ngFor="let field of failure.missing">{{ field }}</li>
+                </ul>
               </div>
             </li>
           </ul>
@@ -285,6 +314,56 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
       color: #3a3a3c;
       overflow-wrap: anywhere;
     }
+    .alert-success {
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      background: #e8f8ee;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+    }
+    .activate-btn {
+      padding: 9px 16px;
+      border-radius: 980px;
+      border: none;
+      background: #1d1d1f;
+      color: #ffffff;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .activate-btn:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
+    .hint {
+      font-size: 0.78rem;
+      color: #86868b;
+    }
+    .activation-error {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-size: 0.86rem;
+    }
+    .activation-error ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+      color: #3a3a3c;
+    }
+    .activation-error li::first-letter {
+      text-transform: uppercase;
+    }
     .empty-filter {
       color: #86868b;
       font-size: 0.88rem;
@@ -296,6 +375,9 @@ export class MyListingsComponent implements OnInit {
   filter: StatusFilter = 'TODAS';
   loading = false;
   errorMessage = '';
+  successMessage = '';
+  activatingId: string | null = null;
+  activationErrors: Record<string, ActivationFailure> = {};
 
   private readonly priceFormatter = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -334,14 +416,66 @@ export class MyListingsComponent implements OnInit {
       : 'Devuelta por el administrador. Motivo:';
   }
 
+  private authHeaders(): Record<string, string> {
+    const token = getActiveSession()?.token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  /** HU-013: envía el borrador a revisión; si faltan campos muestra cuáles (CA2). */
+  async requestActivation(item: MyListing): Promise<void> {
+    this.activatingId = item.id;
+    this.successMessage = '';
+    this.activationErrors = Object.fromEntries(
+      Object.entries(this.activationErrors).filter(([id]) => id !== item.id),
+    );
+
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(item.id)}/request-activation`, {
+        method: 'PATCH',
+        headers: this.authHeaders(),
+      });
+      const body = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        const updated = body as MyListing;
+        this.listings = this.listings.map((listing) => (listing.id === item.id ? updated : listing));
+        this.successMessage = `«${item.title}» se envió a revisión. Aparecerá en las búsquedas cuando el administrador la apruebe.`;
+        return;
+      }
+
+      this.activationErrors = { ...this.activationErrors, [item.id]: this.activationFailure(response.status, body) };
+    } catch {
+      this.activationErrors = {
+        ...this.activationErrors,
+        [item.id]: { message: 'No fue posible conectar con el servidor. Intenta de nuevo.', missing: [] },
+      };
+    } finally {
+      this.activatingId = null;
+    }
+  }
+
+  private activationFailure(
+    status: number,
+    body: { message?: string | string[]; missingFieldLabels?: string[] },
+  ): ActivationFailure {
+    if (body?.missingFieldLabels?.length) {
+      return { message: 'No se puede solicitar la activación. Completa estos campos:', missing: body.missingFieldLabels };
+    }
+    if (status === 401) {
+      return { message: 'Tu sesión expiró. Inicia sesión de nuevo.', missing: [] };
+    }
+    if (status === 404) {
+      return { message: 'La publicación no existe o no te pertenece.', missing: [] };
+    }
+    const message = [body?.message].flat().filter(Boolean).join(' ');
+    return { message: message || 'No fue posible solicitar la activación.', missing: [] };
+  }
+
   async load(): Promise<void> {
     this.loading = true;
     this.errorMessage = '';
     try {
-      const token = getActiveSession()?.token;
-      const response = await fetch('/api/listings/mine', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await fetch('/api/listings/mine', { headers: this.authHeaders() });
 
       if (response.status === 401) {
         this.errorMessage = 'Tu sesión expiró. Inicia sesión de nuevo para ver tus publicaciones.';

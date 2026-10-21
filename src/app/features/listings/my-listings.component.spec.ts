@@ -122,4 +122,58 @@ describe('MyListingsComponent · HU-012', () => {
     expect(component.errorMessage).toContain('Tu sesión expiró');
     expect(element.querySelector('.listing-card')).toBeNull();
   });
+
+  describe('HU-013 · Solicitar la activación', () => {
+    const draft = listings[0];
+
+    it('CA1: solo los borradores ofrecen el botón de solicitar activación', async () => {
+      respondWith(200, listings);
+      await render();
+
+      const cards = element.querySelectorAll('.listing-card');
+      expect(cards[0].querySelector('.activate-btn')?.textContent?.trim()).toBe('Solicitar activación');
+      expect(cards[1].querySelector('.activate-btn')).toBeNull();
+    });
+
+    it('CA1 y CA3: al aprobarse la solicitud la tarjeta pasa a En revisión', async () => {
+      const fetchSpy = respondWith(200, listings);
+      await render();
+      fetchSpy.and.resolveTo(
+        new Response(
+          JSON.stringify({ ...draft, status: 'PENDIENTE_REVISION', statusLabel: 'En revisión', adminReason: undefined }),
+          { status: 200 },
+        ),
+      );
+
+      await component.requestActivation(draft);
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/listings/listing-1/request-activation',
+        jasmine.objectContaining({ method: 'PATCH' }),
+      );
+      expect(component.listings[0].status).toBe('PENDIENTE_REVISION');
+      expect(component.successMessage).toContain('se envió a revisión');
+    });
+
+    it('CA2: si faltan campos muestra la lista que devuelve el sistema', async () => {
+      const fetchSpy = respondWith(200, listings);
+      await render();
+      fetchSpy.and.resolveTo(
+        new Response(
+          JSON.stringify({ statusCode: 400, missingFields: ['images'], missingFieldLabels: ['al menos una imagen'] }),
+          { status: 400 },
+        ),
+      );
+
+      await component.requestActivation(listings[2]);
+      fixture.detectChanges();
+
+      expect(component.activationErrors['listing-3']).toEqual({
+        message: 'No se puede solicitar la activación. Completa estos campos:',
+        missing: ['al menos una imagen'],
+      });
+      expect(element.querySelector('.activation-error li')?.textContent).toContain('al menos una imagen');
+      expect(component.listings[2].status).toBe('BORRADOR');
+    });
+  });
 });
