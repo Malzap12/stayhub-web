@@ -36,6 +36,14 @@ export function getActiveSession(): StoredSession | null {
   return null;
 }
 
+/** HU-007: refleja en la barra superior el nombre actualizado desde el perfil. */
+export function updateActiveSessionName(name: string): void {
+  const session = getActiveSession();
+  if (session) {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ ...session, name }));
+  }
+}
+
 export function clearActiveSession(): void {
   localStorage.removeItem(SESSION_STORAGE_KEY);
   localStorage.removeItem('token');
