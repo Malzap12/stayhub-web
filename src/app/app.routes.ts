@@ -19,6 +19,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'mi-perfil',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/profile/my-profile.component').then(
+        (m) => m.MyProfileComponent,
+      ),
+  },
+  {
     path: 'anfitrion/publicaciones',
     canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
     loadComponent: () =>
