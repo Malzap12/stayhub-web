@@ -27,6 +27,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'anfitrion/mis-publicaciones',
+    canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/listings/my-listings.component').then(
+        (m) => m.MyListingsComponent,
+      ),
+  },
+  {
     path: 'anfitrion/publicaciones/nueva',
     canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
     loadComponent: () =>

@@ -40,3 +40,18 @@ export interface HostModerationNotification {
   reason?: string;
   createdAt: string;
 }
+
+/** HU-012 · Elemento del listado «Mis publicaciones» (GET /api/listings/mine). */
+export interface MyListing {
+  id: string;
+  title: string;
+  city?: string;
+  pricePerNight?: number;
+  status: ListingStatus;
+  statusLabel: string;
+  adminReasonType?: 'DEVUELTA' | 'BLOQUEADA';
+  adminReason?: string;
+  isComplete: boolean;
+  missingFields: string[];
+  createdAt: string;
+}
