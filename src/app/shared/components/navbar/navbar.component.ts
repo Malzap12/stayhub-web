@@ -28,6 +28,7 @@ import {
           <a routerLink="/listings" routerLinkActive="active">Explorar Alojamientos</a>
           <a routerLink="/mis-reservas" routerLinkActive="active">Mis Reservas</a>
           <a routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
+          <a routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
           <a routerLink="/admin/moderacion" routerLinkActive="active">Administración</a>
         </nav>
 
