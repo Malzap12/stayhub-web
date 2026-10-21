@@ -14,8 +14,8 @@ export const routes: Routes = [
     path: 'mis-reservas',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/listings/listing-list.component').then(
-        (m) => m.ListingListComponent,
+      import('./features/bookings/my-bookings.component').then(
+        (m) => m.MyBookingsComponent,
       ),
   },
   {
