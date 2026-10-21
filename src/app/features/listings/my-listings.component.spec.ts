@@ -71,7 +71,7 @@ describe('MyListingsComponent · HU-012', () => {
     await render();
 
     const cards = element.querySelectorAll('.listing-card');
-    expect(cards.length).toBe(3);
+    expect(cards).toHaveSize(3);
     expect(cards[0].textContent).toContain('Cabaña del Bosque');
     expect(cards[0].textContent).toContain('Guatapé');
     expect(cards[0].textContent).toContain('320.000');
@@ -92,7 +92,7 @@ describe('MyListingsComponent · HU-012', () => {
     await render();
 
     const reasons = element.querySelectorAll('.admin-reason');
-    expect(reasons.length).toBe(2);
+    expect(reasons).toHaveSize(2);
     expect(reasons[0].textContent).toContain('Devuelta por el administrador');
     expect(reasons[0].textContent).toContain('Las fotografías están oscuras.');
     expect(reasons[1].classList).toContain('blocked');
