@@ -14,7 +14,7 @@ describe('ListingDraftFormComponent (HU-010 · Crear una publicación en borrado
     );
 
   beforeEach(() => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'jwt-host',

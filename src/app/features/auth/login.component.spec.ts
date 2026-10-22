@@ -40,7 +40,7 @@ describe('LoginComponent & AuthGuard (HU-002 · MA-37)', () => {
   });
 
   it('CA4 & RNF-003: should invalidate session on logout or expiration', async () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'jwt-expired',

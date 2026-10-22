@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import {
   clearActiveSession,
   getActiveSession,
-  SESSION_STORAGE_KEY,
+  saveActiveSession,
   StoredSession,
 } from '../../core/guards/auth.guard';
 
@@ -1067,8 +1067,7 @@ export class LoginComponent {
         expiresAt: Date.now() + timeoutMinutes * 60 * 1000,
       };
 
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      localStorage.setItem('token', session.token);
+      saveActiveSession(session);
       this.activeSession = session;
       this.navigateByRole(session.role);
     } catch {
@@ -1083,8 +1082,7 @@ export class LoginComponent {
           role: 'ADMINISTRADOR',
           expiresAt: Date.now() + 60 * 60 * 1000,
         };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-        localStorage.setItem('token', session.token);
+        saveActiveSession(session);
         this.activeSession = session;
         this.navigateByRole(session.role);
       } else {

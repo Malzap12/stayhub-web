@@ -28,7 +28,7 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
   });
 
   it('CA2: should show only guest modules when logged in as HUESPED', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'token-guest',
@@ -47,7 +47,7 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
   });
 
   it('CA2: should show host modules when logged in as ANFITRION', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'token-host',
@@ -66,7 +66,7 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
   });
 
   it('CA3: should show all management modules when logged in as ADMINISTRADOR', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'token-admin',
@@ -84,7 +84,7 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
   });
 
   it('CA4: should clear session and navigate to login on logout', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'token-user',
