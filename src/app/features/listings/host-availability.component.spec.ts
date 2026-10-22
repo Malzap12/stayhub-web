@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { HostAvailabilityComponent } from './host-availability.component';
-import { AvailabilityPeriod, MyListing } from '../../shared/models/listing.model';
+import { HostAvailabilityComponent, nightsInInterval } from './host-availability.component';
+import { AvailabilityPeriod, BlockedPeriod, MyListing } from '../../shared/models/listing.model';
 
-describe('HostAvailabilityComponent · HU-019', () => {
+describe('HostAvailabilityComponent · HU-019 y HU-023', () => {
   let component: HostAvailabilityComponent;
   let fixture: ComponentFixture<HostAvailabilityComponent>;
   let fetchSpy: jasmine.Spy;
@@ -127,5 +127,86 @@ describe('HostAvailabilityComponent · HU-019', () => {
 
     expect(component.errorMessage).toContain('2027-06-10 al 2027-06-20');
     expect(component.conflictingPeriodId).toBe('period-9');
+  });
+
+  describe('HU-023 · Bloquear automáticamente el periodo reservado', () => {
+    it('HU-023 CA1: al confirmar una reserva del 10 al 12, las noches del 10 y del 11 quedan bloqueadas', async () => {
+      await load([existing]);
+      expect(nightsInInterval('2027-06-10', '2027-06-12')).toEqual(['2027-06-10', '2027-06-11']);
+
+      const blocked: BlockedPeriod = {
+        id: 'block-1',
+        listingId: 'listing-1',
+        checkIn: '2027-06-10',
+        checkOut: '2027-06-12',
+        blockedNights: ['2027-06-10', '2027-06-11'],
+      };
+      nextPostReturns(201, blocked);
+
+      component.checkInInput = '2027-06-10';
+      component.checkOutInput = '2027-06-12';
+      const result = await component.confirmReservedBlock();
+
+      expect(result?.blockedNights).toEqual(['2027-06-10', '2027-06-11']);
+      expect(component.reservedPeriods).toEqual([blocked]);
+      expect(component.successMessage).toContain('2027-06-10, 2027-06-11');
+    });
+
+    it('HU-023 CA2: con reserva del 10 al 12, consultar o reservar del 12 al 14 aparece disponible', async () => {
+      await load([existing]);
+      component.reservedPeriods = [
+        {
+          id: 'block-1',
+          listingId: 'listing-1',
+          checkIn: '2027-06-10',
+          checkOut: '2027-06-12',
+          blockedNights: ['2027-06-10', '2027-06-11'],
+        },
+      ];
+
+      nextPostReturns(200, {
+        listingId: 'listing-1',
+        isAvailable: true,
+        blockedDates: [],
+        pricePerNight: 90,
+      });
+      component.availabilityQueryStart = '2027-06-12';
+      component.availabilityQueryEnd = '2027-06-14';
+      const check = await component.checkAvailabilityRange();
+
+      expect(check?.isAvailable).toBeTrue();
+      expect(check?.blockedDates).toEqual([]);
+    });
+
+    it('HU-023 CA3: si el rango incluye una noche reservada o bloqueada, retorna no disponible', async () => {
+      await load([existing]);
+      component.reservedPeriods = [
+        {
+          id: 'block-1',
+          listingId: 'listing-1',
+          checkIn: '2027-06-10',
+          checkOut: '2027-06-12',
+          blockedNights: ['2027-06-10', '2027-06-11'],
+        },
+      ];
+
+      component.checkInInput = '2027-06-11';
+      component.checkOutInput = '2027-06-13';
+      expect(await component.confirmReservedBlock()).toBeNull();
+      expect(component.errorMessage).toContain('2027-06-11');
+
+      nextPostReturns(200, {
+        listingId: 'listing-1',
+        isAvailable: false,
+        blockedDates: ['2027-06-11'],
+        pricePerNight: 90,
+      });
+      component.availabilityQueryStart = '2027-06-11';
+      component.availabilityQueryEnd = '2027-06-13';
+      const check = await component.checkAvailabilityRange();
+
+      expect(check?.isAvailable).toBeFalse();
+      expect(check?.blockedDates).toEqual(['2027-06-11']);
+    });
   });
 });

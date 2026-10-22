@@ -14,6 +14,27 @@ export interface AvailabilityPeriod {
   createdAt?: string;
 }
 
+/** HU-023 · Periodo reservado o bloqueado en intervalo de noches [checkIn, checkOut) (AMB-09). */
+export interface BlockedPeriod {
+  id: string;
+  listingId: string;
+  bookingId?: string;
+  checkIn: string;
+  checkOut: string;
+  blockedNights: string[];
+  createdAt?: string;
+}
+
+/** HU-023 · Resultado de consultar la disponibilidad de un rango [startDate, endDate). */
+export interface AvailabilityCheckResult {
+  listingId: string;
+  isAvailable: boolean;
+  blockedDates: string[];
+  pricePerNight: number;
+  availablePeriods?: AvailabilityPeriod[];
+  reservedPeriods?: BlockedPeriod[];
+}
+
 export interface Listing {
   id: string;
   title: string;
