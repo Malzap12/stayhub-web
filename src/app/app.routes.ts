@@ -12,7 +12,7 @@ export const routes: Routes = [
   },
   {
     path: 'mis-reservas',
-    canActivate: [authGuard],
+    canActivate: [roleGuard(['HUESPED'])],
     loadComponent: () =>
       import('./features/bookings/my-bookings.component').then(
         (m) => m.MyBookingsComponent,
@@ -28,7 +28,7 @@ export const routes: Routes = [
   },
   {
     path: 'anfitrion/publicaciones',
-    canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
+    canActivate: [roleGuard(['ANFITRION'])],
     loadComponent: () =>
       import('./features/listings/host-availability.component').then(
         (m) => m.HostAvailabilityComponent,
@@ -36,7 +36,7 @@ export const routes: Routes = [
   },
   {
     path: 'anfitrion/mis-publicaciones',
-    canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
+    canActivate: [roleGuard(['ANFITRION'])],
     loadComponent: () =>
       import('./features/listings/my-listings.component').then(
         (m) => m.MyListingsComponent,
@@ -44,7 +44,7 @@ export const routes: Routes = [
   },
   {
     path: 'anfitrion/publicaciones/nueva',
-    canActivate: [roleGuard(['ANFITRION', 'ADMINISTRADOR'])],
+    canActivate: [roleGuard(['ANFITRION'])],
     loadComponent: () =>
       import('./features/listings/listing-draft-form.component').then(
         (m) => m.ListingDraftFormComponent,

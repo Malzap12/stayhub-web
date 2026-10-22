@@ -212,12 +212,11 @@ import {
                 <li><a routerLink="/mis-reservas">Consultar mis reservas y cotizaciones</a></li>
               </ul>
               <ul *ngIf="activeSession.role === 'ANFITRION'">
-                <li><a routerLink="/anfitrion/publicaciones">Crear y administrar mis publicaciones</a></li>
-                <li><a routerLink="/mis-reservas">Gestionar disponibilidad y reservas</a></li>
+                <li><a routerLink="/anfitrion/mis-publicaciones">Crear y administrar mis publicaciones</a></li>
+                <li><a routerLink="/anfitrion/publicaciones">Gestionar la disponibilidad de mis alojamientos</a></li>
               </ul>
               <ul *ngIf="activeSession.role === 'ADMINISTRADOR'">
                 <li><a routerLink="/admin/moderacion">Moderar publicaciones y consultar auditoría</a></li>
-                <li><a routerLink="/anfitrion/publicaciones">Supervisar catálogo de anfitriones</a></li>
               </ul>
             </div>
 
