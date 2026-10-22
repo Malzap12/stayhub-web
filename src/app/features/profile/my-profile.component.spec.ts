@@ -33,7 +33,7 @@ describe('MyProfileComponent · HU-006 y HU-007', () => {
   const input = (id: string) => element.querySelector<HTMLInputElement>(`#${id}`)!;
 
   beforeEach(async () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         token: 'jwt-user-7',
@@ -52,7 +52,7 @@ describe('MyProfileComponent · HU-006 y HU-007', () => {
     component = fixture.componentInstance;
   });
 
-  afterEach(() => localStorage.removeItem(SESSION_STORAGE_KEY));
+  afterEach(() => sessionStorage.removeItem(SESSION_STORAGE_KEY));
 
   describe('HU-006 · Consultar mi perfil', () => {
     it('CA1: muestra nombre, correo, teléfono, rol y estado de la cuenta', async () => {
