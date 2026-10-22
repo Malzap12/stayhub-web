@@ -1,4 +1,4 @@
-import { ListingDraftFormComponent } from './listing-draft-form.component';
+import { formatCop, ListingDraftFormComponent, MAX_IMAGE_BYTES, parseCop } from './listing-draft-form.component';
 import { clearActiveSession, SESSION_STORAGE_KEY } from '../../core/guards/auth.guard';
 
 describe('ListingDraftFormComponent (HU-010 · Crear una publicación en borrador)', () => {
@@ -148,5 +148,102 @@ describe('ListingDraftFormComponent (HU-010 · Crear una publicación en borrado
     component.toggleAmenity('PISCINA');
     component.toggleAmenity('WIFI');
     expect(component.form.amenities).toEqual(['PISCINA']);
+  });
+
+  describe('Precio por noche en pesos colombianos', () => {
+    it('muestra el signo pesos y los puntos de miles', () => {
+      expect(formatCop(320000)).toBe('$ 320.000');
+      expect(formatCop(1250000)).toBe('$ 1.250.000');
+      expect(formatCop(null)).toBe('');
+    });
+
+    it('lee solo los dígitos de lo que se escribe', () => {
+      expect(parseCop('$ 320.000')).toBe(320000);
+      expect(parseCop('abc')).toBeNull();
+      expect(parseCop('12345678901')).toBe(123456789);
+    });
+
+    it('al escribir guarda el número y reescribe el campo con formato', () => {
+      const input = document.createElement('input');
+      input.value = '$ 32.0000';
+
+      component.onPriceInput({ target: input } as unknown as Event);
+
+      expect(component.form.pricePerNight).toBe(320000);
+      expect(input.value).toBe('$ 320.000');
+      expect(component.buildPayload()['pricePerNight']).toBe(320000);
+    });
+
+    it('un precio de $ 0 sigue mostrando el error de precio', async () => {
+      component.form.title = 'Cabaña del Bosque';
+      const input = document.createElement('input');
+      input.value = '0';
+      component.onPriceInput({ target: input } as unknown as Event);
+
+      await component.save();
+
+      expect(component.errors.pricePerNight).toBe('El precio por noche debe ser mayor que 0.');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Imágenes subidas desde el dispositivo', () => {
+    const image = (name = 'sala.jpg', type = 'image/jpeg', size = 1024) =>
+      new File([new Uint8Array(size)], name, { type });
+
+    it('sube las imágenes con el token del anfitrión y muestra su vista previa', async () => {
+      fetchSpy.and.returnValue(jsonResponse({ urls: ['/api/listings/images/a.jpg', '/api/listings/images/b.png'] }, 201));
+
+      await component.uploadImages([image('sala.jpg'), image('cocina.png', 'image/png')]);
+
+      const [url, init] = fetchSpy.calls.mostRecent().args;
+      expect(url).toBe('/api/listings/images');
+      expect(init.method).toBe('POST');
+      expect(init.headers).toEqual({ Authorization: 'Bearer jwt-host' });
+      expect((init.body as FormData).getAll('images').length).toBe(2);
+      expect(component.uploadedImages).toEqual(['/api/listings/images/a.jpg', '/api/listings/images/b.png']);
+    });
+
+    it('envía las imágenes subidas y los enlaces pegados al guardar', async () => {
+      component.uploadedImages = ['/api/listings/images/a.jpg'];
+      component.form.imagesText = 'https://img/2.jpg';
+
+      expect(component.buildPayload()['images']).toEqual(['/api/listings/images/a.jpg', 'https://img/2.jpg']);
+    });
+
+    it('rechaza otros formatos, archivos de más de 5 MB y más de 10 imágenes sin llamar al API', async () => {
+      await component.uploadImages([image('plano.pdf', 'application/pdf')]);
+      expect(component.imageError).toContain('no es una imagen JPG, PNG o WEBP');
+
+      await component.uploadImages([image('grande.jpg', 'image/jpeg', MAX_IMAGE_BYTES + 1)]);
+      expect(component.imageError).toContain('supera el tamaño máximo de 5 MB');
+
+      component.uploadedImages = Array.from({ length: 10 }, (_, i) => `/api/listings/images/${i}.jpg`);
+      await component.uploadImages([image()]);
+      expect(component.imageError).toContain('hasta 10 imágenes');
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('muestra el error del API y conserva las imágenes ya subidas', async () => {
+      component.uploadedImages = ['/api/listings/images/a.jpg'];
+      fetchSpy.and.returnValue(jsonResponse({ message: '«falsa.jpg» no es una imagen JPG, PNG o WEBP' }, 400));
+
+      await component.uploadImages([image('falsa.jpg')]);
+
+      expect(component.imageError).toBe('«falsa.jpg» no es una imagen JPG, PNG o WEBP');
+      expect(component.uploadedImages).toEqual(['/api/listings/images/a.jpg']);
+      expect(component.uploading).toBeFalse();
+    });
+
+    it('permite quitar una imagen y empezar una publicación nueva sin imágenes', () => {
+      component.uploadedImages = ['/api/listings/images/a.jpg', '/api/listings/images/b.jpg'];
+
+      component.removeImage('/api/listings/images/a.jpg');
+      expect(component.uploadedImages).toEqual(['/api/listings/images/b.jpg']);
+
+      component.startNew();
+      expect(component.uploadedImages).toEqual([]);
+    });
   });
 });
