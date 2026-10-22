@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -25,6 +25,50 @@ export interface PublicListingItem {
   reviews: PublicReviewItem[];
 }
 
+/** Publicación tal como la devuelve GET /api/listings/search. */
+export interface ApiListing {
+  id: string;
+  title: string;
+  description?: string;
+  city?: string;
+  propertyType?: string;
+  pricePerNight?: number;
+  maxGuests?: number;
+  bedrooms?: number;
+  images?: string[];
+  rating?: number;
+  hostName?: string;
+}
+
+interface SearchResponse {
+  data: ApiListing[];
+  total: number;
+}
+
+interface ApiReview {
+  id: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface SearchForm {
+  city: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+}
+
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  CASA: 'Casa',
+  APARTAMENTO: 'Apartamento',
+  CABANA: 'Cabaña',
+  FINCA: 'Finca',
+  HABITACION: 'Habitación',
+  OTRO: 'Otro',
+};
+
 @Component({
   selector: 'app-listing-list',
   standalone: true,
@@ -44,40 +88,70 @@ export interface PublicListingItem {
           </p>
         </div>
 
-        <!-- Barra de búsqueda y filtros monocromáticos -->
-        <div class="filter-bar">
-          <div class="category-pills" role="tablist" aria-label="Categorías de alojamiento">
-            <button
-              *ngFor="let cat of categories"
-              type="button"
-              class="cat-pill"
-              [class.active]="selectedCategory === cat"
-              (click)="setCategory(cat)"
-            >
-              {{ cat }}
-            </button>
+        <!-- HU-024 · Buscar por ciudad, fechas y huéspedes -->
+        <form class="search-form" (ngSubmit)="search()" novalidate role="search" aria-label="Buscar alojamientos">
+          <div class="field field-city">
+            <label for="search-city">Ciudad</label>
+            <input id="search-city" name="city" type="text" placeholder="¿A dónde viajas? Ej. Bogotá" [(ngModel)]="form.city" />
           </div>
-
-          <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="7"></circle>
-              <line x1="20" y1="20" x2="16.2" y2="16.2"></line>
-            </svg>
+          <div class="field">
+            <label for="search-check-in">Llegada</label>
             <input
-              type="search"
-              placeholder="Buscar por ciudad o nombre..."
-              [(ngModel)]="searchTerm"
-              aria-label="Buscar alojamientos"
+              id="search-check-in"
+              name="checkIn"
+              type="date"
+              [(ngModel)]="form.checkIn"
+              [class.input-error]="!!formError && !!datesError"
             />
           </div>
-        </div>
+          <div class="field">
+            <label for="search-check-out">Salida</label>
+            <input
+              id="search-check-out"
+              name="checkOut"
+              type="date"
+              [min]="form.checkIn"
+              [(ngModel)]="form.checkOut"
+              [class.input-error]="!!formError && !!datesError"
+            />
+          </div>
+          <div class="field">
+            <label for="search-guests">Huéspedes</label>
+            <input
+              id="search-guests"
+              name="guests"
+              type="number"
+              min="1"
+              step="1"
+              [(ngModel)]="form.guests"
+              [class.input-error]="!!formError && !!guestsError"
+            />
+          </div>
+          <div class="search-actions">
+            <button type="submit" class="search-btn" [disabled]="loading">{{ loading ? 'Buscando…' : 'Buscar' }}</button>
+            <button type="button" class="clear-btn" (click)="clearSearch()">Limpiar</button>
+          </div>
+          <p class="form-error" *ngIf="formError" role="alert">{{ formError }}</p>
+        </form>
+
       </header>
 
-      <!-- CA3: Catálogo público con fotografía arquitectónica minimalista -->
-      <div class="listing-grid">
+      <p class="status-msg" *ngIf="loading" role="status">Buscando alojamientos…</p>
+      <div class="alert-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</div>
+
+      <ng-container *ngIf="!loading && !errorMessage && searched">
+        <p class="results-summary" *ngIf="listings.length > 0" role="status">{{ resultsSummary }}</p>
+        <div class="empty-state" *ngIf="listings.length === 0" role="status">
+          <h2>No encontramos alojamientos</h2>
+          <p>Prueba con otra ciudad, otras fechas o menos huéspedes.</p>
+        </div>
+      </ng-container>
+
+      <!-- HU-003 CA3 / HU-024: resultados públicos, solo publicaciones ACTIVAS -->
+      <div class="listing-grid" *ngIf="!loading">
         <article
           class="listing-card"
-          *ngFor="let item of filteredListings"
+          *ngFor="let item of listings"
           [class.selected]="selectedListing?.id === item.id"
           (click)="selectListing(item)"
         >
@@ -88,7 +162,7 @@ export interface PublicListingItem {
               loading="lazy"
             />
             <span class="media-badge">{{ item.category }}</span>
-            <span class="media-rating">★ {{ item.rating.toFixed(2) }}</span>
+            <span class="media-rating">{{ item.rating > 0 ? '★ ' + item.rating.toFixed(2) : 'Nuevo' }}</span>
           </div>
 
           <div class="card-body">
@@ -104,14 +178,14 @@ export interface PublicListingItem {
             <div class="listing-footer">
               <div class="price-block">
                 <strong class="price-cop">{{ item.priceCop }}</strong>
-                <span>COP / noche</span>
+                <span>/ noche</span>
               </div>
               <button
                 type="button"
                 class="apple-secondary-btn"
                 (click)="selectListing(item); $event.stopPropagation()"
               >
-                Detalle y reseñas ({{ item.reviews.length }})
+                Ver detalle
               </button>
             </div>
           </div>
@@ -149,15 +223,15 @@ export interface PublicListingItem {
               </div>
               <div>
                 <span>Habitaciones</span>
-                <strong>{{ detail.bedrooms }} suites</strong>
+                <strong>{{ detail.bedrooms }}</strong>
               </div>
               <div>
                 <span>Tarifa base</span>
-                <strong>{{ detail.priceCop }} COP / noche</strong>
+                <strong>{{ detail.priceCop }} / noche</strong>
               </div>
               <div>
                 <span>Calificación</span>
-                <strong>★ {{ detail.rating.toFixed(2) }}</strong>
+                <strong>{{ detail.rating > 0 ? '★ ' + detail.rating.toFixed(2) : 'Sin calificaciones' }}</strong>
               </div>
             </div>
 
@@ -221,70 +295,131 @@ export interface PublicListingItem {
       font-size: 0.94rem;
       line-height: 1.55;
     }
-    .filter-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      padding-top: 20px;
-      border-top: 1px solid #e5e5ea;
-    }
-    .category-pills {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .cat-pill {
+    .search-form {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 0.8fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 18px;
       background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 20px;
+    }
+    @media (max-width: 860px) {
+      .search-form {
+        grid-template-columns: 1fr 1fr;
+      }
+      .search-form .field-city,
+      .search-form .search-actions {
+        grid-column: 1 / -1;
+      }
+    }
+    .search-form .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .search-form label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       color: #6e6e73;
-      border: 1px solid #d2d2d7;
-      padding: 8px 16px;
-      border-radius: 980px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.18s ease;
     }
-    .cat-pill:hover {
-      color: #1d1d1f;
-      border-color: #86868b;
-    }
-    .cat-pill.active {
-      background: #1d1d1f;
-      color: #ffffff;
-      border-color: #1d1d1f;
-    }
-    .search-box {
-      position: relative;
-      min-width: 260px;
-      flex: 0 1 320px;
-    }
-    .search-icon {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 15px;
-      height: 15px;
-      color: #86868b;
-      pointer-events: none;
-    }
-    .search-box input {
-      width: 100%;
-      height: 38px;
-      padding: 0 14px 0 38px;
-      border-radius: 980px;
+    .search-form input {
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 12px;
       border: 1px solid #d2d2d7;
       background: #ffffff;
       color: #1d1d1f;
-      font-size: 0.84rem;
-      transition: border-color 0.16s ease;
+      font-size: 0.88rem;
+      width: 100%;
+      box-sizing: border-box;
     }
-    .search-box input:focus {
+    .search-form input:focus {
       outline: none;
       border-color: #1d1d1f;
     }
+    .search-form input.input-error {
+      border-color: #d70015;
+      background: #fff2f4;
+    }
+    .search-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .search-btn {
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 980px;
+      border: none;
+      background: #1d1d1f;
+      color: #ffffff;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .search-btn:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
+    .clear-btn {
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 980px;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      color: #1d1d1f;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .form-error {
+      grid-column: 1 / -1;
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #d70015;
+    }
+    .results-summary {
+      margin: 0 0 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #3a3a3c;
+    }
+    .status-msg {
+      color: #6e6e73;
+    }
+    .alert-error {
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      background: #ffffff;
+      border: 1px dashed #d2d2d7;
+      border-radius: 20px;
+      color: #6e6e73;
+    }
+    .empty-state h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+      color: #1d1d1f;
+    }
+    .empty-state p {
+      margin: 0;
+    }
+
     .listing-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -560,176 +695,134 @@ export interface PublicListingItem {
     }
   `],
 })
-export class ListingListComponent {
-  categories: string[] = ['Todos', 'Arquitectura', 'Frente al mar', 'Montaña', 'Penthouse'];
-  selectedCategory = 'Todos';
-  searchTerm = '';
+export class ListingListComponent implements OnInit {
+  form: SearchForm = { city: '', checkIn: '', checkOut: '', guests: 1 };
+  listings: PublicListingItem[] = [];
+  selectedListing: PublicListingItem | null = null;
+  loading = false;
+  searched = false;
+  formError = '';
+  errorMessage = '';
 
-  listings: PublicListingItem[] = [
-    {
-      id: 'listing-1',
-      title: 'Loft Minimalista en El Poblado',
-      city: 'Medellín',
-      category: 'Penthouse',
-      priceCop: '$320.000',
-      rating: 4.95,
-      guests: 4,
-      bedrooms: 2,
-      hostName: 'Laura Restrepo',
-      imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80',
-      description: 'Espacio de concreto a la vista y roble natural con terraza privada, fibra óptica dedicada y cocina de autor.',
-      reviews: [
-        {
-          id: 'rev-1',
-          authorName: 'Camila Gómez',
-          rating: 5,
-          comment: 'Excelente ubicación, iluminación natural impecable y atención inmediata del anfitrión.',
-          date: 'Oct 2026',
-        },
-        {
-          id: 'rev-1b',
-          authorName: 'Daniel Ochoa',
-          rating: 4.9,
-          comment: 'El diseño interior parece sacado de una galería. Silencioso y perfecto para trabajar.',
-          date: 'Sep 2026',
-        },
-      ],
-    },
-    {
-      id: 'listing-2',
-      title: 'Villa Brutalista Frente al Mar en Barú',
-      city: 'Cartagena',
-      category: 'Frente al mar',
-      priceCop: '$580.000',
-      rating: 4.92,
-      guests: 6,
-      bedrooms: 3,
-      hostName: 'Andrés Salgado',
-      imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80',
-      description: 'Volúmenes limpios en piedra coralina con acceso privado a la cala, piscina infinita y ventilación cruzada.',
-      reviews: [
-        {
-          id: 'rev-2',
-          authorName: 'Andrés Mejía',
-          rating: 4.9,
-          comment: 'Muy cómodo, tranquilo y fiel a las fotografías publicadas. La vista al atardecer es única.',
-          date: 'Oct 2026',
-        },
-      ],
-    },
-    {
-      id: 'listing-3',
-      title: 'Casa de Cristal en el Alto de Las Palmas',
-      city: 'Envigado',
-      category: 'Arquitectura',
-      priceCop: '$460.000',
-      rating: 4.98,
-      guests: 4,
-      bedrooms: 2,
-      hostName: 'Mateo Uribe',
-      imageUrl: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=80',
-      description: 'Pabellón elevado rodeado de bosque nativo con chimenea minimalista, ventanales de piso a techo y deck privado.',
-      reviews: [
-        {
-          id: 'rev-3',
-          authorName: 'Valeria Soto',
-          rating: 5,
-          comment: 'Despertar entre la niebla del bosque con esa arquitectura limpia fue inolvidable.',
-          date: 'Oct 2026',
-        },
-      ],
-    },
-    {
-      id: 'listing-4',
-      title: 'Refugio Monolítico en el Valle de Cocora',
-      city: 'Salento',
-      category: 'Montaña',
-      priceCop: '$390.000',
-      rating: 4.91,
-      guests: 2,
-      bedrooms: 1,
-      hostName: 'Nicolás Jaramillo',
-      imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=80',
-      description: 'Cabaña de autor en madera carbonizada y acero negro con vista panorámica a la cordillera central.',
-      reviews: [
-        {
-          id: 'rev-4',
-          authorName: 'Santiago Ríos',
-          rating: 4.9,
-          comment: 'Minimalismo puro en medio de las montañas. Café de origen incluido cada mañana.',
-          date: 'Sep 2026',
-        },
-      ],
-    },
-    {
-      id: 'listing-5',
-      title: 'Ático Editorial en Rosales',
-      city: 'Bogotá',
-      category: 'Penthouse',
-      priceCop: '$410.000',
-      rating: 4.89,
-      guests: 3,
-      bedrooms: 2,
-      hostName: 'Catalina Pardo',
-      imageUrl: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1000&q=80',
-      description: 'Apartamento de líneas puras junto a los cerros orientales, acústica aislada y terraza contemplativa.',
-      reviews: [
-        {
-          id: 'rev-5',
-          authorName: 'Felipe Morales',
-          rating: 4.9,
-          comment: 'Impecable atención al detalle y cercanía a los mejores restaurantes de la zona.',
-          date: 'Oct 2026',
-        },
-      ],
-    },
-    {
-      id: 'listing-6',
-      title: 'Casa Patio de Tierra Apisonada',
-      city: 'Villa de Leyva',
-      category: 'Arquitectura',
-      priceCop: '$350.000',
-      rating: 4.96,
-      guests: 5,
-      bedrooms: 3,
-      hostName: 'Elena Vargas',
-      imageUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=80',
-      description: 'Arquitectura contemporánea en tapia pisada y piedra local con patio interior silencioso y espejo de agua.',
-      reviews: [
-        {
-          id: 'rev-6',
-          authorName: 'Mariana Duarte',
-          rating: 5,
-          comment: 'La luz que entra al patio central durante la tarde es espectacular. Totalmente recomendado.',
-          date: 'Oct 2026',
-        },
-      ],
-    },
-  ];
+  private readonly priceFormatter = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  });
 
-  selectedListing: PublicListingItem | null = this.listings[0];
-
-  get filteredListings(): PublicListingItem[] {
-    return this.listings.filter((item) => {
-      const matchesCat =
-        this.selectedCategory === 'Todos' || item.category === this.selectedCategory;
-      const query = this.searchTerm.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
-        item.title.toLowerCase().includes(query) ||
-        item.city.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query);
-      return matchesCat && matchesSearch;
-    });
+  ngOnInit(): void {
+    void this.search();
   }
 
-  setCategory(category: string): void {
-    this.selectedCategory = category;
+  /** HU-024 CA3 (RN-010): si hay fechas, deben ser ambas y la salida posterior a la llegada. */
+  get datesError(): string {
+    const { checkIn, checkOut } = this.form;
+    if (!checkIn && !checkOut) {
+      return '';
+    }
+    if (!checkIn || !checkOut) {
+      return 'Indica la fecha de llegada y la de salida, o deja ambas vacías.';
+    }
+    return checkOut <= checkIn ? 'La fecha de salida debe ser posterior a la fecha de llegada.' : '';
   }
 
-  selectListing(item: PublicListingItem): void {
+  get guestsError(): string {
+    const guests = Number(this.form.guests);
+    return Number.isInteger(guests) && guests >= 1 ? '' : 'El número de huéspedes debe ser al menos 1.';
+  }
+
+  /** Parámetros de GET /api/listings/search; sin fechas no se filtra por disponibilidad (CA4). */
+  buildQuery(): string {
+    const params = new URLSearchParams({ limit: '50' });
+    const city = this.form.city.trim();
+    if (city) {
+      params.set('city', city);
+    }
+    if (this.form.checkIn && this.form.checkOut) {
+      params.set('checkIn', this.form.checkIn);
+      params.set('checkOut', this.form.checkOut);
+    }
+    params.set('guests', String(this.form.guests));
+    return params.toString();
+  }
+
+  /** HU-024 · Busca en el API; si el formulario tiene errores no ejecuta la búsqueda (CA3). */
+  async search(): Promise<void> {
+    this.formError = this.datesError || this.guestsError;
+    if (this.formError) {
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    try {
+      const response = await fetch(`/api/listings/search?${this.buildQuery()}`);
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        this.errorMessage = [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible realizar la búsqueda.';
+        return;
+      }
+
+      this.listings = ((body as SearchResponse).data ?? []).map((listing) => this.toItem(listing));
+      this.selectedListing = null;
+      this.searched = true;
+    } catch {
+      this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  clearSearch(): void {
+    this.form = { city: '', checkIn: '', checkOut: '', guests: 1 };
+    void this.search();
+  }
+
+  get resultsSummary(): string {
+    const count = this.listings.length;
+    const noun = count === 1 ? 'alojamiento' : 'alojamientos';
+    const city = this.form.city.trim();
+    const where = city ? ` en ${city}` : '';
+    const when = this.form.checkIn && this.form.checkOut ? ` del ${this.form.checkIn} al ${this.form.checkOut}` : '';
+    return `${count} ${noun}${where}${when} para ${this.form.guests} ${Number(this.form.guests) === 1 ? 'huésped' : 'huéspedes'}`;
+  }
+
+  toItem(listing: ApiListing): PublicListingItem {
+    return {
+      id: listing.id,
+      title: listing.title,
+      city: listing.city ?? '',
+      category: PROPERTY_TYPE_LABELS[listing.propertyType ?? ''] ?? 'Alojamiento',
+      priceCop: listing.pricePerNight == null ? 'Por definir' : this.priceFormatter.format(listing.pricePerNight),
+      rating: listing.rating ?? 0,
+      guests: listing.maxGuests ?? 0,
+      bedrooms: listing.bedrooms ?? 0,
+      imageUrl: listing.images?.[0] ?? '',
+      hostName: listing.hostName ?? 'Anfitrión',
+      description: listing.description ?? '',
+      reviews: [],
+    };
+  }
+
+  /** HU-003 CA3: detalle y reseñas públicas de la publicación, sin iniciar sesión. */
+  async selectListing(item: PublicListingItem): Promise<void> {
     this.selectedListing = item;
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(item.id)}/reviews`);
+      if (!response.ok) {
+        return;
+      }
+      const body = (await response.json()) as { reviews?: ApiReview[] };
+      item.reviews = (body.reviews ?? []).map((review) => ({
+        id: review.id,
+        authorName: review.authorName,
+        rating: review.rating,
+        comment: review.comment,
+        date: new Date(review.createdAt).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' }),
+      }));
+    } catch {
+      item.reviews = [];
+    }
   }
 }
-
-
