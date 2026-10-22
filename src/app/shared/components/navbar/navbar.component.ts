@@ -25,7 +25,7 @@ import {
 
         <!-- Dock Central Estilo iOS / Cupertino -->
         <nav class="apple-dock" aria-label="Navegación principal">
-          <a routerLink="/listings" routerLinkActive="active">Explorar Alojamientos</a>
+          <a *ngIf="canExplore" routerLink="/listings" routerLinkActive="active">Explorar Alojamientos</a>
           <a *ngIf="canViewMyBookings" routerLink="/mis-reservas" routerLinkActive="active">Mis Reservas</a>
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
@@ -231,8 +231,9 @@ export class NavbarComponent {
     return this.session?.role === 'HUESPED';
   }
 
+  /** RN-001/RN-002: los módulos de anfitrión son solo del ANFITRIÓN; el ADMINISTRADOR no crea ni administra publicaciones propias. */
   get isAnfitrion(): boolean {
-    return this.session?.role === 'ANFITRION' || this.session?.role === 'ADMINISTRADOR';
+    return this.session?.role === 'ANFITRION';
   }
 
   get isAdmin(): boolean {
@@ -240,7 +241,12 @@ export class NavbarComponent {
   }
 
   get canViewMyBookings(): boolean {
-    return this.session?.role === 'HUESPED' || this.session?.role === 'ADMINISTRADOR';
+    return this.session?.role === 'HUESPED';
+  }
+
+  /** El ADMINISTRADOR ve solo sus módulos de administración; visitantes, huéspedes y anfitriones exploran. */
+  get canExplore(): boolean {
+    return !this.isAdmin;
   }
 
   logout(): void {

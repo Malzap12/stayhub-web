@@ -61,4 +61,15 @@ describe('Sesión activa por pestaña (HU-002, HU-003)', () => {
     expect(checkRouteAccess(guest, ['ADMINISTRADOR'])).toBe('ACCESS_DENIED');
     expect(checkRouteAccess(guest, ['HUESPED'])).toBe('ALLOW');
   });
+
+  it('las rutas de anfitrión (solo ANFITRION) niegan el acceso al ADMINISTRADOR y al HUÉSPED (RN-001, RN-002)', () => {
+    const admin: StoredSession = { ...guest, role: 'ADMINISTRADOR' };
+    const host: StoredSession = { ...guest, role: 'ANFITRION' };
+
+    expect(checkRouteAccess(admin, ['ANFITRION'])).toBe('ACCESS_DENIED');
+    expect(checkRouteAccess(guest, ['ANFITRION'])).toBe('ACCESS_DENIED');
+    expect(checkRouteAccess(host, ['ANFITRION'])).toBe('ALLOW');
+    expect(checkRouteAccess(host, ['HUESPED'])).toBe('ACCESS_DENIED');
+    expect(checkRouteAccess(admin, ['HUESPED'])).toBe('ACCESS_DENIED');
+  });
 });
