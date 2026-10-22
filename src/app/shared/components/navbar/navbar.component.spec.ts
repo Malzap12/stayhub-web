@@ -25,6 +25,7 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
     expect(component.isAnfitrion).toBeFalse();
     expect(component.isAdmin).toBeFalse();
     expect(component.canViewMyBookings).toBeFalse();
+    expect(component.canExplore).toBeTrue();
   });
 
   it('CA2: should show only guest modules when logged in as HUESPED', () => {
@@ -42,6 +43,7 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
     expect(component.session).toBeTruthy();
     expect(component.isHuesped).toBeTrue();
     expect(component.canViewMyBookings).toBeTrue();
+    expect(component.canExplore).toBeTrue();
     expect(component.isAnfitrion).toBeFalse();
     expect(component.isAdmin).toBeFalse();
   });
@@ -63,9 +65,10 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
     expect(component.isAnfitrion).toBeTrue();
     expect(component.isAdmin).toBeFalse();
     expect(component.canViewMyBookings).toBeFalse();
+    expect(component.canExplore).toBeTrue();
   });
 
-  it('CA3: should show all management modules when logged in as ADMINISTRADOR', () => {
+  it('CA3: el ADMINISTRADOR ve solo los módulos de administración (RN-001, RN-002)', () => {
     sessionStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
@@ -79,8 +82,9 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
 
     expect(component.session).toBeTruthy();
     expect(component.isAdmin).toBeTrue();
-    expect(component.isAnfitrion).toBeTrue();
-    expect(component.canViewMyBookings).toBeTrue();
+    expect(component.isAnfitrion).toBeFalse();
+    expect(component.canViewMyBookings).toBeFalse();
+    expect(component.canExplore).toBeFalse();
   });
 
   it('CA4: should clear session and navigate to login on logout', () => {
