@@ -3,18 +3,38 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
-import { AvailabilityPeriod, MyListing } from '../../shared/models/listing.model';
+import {
+  AvailabilityCheckResult,
+  AvailabilityPeriod,
+  BlockedPeriod,
+  MyListing,
+} from '../../shared/models/listing.model';
 
-/** Respuesta de error del API al registrar un periodo (HU-019 CA2, CA3). */
+/** Respuesta de error del API al registrar un periodo (HU-019 CA2, CA3 / HU-023 CA3). */
 interface PeriodErrorBody {
   message?: string | string[];
   conflictingPeriod?: Pick<AvailabilityPeriod, 'id' | 'startDate' | 'endDate'>;
+  blockedDates?: string[];
 }
 
 /** Fecha YYYY-MM-DD en la hora local del navegador (toISOString usaría UTC y en la noche ya sería mañana). */
 function localDateString(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * HU-023 · Intervalo de noches [llegada, salida) (AMB-09).
+ * Del 10 al 12 retorna las noches ['...-10', '...-11']; el día 12 queda libre como llegada de otra reserva.
+ */
+export function nightsInInterval(checkIn: string, checkOut: string): string[] {
+  const startMs = Date.parse(`${checkIn}T00:00:00.000Z`);
+  const endMs = Date.parse(`${checkOut}T00:00:00.000Z`);
+  const nights: string[] = [];
+  for (let current = startMs; current < endMs; current += 86_400_000) {
+    nights.push(new Date(current).toISOString().slice(0, 10));
+  }
+  return nights;
 }
 
 @Component({
@@ -28,7 +48,7 @@ function localDateString(date: Date): string {
           <span class="eyebrow">Panel de Anfitrión</span>
           <h1>Registrar periodos disponibles</h1>
           <p class="subtitle">
-            Configura las ventanas de fechas en que tu alojamiento está habilitado para recibir reservas.
+            Configura las ventanas de fechas en que tu alojamiento está habilitado para recibir reservas y verifica las noches bloqueadas.
           </p>
         </div>
         <a routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
@@ -103,6 +123,73 @@ function localDateString(date: Date): string {
               </span>
             </li>
           </ul>
+        </section>
+
+        <!-- HU-023: Bloqueo automático de periodo reservado [llegada, salida) -->
+        <section class="form-card" aria-label="Bloqueo de periodo reservado">
+          <h2>Confirmar reserva y bloquear noches (HU-023)</h2>
+          <p class="period-meta">
+            Intervalo [llegada, salida): el día de salida no se bloquea como noche y puede ser la llegada de otra reserva.
+          </p>
+
+          <div class="date-row">
+            <div class="field">
+              <label for="checkin-date">Llegada (check-in)</label>
+              <input id="checkin-date" type="date" [(ngModel)]="checkInInput" />
+            </div>
+
+            <div class="field">
+              <label for="checkout-date">Salida (check-out)</label>
+              <input id="checkout-date" type="date" [(ngModel)]="checkOutInput" />
+            </div>
+          </div>
+
+          <button type="button" class="btn-primary" [disabled]="saving" (click)="confirmReservedBlock()">
+            Bloquear periodo reservado
+          </button>
+
+          <ul class="period-list" *ngIf="reservedPeriods.length > 0" style="margin-top: 14px;">
+            <li class="period-item" *ngFor="let block of reservedPeriods">
+              <div>
+                <strong>{{ block.checkIn }} → {{ block.checkOut }}</strong>
+                <span class="period-meta">Noches bloqueadas: {{ block.blockedNights.join(', ') }}</span>
+              </div>
+              <span class="badge-blocked">Reservado</span>
+            </li>
+          </ul>
+        </section>
+
+        <!-- HU-023: Consulta de disponibilidad por rango -->
+        <section class="periods-card" aria-label="Consulta de disponibilidad por fechas">
+          <h2>Verificar disponibilidad de fechas</h2>
+
+          <div class="date-row">
+            <div class="field">
+              <label for="query-start-date">Llegada</label>
+              <input id="query-start-date" type="date" [(ngModel)]="availabilityQueryStart" />
+            </div>
+
+            <div class="field">
+              <label for="query-end-date">Salida</label>
+              <input id="query-end-date" type="date" [(ngModel)]="availabilityQueryEnd" />
+            </div>
+          </div>
+
+          <button type="button" class="btn-primary" (click)="checkAvailabilityRange()">
+            Consultar disponibilidad
+          </button>
+
+          <div class="period-item" *ngIf="availabilityResult" style="margin-top: 14px;">
+            <div>
+              <strong>{{ availabilityResult.isAvailable ? 'Disponible' : 'No disponible' }}</strong>
+              <span class="period-meta" *ngIf="availabilityResult.blockedDates.length > 0">
+                Noches ocupadas: {{ availabilityResult.blockedDates.join(', ') }}
+              </span>
+            </div>
+            <span [class]="availabilityResult.isAvailable ? 'badge-available' : 'badge-blocked'">
+              {{ availabilityResult.isAvailable ? 'Disponible' : 'No disponible' }}
+            </span>
+          </div>
         </section>
       </div>
     </section>
@@ -261,6 +348,14 @@ function localDateString(date: Date): string {
       background: #e8f8ee;
       color: #166534;
     }
+    .badge-blocked {
+      padding: 4px 10px;
+      border-radius: 980px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: #fef2f2;
+      color: #991b1b;
+    }
     .empty-msg {
       color: #86868b;
       font-size: 0.86rem;
@@ -271,10 +366,16 @@ function localDateString(date: Date): string {
 export class HostAvailabilityComponent implements OnInit {
   hostListings: MyListing[] = [];
   periods: AvailabilityPeriod[] = [];
+  reservedPeriods: BlockedPeriod[] = [];
 
   selectedListingId = '';
   startDateInput = '';
   endDateInput = '';
+  checkInInput = '';
+  checkOutInput = '';
+  availabilityQueryStart = '';
+  availabilityQueryEnd = '';
+  availabilityResult: AvailabilityCheckResult | null = null;
   errorMessage = '';
   successMessage = '';
   /** HU-019 CA3: periodo existente con el que chocó el último intento, resaltado en la lista. */
@@ -301,6 +402,8 @@ export class HostAvailabilityComponent implements OnInit {
   async selectListing(listingId: string): Promise<void> {
     this.selectedListingId = listingId;
     this.clearFeedback();
+    this.reservedPeriods = [];
+    this.availabilityResult = null;
     await this.loadPeriods();
   }
 
@@ -414,6 +517,90 @@ export class HostAvailabilityComponent implements OnInit {
     }
   }
 
+  /**
+   * HU-023 · Registra el bloqueo automático de las noches [checkIn, checkOut) (CA1, CA2, CA3).
+   */
+  async confirmReservedBlock(): Promise<BlockedPeriod | null> {
+    this.clearFeedback();
+    const checkIn = this.checkInInput?.trim();
+    const checkOut = this.checkOutInput?.trim();
+
+    if (!checkIn || !checkOut || checkOut <= checkIn) {
+      this.errorMessage = 'La fecha de salida debe ser posterior a la fecha de llegada.';
+      return null;
+    }
+
+    const requestedNights = nightsInInterval(checkIn, checkOut);
+    const blockedSet = new Set(this.reservedPeriods.flatMap((block) => block.blockedNights));
+    const conflictingNights = requestedNights.filter((night) => blockedSet.has(night));
+    if (conflictingNights.length > 0) {
+      this.errorMessage = `No disponible: las noches ${conflictingNights.join(', ')} ya están reservadas o bloqueadas.`;
+      return null;
+    }
+
+    this.saving = true;
+    try {
+      const response = await fetch(this.reservedPeriodsUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify({ checkIn, checkOut }),
+      });
+      const body = (await response.json().catch(() => ({}))) as BlockedPeriod & PeriodErrorBody;
+
+      if (!response.ok) {
+        this.showServerError(response.status, body);
+        return null;
+      }
+
+      const blocked: BlockedPeriod = {
+        ...body,
+        blockedNights: body.blockedNights ?? requestedNights,
+      };
+      this.reservedPeriods = [...this.reservedPeriods, blocked].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+      this.successMessage = `Reserva confirmada (${blocked.checkIn} al ${blocked.checkOut}): noches bloqueadas ${blocked.blockedNights.join(', ')}.`;
+      this.checkInInput = '';
+      this.checkOutInput = '';
+      return blocked;
+    } catch {
+      this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      return null;
+    } finally {
+      this.saving = false;
+    }
+  }
+
+  /**
+   * HU-023 · Consulta la disponibilidad del rango [startDate, endDate) (CA1, CA2, CA3).
+   */
+  async checkAvailabilityRange(): Promise<AvailabilityCheckResult | null> {
+    this.clearFeedback();
+    const startDate = this.availabilityQueryStart?.trim();
+    const endDate = this.availabilityQueryEnd?.trim();
+
+    if (!startDate || !endDate || endDate <= startDate) {
+      this.errorMessage = 'La fecha de salida debe ser posterior a la fecha de llegada.';
+      this.availabilityResult = null;
+      return null;
+    }
+
+    try {
+      const url = `/api/listings/${encodeURIComponent(this.selectedListingId)}/availability?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        this.errorMessage = 'No pudimos consultar la disponibilidad.';
+        this.availabilityResult = null;
+        return null;
+      }
+      const result = (await response.json()) as AvailabilityCheckResult;
+      this.availabilityResult = result;
+      return result;
+    } catch {
+      this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      this.availabilityResult = null;
+      return null;
+    }
+  }
+
   private showOverlap(existing: Pick<AvailabilityPeriod, 'id' | 'startDate' | 'endDate'>): void {
     this.conflictingPeriodId = existing.id;
     this.errorMessage = `El periodo se superpone con el periodo existente del ${existing.startDate} al ${existing.endDate}.`;
@@ -446,6 +633,10 @@ export class HostAvailabilityComponent implements OnInit {
 
   private periodsUrl(): string {
     return `/api/listings/${encodeURIComponent(this.selectedListingId)}/availability-periods`;
+  }
+
+  private reservedPeriodsUrl(): string {
+    return `/api/listings/${encodeURIComponent(this.selectedListingId)}/reserved-periods`;
   }
 
   private authHeaders(): Record<string, string> {
