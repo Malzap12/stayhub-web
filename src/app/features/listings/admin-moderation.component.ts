@@ -1,7 +1,31 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HostModerationNotification, Listing } from '../../shared/models/listing.model';
+import { getActiveSession } from '../../core/guards/auth.guard';
+import { HostModerationNotification, Listing, ListingStatus } from '../../shared/models/listing.model';
+
+/** Publicación tal como la devuelve GET /api/listings/pending. */
+export interface ApiPendingListing {
+  id: string;
+  title: string;
+  description?: string;
+  city?: string;
+  maxGuests?: number;
+  pricePerNight?: number;
+  status: ListingStatus;
+  amenities?: string[];
+  hostId?: string;
+  hostName?: string;
+  requestedAt?: string;
+  images?: string[];
+}
+
+interface ModerationResponse {
+  listingId: string;
+  status: ListingStatus;
+  returnReason?: string;
+  notification: { id: string; type: 'APROBADA' | 'DEVUELTA'; message: string; reason?: string; createdAt: string };
+}
 
 @Component({
   selector: 'app-admin-moderation',
@@ -20,8 +44,8 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
         </div>
         <div class="stats-pills">
           <span class="stat-pill pending">Pendientes: {{ pendingQueue.length }}</span>
-          <span class="stat-pill active">Activas en búsqueda: {{ activeSearchListings.length }}</span>
-          <span class="stat-pill draft">Devueltas (Borrador): {{ returnedDraftListings.length }}</span>
+          <span class="stat-pill active">Aprobadas hoy: {{ activeSearchListings.length }}</span>
+          <span class="stat-pill draft">Devueltas hoy: {{ returnedDraftListings.length }}</span>
         </div>
       </header>
 
@@ -29,15 +53,22 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
         {{ feedbackMessage }}
       </div>
 
+      <div class="alert-error" *ngIf="errorMessage" role="alert">
+        {{ errorMessage }}
+        <button type="button" class="btn-cancel" (click)="load()">Reintentar</button>
+      </div>
+
       <!-- CA1: Cola ordenada por fecha de solicitud -->
       <section class="queue-section" aria-label="Cola de publicaciones pendientes">
         <h2>Publicaciones en PENDIENTE_REVISION ({{ pendingQueue.length }})</h2>
 
-        <p class="empty-state" *ngIf="pendingQueue.length === 0">
+        <p class="empty-state" *ngIf="loading" role="status">Cargando la cola de revisión…</p>
+
+        <p class="empty-state" *ngIf="!loading && pendingQueue.length === 0">
           No hay publicaciones pendientes por revisar en este momento.
         </p>
 
-        <div class="queue-grid" *ngIf="pendingQueue.length > 0">
+        <div class="queue-grid" *ngIf="!loading && pendingQueue.length > 0">
           <article class="queue-card" *ngFor="let item of pendingQueue">
             <div class="card-top">
               <span class="status-badge pending">{{ item.status }}</span>
@@ -60,7 +91,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
               ></textarea>
               <p class="error-msg" *ngIf="returnError">{{ returnError }}</p>
               <div class="return-actions">
-                <button type="button" class="btn-confirm-return" (click)="confirmReturn(item.id)">
+                <button type="button" class="btn-confirm-return" [disabled]="busyId === item.id" (click)="confirmReturn(item.id)">
                   Confirmar devolución a BORRADOR
                 </button>
                 <button type="button" class="btn-cancel" (click)="cancelReturn()">
@@ -70,7 +101,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
             </div>
 
             <div class="card-actions" *ngIf="returningListingId !== item.id">
-              <button type="button" class="btn-approve" (click)="approveListing(item.id)">
+              <button type="button" class="btn-approve" [disabled]="busyId === item.id" (click)="approveListing(item.id)">
                 Aprobar publicación (ACTIVA)
               </button>
               <button type="button" class="btn-return" (click)="openReturnPrompt(item.id)">
@@ -86,7 +117,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
         <section class="outcome-panel">
           <h3>Publicaciones activas en búsqueda</h3>
           <p class="empty-inline" *ngIf="activeSearchListings.length === 0">
-            Ninguna publicación aprobada en esta sesión aún.
+            Aún no apruebas publicaciones en esta visita.
           </p>
           <ul class="outcome-list" *ngIf="activeSearchListings.length > 0">
             <li *ngFor="let active of activeSearchListings">
@@ -99,7 +130,7 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
         <section class="outcome-panel">
           <h3>Publicaciones devueltas (Borrador)</h3>
           <p class="empty-inline" *ngIf="returnedDraftListings.length === 0">
-            Ninguna publicación devuelta en esta sesión aún.
+            Aún no devuelves publicaciones en esta visita.
           </p>
           <ul class="outcome-list" *ngIf="returnedDraftListings.length > 0">
             <li *ngFor="let draft of returnedDraftListings">
@@ -174,6 +205,21 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
       background: #f5f5f7;
     }
     .stat-pill.pending { background: #fff4e5; color: #9a5b00; }
+    .alert-error {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
     .stat-pill.active { background: #e8f8ee; color: #166534; }
     .stat-pill.draft { background: #fef2f2; color: #991b1b; }
     .alert-banner {
@@ -286,54 +332,21 @@ import { HostModerationNotification, Listing } from '../../shared/models/listing
     .notif-tag.returned { background: #fef2f2; color: #991b1b; }
   `],
 })
-export class AdminModerationComponent {
-  listings: Listing[] = [
-    {
-      id: 'pending-listing-2',
-      title: 'Cabaña Alpina en Santa Elena',
-      description: 'Cabaña rodeada de bosque nativo con chimenea y deck panorámico.',
-      city: 'Medellín',
-      capacity: 4,
-      pricePerNight: 380000,
-      status: 'PENDIENTE_REVISION',
-      amenities: ['WIFI', 'CHIMENEA'],
-      hostId: 'host-2',
-      hostName: 'Carlos Mendoza',
-      requestedAt: '2026-10-16T14:30:00.000Z',
-    },
-    {
-      id: 'pending-listing-1',
-      title: 'Ático Minimalista en Laureles',
-      description: 'Iluminación cenital, terraza privada y estudio insonorizado.',
-      city: 'Medellín',
-      capacity: 2,
-      pricePerNight: 290000,
-      status: 'PENDIENTE_REVISION',
-      amenities: ['WIFI', 'AC'],
-      hostId: 'host-1',
-      hostName: 'Laura Restrepo',
-      requestedAt: '2026-10-14T08:15:00.000Z',
-    },
-    {
-      id: 'pending-listing-3',
-      title: 'Casa Colonial frente al Mar',
-      description: 'Arquitectura republicana restaurada con piscina interior.',
-      city: 'Cartagena',
-      capacity: 6,
-      pricePerNight: 650000,
-      status: 'PENDIENTE_REVISION',
-      amenities: ['WIFI', 'PISCINA'],
-      hostId: 'host-3',
-      hostName: 'Andrés Salgado',
-      requestedAt: '2026-10-18T19:45:00.000Z',
-    },
-  ];
-
+export class AdminModerationComponent implements OnInit {
+  /** Pendientes cargadas del API y, en esta visita, las que el administrador aprobó o devolvió. */
+  listings: Listing[] = [];
   notifications: HostModerationNotification[] = [];
+  loading = false;
+  busyId: string | null = null;
+  errorMessage = '';
   returningListingId: string | null = null;
   returnReasonInput = '';
   returnError = '';
   feedbackMessage = '';
+
+  ngOnInit(): void {
+    void this.load();
+  }
 
   /**
    * CA1: Dado que hay publicaciones en PENDIENTE_REVISION, cuando abro la cola de revisión,
@@ -349,40 +362,124 @@ export class AdminModerationComponent {
       });
   }
 
-  /**
-   * CA2: Publicaciones aprobadas que pasan a ACTIVA y aparecen en las búsquedas.
-   */
+  /** CA2: publicaciones aprobadas en esta visita, que ya están ACTIVAS en las búsquedas. */
   get activeSearchListings(): Listing[] {
     return this.listings.filter((item) => item.status === 'ACTIVA');
   }
 
-  /**
-   * CA3: Publicaciones devueltas que pasan a BORRADOR con motivo visible para el anfitrión.
-   */
+  /** CA3: publicaciones devueltas en esta visita, que pasaron a BORRADOR con motivo para el anfitrión. */
   get returnedDraftListings(): Listing[] {
     return this.listings.filter((item) => item.status === 'BORRADOR');
   }
 
-  approveListing(id: string): void {
+  toListing(item: ApiPendingListing): Listing {
+    return {
+      id: item.id,
+      title: item.title,
+      description: item.description ?? '',
+      city: item.city ?? '',
+      capacity: item.maxGuests ?? 0,
+      pricePerNight: item.pricePerNight ?? 0,
+      status: item.status,
+      amenities: item.amenities ?? [],
+      hostId: item.hostId,
+      hostName: item.hostName || 'Anfitrión',
+      requestedAt: item.requestedAt,
+      imageUrl: item.images?.[0],
+    };
+  }
+
+  private authHeaders(): Record<string, string> {
+    const token = getActiveSession()?.token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  private apiError(status: number, body: { message?: string | string[] }, fallback: string): string {
+    if (status === 401) {
+      return 'Tu sesión expiró. Inicia sesión de nuevo como administrador.';
+    }
+    if (status === 403) {
+      return 'Solo el administrador puede revisar publicaciones.';
+    }
+    return [body?.message].flat().filter(Boolean).join(' ') || fallback;
+  }
+
+  /** CA1: carga la cola real de PENDIENTE_REVISION desde el API. */
+  async load(): Promise<void> {
+    this.loading = true;
+    this.errorMessage = '';
+    try {
+      const response = await fetch('/api/listings/pending', { headers: this.authHeaders() });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.errorMessage = this.apiError(response.status, body, 'No fue posible cargar la cola de revisión.');
+        return;
+      }
+      const reviewed = this.listings.filter((item) => item.status !== 'PENDIENTE_REVISION');
+      this.listings = [...(body as ApiPendingListing[]).map((item) => this.toListing(item)), ...reviewed];
+    } catch {
+      this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  /** Envía la decisión al API y, si se guarda, actualiza la publicación y la notificación al anfitrión. */
+  private async moderate(id: string, action: 'approve' | 'return', reason?: string): Promise<ModerationResponse | null> {
+    this.busyId = id;
+    this.errorMessage = '';
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(id)}/${action}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: action === 'return' ? JSON.stringify({ reason }) : undefined,
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = this.apiError(response.status, body, 'No fue posible guardar la decisión.');
+        if (action === 'return') {
+          this.returnError = message;
+        } else {
+          this.errorMessage = message;
+        }
+        return null;
+      }
+      return body as ModerationResponse;
+    } catch {
+      this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+      return null;
+    } finally {
+      this.busyId = null;
+    }
+  }
+
+  private applyDecision(item: Listing, result: ModerationResponse): void {
+    item.status = result.status;
+    item.returnReason = result.returnReason;
+    this.notifications.unshift({
+      id: result.notification.id,
+      listingId: item.id,
+      listingTitle: item.title,
+      hostName: item.hostName || 'Anfitrión',
+      type: result.notification.type,
+      message: result.notification.message,
+      reason: result.notification.reason,
+      createdAt: result.notification.createdAt,
+    });
+  }
+
+  async approveListing(id: string): Promise<void> {
     const item = this.listings.find((l) => l.id === id);
     if (!item || item.status !== 'PENDIENTE_REVISION') {
       return;
     }
 
-    item.status = 'ACTIVA';
-    item.returnReason = undefined;
-
-    const notif: HostModerationNotification = {
-      id: `notif-${Date.now()}`,
-      listingId: item.id,
-      listingTitle: item.title,
-      hostName: item.hostName || 'Anfitrión',
-      type: 'APROBADA',
-      message: `Tu publicación "${item.title}" ha sido aprobada, pasó a ACTIVA y ya aparece en las búsquedas.`,
-      createdAt: new Date().toISOString(),
-    };
-    this.notifications.unshift(notif);
-    this.feedbackMessage = `Publicación "${item.title}" aprobada (ACTIVA) y anfitrión notificado.`;
+    const result = await this.moderate(id, 'approve');
+    if (!result) {
+      return;
+    }
+    this.applyDecision(item, result);
+    this.feedbackMessage = `Publicación "${item.title}" aprobada: ya está ACTIVA en las búsquedas y se notificó al anfitrión.`;
   }
 
   openReturnPrompt(id: string): void {
@@ -397,7 +494,7 @@ export class AdminModerationComponent {
     this.returnError = '';
   }
 
-  confirmReturn(id: string): void {
+  async confirmReturn(id: string): Promise<void> {
     const reason = this.returnReasonInput.trim();
     if (!reason) {
       this.returnError = 'Debes ingresar un motivo de devolución para el anfitrión.';
@@ -409,21 +506,12 @@ export class AdminModerationComponent {
       return;
     }
 
-    item.status = 'BORRADOR';
-    item.returnReason = reason;
-
-    const notif: HostModerationNotification = {
-      id: `notif-${Date.now()}`,
-      listingId: item.id,
-      listingTitle: item.title,
-      hostName: item.hostName || 'Anfitrión',
-      type: 'DEVUELTA',
-      message: `Tu publicación "${item.title}" pasó a BORRADOR. Motivo de devolución: ${reason}`,
-      reason,
-      createdAt: new Date().toISOString(),
-    };
-    this.notifications.unshift(notif);
-    this.feedbackMessage = `Publicación "${item.title}" devuelta a BORRADOR con motivo registrado.`;
+    const result = await this.moderate(id, 'return', reason);
+    if (!result) {
+      return;
+    }
+    this.applyDecision(item, result);
+    this.feedbackMessage = `Publicación "${item.title}" devuelta a BORRADOR. El anfitrión verá el motivo en Mis publicaciones.`;
     this.cancelReturn();
   }
 }
