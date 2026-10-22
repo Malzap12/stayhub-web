@@ -31,6 +31,25 @@ export interface SavedDraft {
 
 export type DraftField = 'title' | 'maxGuests' | 'pricePerNight' | 'form';
 
+/** HU-010: límites que también valida el API al subir imágenes. */
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGES = 10;
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_PRICE_DIGITS = 9;
+
+const copFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+
+/** Precio en pesos con signo y separador de miles: 320000 -> "$ 320.000". */
+export function formatCop(value: number | null): string {
+  return value === null ? '' : `$ ${copFormatter.format(value)}`;
+}
+
+/** Lee lo que escribe el usuario ("$ 320.000", "320000") y deja solo el valor entero. */
+export function parseCop(text: string): number | null {
+  const digits = text.replace(/\D/g, '').slice(0, MAX_PRICE_DIGITS);
+  return digits ? Number(digits) : null;
+}
+
 const emptyForm = (): ListingDraftForm => ({
   title: '',
   description: '',
@@ -145,9 +164,12 @@ const emptyForm = (): ListingDraftForm => ({
               <input
                 id="draft-price"
                 name="pricePerNight"
-                type="number"
-                min="1"
-                [(ngModel)]="form.pricePerNight"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="$ 0"
+                [value]="priceDisplay"
+                (input)="onPriceInput($event)"
                 [class.input-error]="errors.pricePerNight"
                 [attr.aria-invalid]="!!errors.pricePerNight"
                 aria-describedby="draft-price-error"
@@ -181,18 +203,49 @@ const emptyForm = (): ListingDraftForm => ({
             ></textarea>
           </div>
 
-          <div class="field">
-            <label for="draft-images">Imágenes</label>
+          <fieldset class="field">
+            <legend>Imágenes</legend>
+            <label
+              class="dropzone"
+              for="draft-image-files"
+              [class.dragging]="dragging"
+              [class.busy]="uploading"
+              (dragover)="onDragOver($event)"
+              (dragleave)="dragging = false"
+              (drop)="onDrop($event)"
+            >
+              <input
+                id="draft-image-files"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                [disabled]="uploading || uploadedImages.length >= maxImages"
+                (change)="onFilesSelected($event)"
+              />
+              <span class="dropzone-title">{{ uploading ? 'Subiendo imágenes…' : 'Sube fotos desde tu dispositivo' }}</span>
+              <span class="dropzone-hint">Haz clic o arrastra aquí · JPG, PNG o WEBP · máximo 5 MB cada una · hasta {{ maxImages }}</span>
+            </label>
+            <p *ngIf="imageError" class="field-error" role="alert">{{ imageError }}</p>
+
+            <ul class="previews" *ngIf="uploadedImages.length > 0" aria-label="Imágenes subidas">
+              <li *ngFor="let url of uploadedImages; let first = first">
+                <img [src]="url" [alt]="'Imagen ' + (uploadedImages.indexOf(url) + 1) + ' de la publicación'" />
+                <span *ngIf="first" class="cover-tag">Portada</span>
+                <button type="button" class="remove-image" (click)="removeImage(url)" [attr.aria-label]="'Quitar imagen ' + (uploadedImages.indexOf(url) + 1)">Quitar</button>
+              </li>
+            </ul>
+
+            <label for="draft-images" class="sub-label">O pega enlaces de imágenes (una URL por línea)</label>
             <textarea
               id="draft-images"
               name="images"
-              rows="3"
+              rows="2"
               [(ngModel)]="form.imagesText"
-              placeholder="Una URL por línea"
+              placeholder="https://…"
             ></textarea>
-          </div>
+          </fieldset>
 
-          <button type="submit" class="btn-primary" [disabled]="loading">
+          <button type="submit" class="btn-primary" [disabled]="loading || uploading">
             {{ loading ? 'Guardando…' : 'Guardar borrador' }}
           </button>
         </form>
@@ -346,6 +399,93 @@ const emptyForm = (): ListingDraftForm => ({
       width: auto;
       padding: 0;
     }
+    .dropzone {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 22px 16px;
+      border: 1.5px dashed var(--apple-border, #d2d2d7);
+      border-radius: 14px;
+      background: #fafafa;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .dropzone:hover,
+    .dropzone.dragging {
+      border-color: var(--apple-ink, #1d1d1f);
+      background: #f5f5f7;
+    }
+    .dropzone.busy {
+      cursor: progress;
+      opacity: 0.7;
+    }
+    .dropzone input[type='file'] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .dropzone-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .dropzone-hint {
+      font-size: 0.78rem;
+      color: var(--apple-text-secondary, #6e6e73);
+    }
+    .previews {
+      list-style: none;
+      margin: 4px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px;
+    }
+    .previews li {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #e5e5ea;
+    }
+    .previews img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .cover-tag {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+    .remove-image {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      padding: 3px 9px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(29, 29, 31, 0.85);
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .sub-label {
+      margin-top: 6px;
+      font-weight: 500;
+      color: var(--apple-text-secondary, #6e6e73);
+    }
     .btn-primary {
       padding: 14px 20px;
       border: none;
@@ -498,7 +638,13 @@ export class ListingDraftFormComponent implements OnInit {
     { value: 'MASCOTAS', label: 'Admite mascotas' },
   ];
 
+  readonly maxImages = MAX_IMAGES;
+
   form: ListingDraftForm = emptyForm();
+  uploadedImages: string[] = [];
+  uploading = false;
+  dragging = false;
+  imageError = '';
   errors: Partial<Record<DraftField, string>> = {};
   saved: SavedDraft | null = null;
   myListings: SavedDraft[] = [];
@@ -514,6 +660,109 @@ export class ListingDraftFormComponent implements OnInit {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+  }
+
+  get priceDisplay(): string {
+    return formatCop(this.form.pricePerNight);
+  }
+
+  /** Muestra el precio con signo pesos y puntos mientras se escribe, y guarda solo el número. */
+  onPriceInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.form.pricePerNight = parseCop(input.value);
+    input.value = this.priceDisplay;
+    input.setSelectionRange(input.value.length, input.value.length);
+    if (this.errors.pricePerNight) {
+      this.errors = { ...this.errors, pricePerNight: undefined };
+    }
+  }
+
+  onFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    void this.uploadImages(files);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging = true;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging = false;
+    void this.uploadImages(Array.from(event.dataTransfer?.files ?? []));
+  }
+
+  /** Revisa tipo, tamaño y cantidad antes de subir, para avisar sin esperar al servidor. */
+  validateImageFiles(files: File[]): string {
+    if (files.length === 0) {
+      return '';
+    }
+    if (this.uploadedImages.length + files.length > MAX_IMAGES) {
+      return `Puedes subir hasta ${MAX_IMAGES} imágenes por publicación.`;
+    }
+    const wrongType = files.find((file) => !ACCEPTED_IMAGE_TYPES.includes(file.type));
+    if (wrongType) {
+      return `«${wrongType.name}» no es una imagen JPG, PNG o WEBP.`;
+    }
+    const tooBig = files.find((file) => file.size > MAX_IMAGE_BYTES);
+    if (tooBig) {
+      return `«${tooBig.name}» supera el tamaño máximo de 5 MB.`;
+    }
+    return '';
+  }
+
+  /** HU-010: sube las imágenes al API y muestra su vista previa. */
+  async uploadImages(files: File[]): Promise<void> {
+    this.imageError = this.validateImageFiles(files);
+    if (this.imageError || files.length === 0) {
+      return;
+    }
+
+    const body = new FormData();
+    for (const file of files) {
+      body.append('images', file, file.name);
+    }
+
+    this.uploading = true;
+    try {
+      const token = getActiveSession()?.token;
+      const response = await fetch('/api/listings/images', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body,
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        this.imageError = this.uploadError(response.status, result);
+        return;
+      }
+      this.uploadedImages = [...this.uploadedImages, ...((result as { urls?: string[] }).urls ?? [])];
+    } catch {
+      this.imageError = 'No fue posible subir las imágenes. Revisa tu conexión e intenta de nuevo.';
+    } finally {
+      this.uploading = false;
+    }
+  }
+
+  private uploadError(status: number, body: { message?: string | string[] }): string {
+    if (status === 401) {
+      return 'Tu sesión expiró. Inicia sesión de nuevo.';
+    }
+    if (status === 403) {
+      return 'Solo los anfitriones pueden subir imágenes.';
+    }
+    if (status === 413) {
+      return 'Una de las imágenes supera el tamaño máximo de 5 MB.';
+    }
+    return [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible subir las imágenes.';
+  }
+
+  removeImage(url: string): void {
+    this.uploadedImages = this.uploadedImages.filter((item) => item !== url);
   }
 
   missingLabels(fields: string[]): string {
@@ -569,7 +818,7 @@ export class ListingDraftFormComponent implements OnInit {
       pricePerNight: this.form.pricePerNight ?? undefined,
       amenities: this.form.amenities,
       rules: lines(this.form.rulesText),
-      images: lines(this.form.imagesText),
+      images: [...this.uploadedImages, ...lines(this.form.imagesText)],
     };
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
   }
@@ -632,6 +881,8 @@ export class ListingDraftFormComponent implements OnInit {
 
   startNew(): void {
     this.form = emptyForm();
+    this.uploadedImages = [];
+    this.imageError = '';
     this.errors = {};
     this.saved = null;
   }
