@@ -126,4 +126,77 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
     component.toggle('Desayuno');
     expect(component.quote).toBeNull();
   });
+
+  describe('HU-028 · Validar la solicitud de cotización', () => {
+    beforeEach(() => {
+      component.checkIn = '2026-12-01';
+      component.checkOut = '2026-12-04';
+    });
+
+    it('CA1: rechaza la salida igual a la llegada con un mensaje claro sin llamar al API', async () => {
+      const fetchSpy = spyOn(window, 'fetch');
+      component.checkOut = '2026-12-01';
+
+      await component.submit();
+
+      expect(component.errorMessage).toBe('La fecha de salida debe ser posterior a la fecha de llegada.');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('CA2: informa la capacidad máxima antes de cotizar', async () => {
+      const fetchSpy = spyOn(window, 'fetch');
+      component.guests = 5;
+
+      await component.submit();
+      fixture.detectChanges();
+
+      expect(component.errorMessage).toBe('Esta publicación admite máximo 4 huéspedes.');
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.hint')?.textContent).toContain('Máximo 4 huéspedes');
+    });
+
+    it('CA2: también muestra el rechazo del API por capacidad', async () => {
+      component.maxGuests = undefined;
+      component.guests = 9;
+      spyOn(window, 'fetch').and.returnValue(
+        json({ reason: 'CAPACIDAD_EXCEDIDA', message: 'Esta publicación admite máximo 4 huéspedes', maxGuests: 4 }, 400),
+      );
+
+      await component.submit();
+
+      expect(component.errorMessage).toBe('Esta publicación admite máximo 4 huéspedes');
+    });
+
+    it('CA3: indica que el periodo no está disponible y qué noches fallan', async () => {
+      spyOn(window, 'fetch').and.returnValue(
+        json(
+          {
+            reason: 'PERIODO_NO_DISPONIBLE',
+            message: 'El periodo del 2026-12-19 al 2026-12-22 no está disponible en esta publicación',
+            unavailableNights: ['2026-12-20', '2026-12-21'],
+          },
+          400,
+        ),
+      );
+
+      await component.submit();
+      fixture.detectChanges();
+
+      const error = (fixture.nativeElement as HTMLElement).querySelector('.error')?.textContent ?? '';
+      expect(error).toContain('no está disponible en esta publicación');
+      // El formato de la fecha depende del navegador ("20 dic. 2026", "20 de dic de 2026"…).
+      expect(error).toMatch(/Noches no disponibles: 20 .*dic.*21 .*dic/);
+      expect(component.quote).toBeNull();
+    });
+
+    it('cambiar un dato borra el aviso anterior', async () => {
+      spyOn(window, 'fetch').and.returnValue(json({ message: 'No disponible', unavailableNights: ['2026-12-20'] }, 400));
+      await component.submit();
+      expect(component.unavailableNights.length).toBe(1);
+
+      component.clear();
+      expect(component.errorMessage).toBe('');
+      expect(component.unavailableNights).toEqual([]);
+    });
+  });
 });
