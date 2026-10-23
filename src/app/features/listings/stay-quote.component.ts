@@ -55,6 +55,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
         <span>Huéspedes</span>
         <input type="number" name="guests" min="1" [attr.max]="maxGuests || null" [(ngModel)]="guests" (ngModelChange)="clear()" />
       </label>
+      <p class="hint" *ngIf="maxGuests">Máximo {{ maxGuests }} {{ maxGuests === 1 ? 'huésped' : 'huéspedes' }}.</p>
 
       <fieldset *ngIf="additionalServices.length > 0">
         <legend>Servicios adicionales</legend>
@@ -65,7 +66,12 @@ export function formatQuoteAmount(value: number, negative = false): string {
         </label>
       </fieldset>
 
-      <p class="error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
+      <div class="error" *ngIf="errorMessage" role="alert">
+        <p>{{ errorMessage }}</p>
+        <p class="nights" *ngIf="unavailableNights.length > 0">
+          Noches no disponibles: {{ nightsLabel }}. Revisa el calendario de disponibilidad.
+        </p>
+      </div>
       <button type="submit" [disabled]="loading">{{ loading ? 'Cotizando…' : 'Cotizar' }}</button>
 
       <!-- CA1-CA4: desglose en COP -->
@@ -171,10 +177,26 @@ export function formatQuoteAmount(value: number, negative = false): string {
       cursor: progress;
     }
     .error {
-      margin: 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #d70015;
+      color: #b91c1c;
+    }
+    .error p {
+      margin: 0;
+    }
+    .error .nights {
+      margin-top: 4px;
+      font-weight: 500;
+      color: #7f1d1d;
+    }
+    .hint {
+      margin: -4px 0 0;
+      font-size: 0.76rem;
+      color: #6e6e73;
     }
     .breakdown {
       margin: 4px 0 0;
@@ -221,6 +243,8 @@ export class StayQuoteComponent {
   quote: StayQuote | null = null;
   loading = false;
   errorMessage = '';
+  /** HU-028 CA3: noches del rango que no se pueden reservar, según el API. */
+  unavailableNights: string[] = [];
 
   amount(value: number, negative = false): string {
     return formatQuoteAmount(value, negative);
@@ -238,6 +262,13 @@ export class StayQuoteComponent {
   clear(): void {
     this.quote = null;
     this.errorMessage = '';
+    this.unavailableNights = [];
+  }
+
+  /** "2026-12-20" -> "20 dic. 2026" */
+  get nightsLabel(): string {
+    const formatter = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    return this.unavailableNights.map((night) => formatter.format(new Date(`${night}T00:00:00Z`))).join(', ');
   }
 
   validate(): string {
@@ -250,11 +281,16 @@ export class StayQuoteComponent {
     if (!Number.isInteger(Number(this.guests)) || Number(this.guests) < 1) {
       return 'El número de huéspedes debe ser al menos 1.';
     }
+    // HU-028 CA2: se avisa antes de llamar al API; el API también lo valida.
+    if (this.maxGuests && Number(this.guests) > this.maxGuests) {
+      return `Esta publicación admite máximo ${this.maxGuests} ${this.maxGuests === 1 ? 'huésped' : 'huéspedes'}.`;
+    }
     return '';
   }
 
   async submit(): Promise<void> {
     this.quote = null;
+    this.unavailableNights = [];
     this.errorMessage = this.validate();
     if (this.errorMessage) {
       return;
@@ -276,6 +312,7 @@ export class StayQuoteComponent {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         this.errorMessage = [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible cotizar la estancia.';
+        this.unavailableNights = Array.isArray(body?.unavailableNights) ? body.unavailableNights : [];
         return;
       }
       this.quote = body as StayQuote;
