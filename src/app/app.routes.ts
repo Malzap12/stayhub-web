@@ -51,6 +51,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'anfitrion/publicaciones/:id/tarifas',
+    canActivate: [roleGuard(['ANFITRION'])],
+    loadComponent: () =>
+      import('./features/listings/listing-pricing.component').then(
+        (m) => m.ListingPricingComponent,
+      ),
+  },
+  {
     path: 'admin/moderacion',
     canActivate: [roleGuard(['ADMINISTRADOR'])],
     loadComponent: () =>

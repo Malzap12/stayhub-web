@@ -128,6 +128,15 @@ interface ActivationFailure {
               >
                 Gestionar periodos disponibles →
               </a>
+
+              <!-- HU-015: tarifa de limpieza y descuento por estancia larga -->
+              <a
+                *ngIf="item.status !== 'BLOQUEADA'"
+                class="availability-link"
+                [routerLink]="['/anfitrion/publicaciones', item.id, 'tarifas']"
+              >
+                Limpieza y descuento por estancia larga →
+              </a>
             </li>
           </ul>
 
