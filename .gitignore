@@ -1,4 +1,5 @@
 # Compiled output
+/.angular
 /dist
 /tmp
 /out-tsc
