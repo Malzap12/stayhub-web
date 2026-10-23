@@ -184,8 +184,8 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
 
       const error = (fixture.nativeElement as HTMLElement).querySelector('.error')?.textContent ?? '';
       expect(error).toContain('no está disponible en esta publicación');
-      expect(error).toContain('Noches no disponibles: 20 dic');
-      expect(error).toContain('21 dic');
+      // El formato de la fecha depende del navegador ("20 dic. 2026", "20 de dic de 2026"…).
+      expect(error).toMatch(/Noches no disponibles: 20 .*dic.*21 .*dic/);
       expect(component.quote).toBeNull();
     });
 
