@@ -76,3 +76,17 @@ export interface MyListing {
   missingFields: string[];
   createdAt: string;
 }
+
+/** HU-015 · Descuento por estancia larga: porcentaje (0-50 %) desde un mínimo de noches. */
+export interface LongStayDiscount {
+  minNights: number;
+  percentage: number;
+}
+
+/** HU-015 · Tarifas de la publicación (GET/PATCH /api/listings/:id/pricing). */
+export interface ListingPricing {
+  listingId: string;
+  cleaningFee: number;
+  longStayDiscount: LongStayDiscount | null;
+  currency: string;
+}
