@@ -29,7 +29,8 @@ import {
           <a *ngIf="canViewMyBookings" routerLink="/mis-reservas" routerLinkActive="active">Mis Reservas</a>
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
-          <a *ngIf="isAdmin" routerLink="/admin/moderacion" routerLinkActive="active">Administración</a>
+          <a *ngIf="isAdmin" routerLink="/admin/moderacion" routerLinkActive="active">Moderación</a>
+          <a *ngIf="isAdmin" routerLink="/admin/configuracion" routerLinkActive="active">Configuración</a>
         </nav>
 
         <!-- Cluster Derecho: Perfil / Acceso -->
