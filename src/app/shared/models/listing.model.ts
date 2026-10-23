@@ -19,6 +19,8 @@ export interface BlockedPeriod {
   id: string;
   listingId: string;
   bookingId?: string;
+  /** HU-022: reserva confirmada o bloqueo de fechas del anfitrión. */
+  type?: 'RESERVA' | 'BLOQUEO';
   checkIn: string;
   checkOut: string;
   blockedNights: string[];

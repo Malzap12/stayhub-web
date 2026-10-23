@@ -1,8 +1,9 @@
-import { Component, OnInit, Optional } from '@angular/core';
+import { Component, OnInit, Optional, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
+import { AvailabilityCalendarComponent } from './availability-calendar.component';
 import {
   AvailabilityCheckResult,
   AvailabilityPeriod,
@@ -40,7 +41,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
 @Component({
   selector: 'app-host-availability',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AvailabilityCalendarComponent],
   template: `
     <section class="host-shell">
       <header class="host-header">
@@ -125,9 +126,24 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
           </ul>
         </section>
 
-        <!-- HU-023: Bloqueo automático de periodo reservado [llegada, salida) -->
+        <!-- HU-022 CA2: calendario del anfitrión con disponibles, reservadas y bloqueadas -->
+        <section class="periods-card calendar-card" *ngIf="selectedListingId">
+          <app-availability-calendar #calendar [listingId]="selectedListingId" title="Calendario de los próximos 12 meses"></app-availability-calendar>
+        </section>
+
+        <!-- HU-023: Bloqueo automático de periodo reservado [llegada, salida) / HU-022: bloqueo del anfitrión -->
         <section class="form-card" aria-label="Bloqueo de periodo reservado">
-          <h2>Confirmar reserva y bloquear noches (HU-023)</h2>
+          <h2>Reservar o bloquear noches</h2>
+          <div class="type-choice" role="radiogroup" aria-label="Tipo de registro">
+            <label>
+              <input type="radio" name="blockType" value="RESERVA" [(ngModel)]="blockType" />
+              Reserva confirmada
+            </label>
+            <label>
+              <input type="radio" name="blockType" value="BLOQUEO" [(ngModel)]="blockType" />
+              Bloquear fechas (no recibir reservas)
+            </label>
+          </div>
           <p class="period-meta">
             Intervalo [llegada, salida): el día de salida no se bloquea como noche y puede ser la llegada de otra reserva.
           </p>
@@ -145,7 +161,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
           </div>
 
           <button type="button" class="btn-primary" [disabled]="saving" (click)="confirmReservedBlock()">
-            Bloquear periodo reservado
+            {{ blockType === 'BLOQUEO' ? 'Bloquear fechas' : 'Bloquear periodo reservado' }}
           </button>
 
           <ul class="period-list" *ngIf="reservedPeriods.length > 0" style="margin-top: 14px;">
@@ -154,7 +170,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
                 <strong>{{ block.checkIn }} → {{ block.checkOut }}</strong>
                 <span class="period-meta">Noches bloqueadas: {{ block.blockedNights.join(', ') }}</span>
               </div>
-              <span class="badge-blocked">Reservado</span>
+              <span [class]="block.type === 'BLOQUEO' ? 'badge-host-block' : 'badge-blocked'">{{ block.type === 'BLOQUEO' ? 'Bloqueado' : 'Reservado' }}</span>
             </li>
           </ul>
         </section>
@@ -195,6 +211,33 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     </section>
   `,
   styles: [`
+    .calendar-card {
+      grid-column: 1 / -1;
+    }
+    .type-choice {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 12px;
+      font-size: 0.86rem;
+    }
+    .type-choice label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .type-choice input {
+      width: auto;
+    }
+    .badge-host-block {
+      padding: 4px 10px;
+      border-radius: 980px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: #fee2e2;
+      color: #991b1b;
+    }
     .host-shell {
       max-width: 1120px;
       margin: 0 auto;
@@ -373,6 +416,9 @@ export class HostAvailabilityComponent implements OnInit {
   endDateInput = '';
   checkInInput = '';
   checkOutInput = '';
+  blockType: 'RESERVA' | 'BLOQUEO' = 'RESERVA';
+
+  @ViewChild('calendar') calendar?: AvailabilityCalendarComponent;
   availabilityQueryStart = '';
   availabilityQueryEnd = '';
   availabilityResult: AvailabilityCheckResult | null = null;
@@ -506,6 +552,7 @@ export class HostAvailabilityComponent implements OnInit {
       const created = body as AvailabilityPeriod;
       this.periods = [...this.periods, created].sort((a, b) => a.startDate.localeCompare(b.startDate));
       this.successMessage = `Periodo del ${created.startDate} al ${created.endDate} registrado y disponible para reservas.`;
+      void this.calendar?.load();
       this.startDateInput = '';
       this.endDateInput = '';
       return created;
@@ -543,7 +590,7 @@ export class HostAvailabilityComponent implements OnInit {
       const response = await fetch(this.reservedPeriodsUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
-        body: JSON.stringify({ checkIn, checkOut }),
+        body: JSON.stringify({ checkIn, checkOut, type: this.blockType }),
       });
       const body = (await response.json().catch(() => ({}))) as BlockedPeriod & PeriodErrorBody;
 
@@ -557,7 +604,11 @@ export class HostAvailabilityComponent implements OnInit {
         blockedNights: body.blockedNights ?? requestedNights,
       };
       this.reservedPeriods = [...this.reservedPeriods, blocked].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
-      this.successMessage = `Reserva confirmada (${blocked.checkIn} al ${blocked.checkOut}): noches bloqueadas ${blocked.blockedNights.join(', ')}.`;
+      this.successMessage =
+        blocked.type === 'BLOQUEO'
+          ? `Fechas bloqueadas (${blocked.checkIn} al ${blocked.checkOut}): noches ${blocked.blockedNights.join(', ')}.`
+          : `Reserva confirmada (${blocked.checkIn} al ${blocked.checkOut}): noches bloqueadas ${blocked.blockedNights.join(', ')}.`;
+      void this.calendar?.load();
       this.checkInInput = '';
       this.checkOutInput = '';
       return blocked;
