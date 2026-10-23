@@ -43,7 +43,7 @@ describe('AvailabilityCalendarComponent · HU-022 Consultar el calendario de dis
     const grid = monthGrid([{ date: '2026-11-01', status: 'DISPONIBLE' }]);
     expect(grid.slice(0, 6)).toEqual([null, null, null, null, null, null]);
     expect(grid[6]?.day).toBe(1);
-    expect(monthLabel('2026-11')).toBe('noviembre de 2026');
+    expect(monthLabel('2026-11')).toBe('Noviembre de 2026');
   });
 
   it('CA1: la vista pública muestra disponibles y no disponibles con su leyenda', async () => {

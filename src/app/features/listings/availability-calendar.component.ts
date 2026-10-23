@@ -35,9 +35,10 @@ const LEGEND: Record<ListingCalendar['view'], CalendarDayStatus[]> = {
 
 const monthFormatter = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
-/** Nombre del mes en español: "2026-11" -> "noviembre de 2026". */
+/** Nombre del mes en español: "2026-11" -> "Noviembre de 2026". */
 export function monthLabel(month: string): string {
-  return monthFormatter.format(new Date(`${month}-01T00:00:00.000Z`));
+  const label = monthFormatter.format(new Date(`${month}-01T00:00:00.000Z`));
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 /** Celdas de un mes empezando en lunes: null para los huecos antes del día 1. */
@@ -182,7 +183,6 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       margin: 0 0 6px;
       font-size: 0.86rem;
       font-weight: 700;
-      text-transform: capitalize;
     }
     .weekdays, .days {
       display: grid;
