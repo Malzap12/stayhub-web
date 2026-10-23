@@ -11,6 +11,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'listings/:id',
+    loadComponent: () =>
+      import('./features/listings/listing-detail.component').then(
+        (m) => m.ListingDetailComponent,
+      ),
+  },
+  {
     path: 'mis-reservas',
     canActivate: [roleGuard(['HUESPED'])],
     loadComponent: () =>

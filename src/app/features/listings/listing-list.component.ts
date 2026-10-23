@@ -1,14 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface PublicReviewItem {
-  id: string;
-  authorName: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
+import { Router, RouterLink } from '@angular/router';
 
 export interface PublicListingItem {
   id: string;
@@ -22,7 +15,6 @@ export interface PublicListingItem {
   imageUrl: string;
   hostName: string;
   description: string;
-  reviews: PublicReviewItem[];
 }
 
 /** Publicación tal como la devuelve GET /api/listings/search. */
@@ -45,14 +37,6 @@ interface SearchResponse {
   total: number;
 }
 
-interface ApiReview {
-  id: string;
-  authorName: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-}
-
 export interface SearchForm {
   city: string;
   checkIn: string;
@@ -72,7 +56,7 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-listing-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="cupertino-catalog">
       <!-- Encabezado Editorial Minimalista -->
@@ -152,8 +136,7 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
         <article
           class="listing-card"
           *ngFor="let item of listings"
-          [class.selected]="selectedListing?.id === item.id"
-          (click)="selectListing(item)"
+          (click)="openDetail(item)"
         >
           <div class="card-media">
             <img
@@ -180,76 +163,18 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
                 <strong class="price-cop">{{ item.priceCop }}</strong>
                 <span>/ noche</span>
               </div>
-              <button
-                type="button"
+              <a
                 class="apple-secondary-btn"
-                (click)="selectListing(item); $event.stopPropagation()"
+                [routerLink]="['/listings', item.id]"
+                (click)="$event.stopPropagation()"
               >
                 Ver detalle
-              </button>
+              </a>
             </div>
           </div>
         </article>
       </div>
 
-      <!-- CA3: Panel de detalle y reseñas públicas sin iniciar sesión -->
-      <section class="detail-panel" *ngIf="selectedListing as detail" aria-live="polite">
-        <div class="detail-grid">
-          <div class="detail-Visual">
-            <img [src]="detail.imageUrl" [alt]="detail.title" />
-          </div>
-
-          <div class="detail-content">
-            <div class="detail-header">
-              <div>
-                <div class="detail-pills">
-                  <span class="city-pill">{{ detail.city }}</span>
-                  <span class="meta-pill">{{ detail.category }}</span>
-                  <span class="meta-pill">Anfitrión: {{ detail.hostName }}</span>
-                </div>
-                <h3>{{ detail.title }}</h3>
-              </div>
-              <button type="button" class="close-btn" (click)="selectedListing = null">
-                Cerrar
-              </button>
-            </div>
-
-            <p class="detail-body">{{ detail.description }}</p>
-
-            <div class="detail-specs">
-              <div>
-                <span>Capacidad</span>
-                <strong>{{ detail.guests }} huéspedes</strong>
-              </div>
-              <div>
-                <span>Habitaciones</span>
-                <strong>{{ detail.bedrooms }}</strong>
-              </div>
-              <div>
-                <span>Tarifa base</span>
-                <strong>{{ detail.priceCop }} / noche</strong>
-              </div>
-              <div>
-                <span>Calificación</span>
-                <strong>{{ detail.rating > 0 ? '★ ' + detail.rating.toFixed(2) : 'Sin calificaciones' }}</strong>
-              </div>
-            </div>
-
-            <div class="reviews-section">
-              <h4>Reseñas verificadas ({{ detail.reviews.length }})</h4>
-              <div class="reviews-list">
-                <div class="review-item" *ngFor="let rev of detail.reviews">
-                  <div class="review-meta">
-                    <strong>{{ rev.authorName }}</strong>
-                    <span>★ {{ rev.rating.toFixed(1) }} · {{ rev.date }}</span>
-                  </div>
-                  <p>{{ rev.comment }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </section>
   `,
   styles: [`
@@ -546,8 +471,8 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       color: #86868b;
       font-size: 0.75rem;
     }
-    .apple-secondary-btn,
-    .close-btn {
+    .apple-secondary-btn {
+      text-decoration: none;
       background: #1d1d1f;
       color: #ffffff;
       border: none;
@@ -558,147 +483,14 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       cursor: pointer;
       transition: background 0.16s ease;
     }
-    .apple-secondary-btn:hover,
-    .close-btn:hover {
+    .apple-secondary-btn:hover {
       background: #000000;
-    }
-    .detail-panel {
-      margin-top: 40px;
-      background: #ffffff;
-      border-radius: 26px;
-      overflow: hidden;
-      border: 1px solid rgba(29, 29, 31, 0.12);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.06);
-    }
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 5fr 7fr;
-    }
-    @media (max-width: 860px) {
-      .detail-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .detail-Visual {
-      background: #e5e5ea;
-      min-height: 320px;
-    }
-    .detail-Visual img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .detail-content {
-      padding: 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-    .detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    .detail-pills {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-    .city-pill {
-      background: #1d1d1f;
-      color: #ffffff;
-      padding: 4px 11px;
-      border-radius: 980px;
-      font-size: 0.72rem;
-      font-weight: 600;
-    }
-    .meta-pill {
-      background: #f5f5f7;
-      color: #6e6e73;
-      padding: 4px 11px;
-      border-radius: 980px;
-      font-size: 0.72rem;
-      font-weight: 600;
-    }
-    .detail-header h3 {
-      margin: 0;
-      font-size: 1.45rem;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      color: #1d1d1f;
-    }
-    .detail-body {
-      color: #6e6e73;
-      font-size: 0.92rem;
-      line-height: 1.6;
-      margin: 0;
-    }
-    .detail-specs {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      padding: 16px;
-      background: #f5f5f7;
-      border-radius: 16px;
-    }
-    .detail-specs div {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .detail-specs span {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #86868b;
-    }
-    .detail-specs strong {
-      font-size: 0.88rem;
-      color: #1d1d1f;
-    }
-    .reviews-section {
-      padding-top: 8px;
-      border-top: 1px solid #e5e5ea;
-    }
-    .reviews-section h4 {
-      margin: 0 0 12px;
-      font-size: 0.88rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #1d1d1f;
-    }
-    .reviews-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-    .review-item {
-      background: #f5f5f7;
-      border-radius: 14px;
-      padding: 14px 16px;
-    }
-    .review-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.78rem;
-      color: #1d1d1f;
-      margin-bottom: 6px;
-    }
-    .review-item p {
-      margin: 0;
-      font-size: 0.83rem;
-      line-height: 1.45;
-      color: #6e6e73;
     }
   `],
 })
 export class ListingListComponent implements OnInit {
   form: SearchForm = { city: '', checkIn: '', checkOut: '', guests: 1 };
   listings: PublicListingItem[] = [];
-  selectedListing: PublicListingItem | null = null;
   loading = false;
   searched = false;
   formError = '';
@@ -710,8 +502,15 @@ export class ListingListComponent implements OnInit {
     maximumFractionDigits: 0,
   });
 
+  constructor(private readonly router?: Router) {}
+
   ngOnInit(): void {
     void this.search();
+  }
+
+  /** HU-026: abre el detalle completo del resultado. */
+  openDetail(item: PublicListingItem): void {
+    void this.router?.navigate(['/listings', item.id]);
   }
 
   /** HU-024 CA3 (RN-010): si hay fechas, deben ser ambas y la salida posterior a la llegada. */
@@ -765,7 +564,6 @@ export class ListingListComponent implements OnInit {
       }
 
       this.listings = ((body as SearchResponse).data ?? []).map((listing) => this.toItem(listing));
-      this.selectedListing = null;
       this.searched = true;
     } catch {
       this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
@@ -801,28 +599,6 @@ export class ListingListComponent implements OnInit {
       imageUrl: listing.images?.[0] ?? '',
       hostName: listing.hostName ?? 'Anfitrión',
       description: listing.description ?? '',
-      reviews: [],
     };
-  }
-
-  /** HU-003 CA3: detalle y reseñas públicas de la publicación, sin iniciar sesión. */
-  async selectListing(item: PublicListingItem): Promise<void> {
-    this.selectedListing = item;
-    try {
-      const response = await fetch(`/api/listings/${encodeURIComponent(item.id)}/reviews`);
-      if (!response.ok) {
-        return;
-      }
-      const body = (await response.json()) as { reviews?: ApiReview[] };
-      item.reviews = (body.reviews ?? []).map((review) => ({
-        id: review.id,
-        authorName: review.authorName,
-        rating: review.rating,
-        comment: review.comment,
-        date: new Date(review.createdAt).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' }),
-      }));
-    } catch {
-      item.reviews = [];
-    }
   }
 }
