@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { AvailabilityCalendarComponent } from './availability-calendar.component';
+import { StayQuoteComponent } from './stay-quote.component';
 
 /** Detalle tal como lo devuelve GET /api/listings/:id (HU-026). */
 export interface ListingDetail {
@@ -83,7 +84,7 @@ export function formatCop(value?: number | null): string {
 @Component({
   selector: 'app-listing-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, AvailabilityCalendarComponent],
+  imports: [CommonModule, RouterLink, AvailabilityCalendarComponent, StayQuoteComponent],
   template: `
     <section class="detail-shell">
       <a routerLink="/listings" class="back-link">← Volver a los resultados</a>
@@ -203,6 +204,14 @@ export function formatCop(value?: number | null): string {
               <div *ngIf="item.bathrooms != null"><dt>Baños</dt><dd>{{ item.bathrooms }}</dd></div>
               <div *ngIf="item.hostName"><dt>Anfitrión</dt><dd>{{ item.hostName }}</dd></div>
             </dl>
+
+            <!-- HU-027: cotización con desglose en COP -->
+            <app-stay-quote
+              *ngIf="item.status === 'ACTIVA' && item.pricePerNight != null"
+              [listingId]="item.id"
+              [maxGuests]="item.maxGuests"
+              [additionalServices]="item.additionalServices"
+            ></app-stay-quote>
           </aside>
         </div>
       </article>
