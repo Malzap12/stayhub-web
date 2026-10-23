@@ -66,6 +66,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/configuracion',
+    canActivate: [roleGuard(['ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/admin/platform-settings.component').then(
+        (m) => m.PlatformSettingsComponent,
+      ),
+  },
+  {
     path: 'admin/moderacion',
     canActivate: [roleGuard(['ADMINISTRADOR'])],
     loadComponent: () =>
