@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
+import { AvailabilityCalendarComponent } from './availability-calendar.component';
 
 /** Detalle tal como lo devuelve GET /api/listings/:id (HU-026). */
 export interface ListingDetail {
@@ -82,7 +83,7 @@ export function formatCop(value?: number | null): string {
 @Component({
   selector: 'app-listing-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AvailabilityCalendarComponent],
   template: `
     <section class="detail-shell">
       <a routerLink="/listings" class="back-link">← Volver a los resultados</a>
@@ -172,6 +173,11 @@ export function formatCop(value?: number | null): string {
                 </li>
               </ul>
               <ng-template #noExtras><p class="muted">Este alojamiento no ofrece servicios adicionales.</p></ng-template>
+            </section>
+
+            <!-- HU-022 CA1: fechas disponibles y no disponibles de los próximos 12 meses -->
+            <section *ngIf="item.status === 'ACTIVA'">
+              <app-availability-calendar [listingId]="item.id" title="Disponibilidad"></app-availability-calendar>
             </section>
 
             <section *ngIf="item.reviewCount > 0 && reviews.length > 0">
