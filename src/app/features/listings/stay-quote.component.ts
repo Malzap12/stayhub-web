@@ -71,7 +71,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
       <!-- CA1-CA4: desglose en COP -->
       <dl class="breakdown" *ngIf="quote as q" aria-label="Desglose de la cotización">
         <div><dt>{{ amount(q.nightlyRate) }} × {{ q.nights }} {{ q.nights === 1 ? 'noche' : 'noches' }}</dt><dd>{{ amount(q.baseAmount) }}</dd></div>
-        <div class="discount">
+        <div class="discount" [class.applied]="q.discount > 0">
           <dt>Descuento por estancia larga<span *ngIf="q.discountPercentage > 0"> ({{ q.discountPercentage }} %)</span></dt>
           <dd>{{ amount(q.discount, true) }}</dd>
         </div>
@@ -194,7 +194,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
       font-weight: 600;
       white-space: nowrap;
     }
-    .breakdown .discount dd {
+    .breakdown .discount.applied dd {
       color: #166534;
     }
     .breakdown .total {
