@@ -263,4 +263,41 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
       expect(text).toContain('Desglose conservado');
     });
   });
+  describe('HU-032 · Evitar reservas duplicadas por reintentos', () => {
+    const sentKeys = (fetchSpy: jasmine.Spy) =>
+      fetchSpy.calls.all().map((call) => JSON.parse(String((call.args[1] as RequestInit).body)).idempotencyKey);
+
+    beforeEach(() => {
+      sessionStorage.setItem('auth_session', JSON.stringify({ token: 'jwt-guest', role: 'HUESPED' }));
+      component.checkIn = '2027-03-01';
+      component.checkOut = '2027-03-04';
+      component.guests = 2;
+      component.quote = ca3;
+    });
+
+    it('CA1: un reintento de la misma estancia envía la misma clave de idempotencia', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.callFake(() => json({ message: 'Error de red' }, 503));
+
+      await component.startInstantBooking();
+      await component.startInstantBooking();
+
+      const [first, retry] = sentKeys(fetchSpy);
+      expect(first).toBeTruthy();
+      expect(retry).toBe(first);
+    });
+
+    it('CA2: al cambiar la estancia, la siguiente reserva usa una clave nueva', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.callFake(() => json({ id: 'b-1', status: 'PENDIENTE' }, 201));
+
+      await component.startInstantBooking();
+      component.checkOut = '2027-03-06';
+      component.clear();
+      component.quote = { ...ca3, checkOut: '2027-03-06', nights: 5 };
+      await component.startInstantBooking();
+
+      const [first, second] = sentKeys(fetchSpy);
+      expect(second).toBeTruthy();
+      expect(second).not.toBe(first);
+    });
+  });
 });
