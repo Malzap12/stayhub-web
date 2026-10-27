@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Booking, BookingStatus } from '../../shared/models/booking.model';
 import { getActiveSession } from '../../core/guards/auth.guard';
 
@@ -67,7 +68,7 @@ export function toBooking(api: ApiBooking): Booking {
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="bookings-shell">
       <header class="bookings-header">
@@ -280,6 +281,7 @@ export function toBooking(api: ApiBooking): Booking {
 
             <!-- Botones de acción -->
             <div class="card-actions">
+              <a class="action-btn primary" [routerLink]="['/mis-reservas', item.id]">Ver detalle</a>
               <button
                 *ngIf="canCancel(item)"
                 type="button"
@@ -401,6 +403,11 @@ export function toBooking(api: ApiBooking): Booking {
   `,
   styles: [
     `
+      a.action-btn {
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
       .loading-note {
         color: #64748b;
         margin: 1rem 0;

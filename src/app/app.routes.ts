@@ -26,6 +26,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'mis-reservas/:id',
+    canActivate: [roleGuard(['HUESPED'])],
+    loadComponent: () =>
+      import('./features/bookings/booking-detail.component').then(
+        (m) => m.BookingDetailComponent,
+      ),
+  },
+  {
     path: 'mi-perfil',
     canActivate: [authGuard],
     loadComponent: () =>
