@@ -984,7 +984,7 @@ export class MyBookingsComponent implements OnInit {
       const data: ApiBooking[] = await response.json();
       this.bookings = data
         .map(toBooking)
-        .sort((a, b) => b.checkIn.localeCompare(a.checkIn));
+        .sort((a, b) => a.checkIn.localeCompare(b.checkIn));
     } catch {
       this.showError('Error de conexión al cargar tus reservas.');
     } finally {
@@ -1021,16 +1021,18 @@ export class MyBookingsComponent implements OnInit {
 
   get filteredBookings(): Booking[] {
     const q = this.searchQuery.trim().toLowerCase();
-    return this.bookings.filter((item) => {
-      const matchStatus =
-        this.selectedStatus === 'TODAS' || item.status === this.selectedStatus;
-      const matchQuery =
-        !q ||
-        item.id.toLowerCase().includes(q) ||
-        item.listingCity.toLowerCase().includes(q) ||
-        item.listingTitle.toLowerCase().includes(q);
-      return matchStatus && matchQuery;
-    });
+    return this.bookings
+      .filter((item) => {
+        const matchStatus =
+          this.selectedStatus === 'TODAS' || item.status === this.selectedStatus;
+        const matchQuery =
+          !q ||
+          item.id.toLowerCase().includes(q) ||
+          item.listingCity.toLowerCase().includes(q) ||
+          item.listingTitle.toLowerCase().includes(q);
+        return matchStatus && matchQuery;
+      })
+      .sort((a, b) => a.checkIn.localeCompare(b.checkIn));
   }
 
   get totalPages(): number {
