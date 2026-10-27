@@ -6,11 +6,12 @@ import {
   getActiveSession,
   StoredSession,
 } from '../../../core/guards/auth.guard';
+import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, NotificationBellComponent],
   template: `
     <header class="apple-navbar">
       <div class="apple-navbar-inner">
@@ -36,6 +37,7 @@ import {
         <!-- Cluster Derecho: Perfil / Acceso -->
         <div class="apple-actions">
           <ng-container *ngIf="session as user">
+            <app-notification-bell></app-notification-bell>
             <a routerLink="/mi-perfil" class="profile-chip" title="Ver mi perfil">
               <span class="avatar-circle">{{ user.name.charAt(0).toUpperCase() }}</span>
               <div class="profile-meta">
