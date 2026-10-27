@@ -5,6 +5,32 @@ import { RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 
 export type PropertyType = 'CASA' | 'APARTAMENTO' | 'CABANA' | 'FINCA' | 'HABITACION' | 'OTRO';
+export type CancellationPolicyCode = 'FLEXIBLE';
+
+export interface CancellationPolicyOption {
+  code: CancellationPolicyCode;
+  name: string;
+  description: string;
+  rules: Array<{ minHoursBeforeCheckIn: number; refundPercentage: number }>;
+}
+
+/**
+ * HU-039 · Catálogo de políticas de cancelación (CA1, CA2, RF-058, RN-016).
+ * CA1: Política Flexible con 100 % de devolución hasta 48 h antes de la llegada y 50 % después.
+ * CA2: Su texto explica la regla con un ejemplo de fechas.
+ */
+export const CANCELLATION_POLICIES_CATALOG: CancellationPolicyOption[] = [
+  {
+    code: 'FLEXIBLE',
+    name: 'Flexible',
+    description:
+      'Reembolso del 100 % si cancelas hasta 48 horas antes de la llegada y del 50 % después. Por ejemplo, si tu llegada es el 15 de noviembre a las 15:00, recibes el 100 % de devolución si cancelas hasta el 13 de noviembre a las 15:00 y el 50 % si cancelas entre el 13 y el 15 de noviembre antes del check-in.',
+    rules: [
+      { minHoursBeforeCheckIn: 48, refundPercentage: 100 },
+      { minHoursBeforeCheckIn: 0, refundPercentage: 50 },
+    ],
+  },
+];
 
 export interface ListingDraftForm {
   title: string;
@@ -18,6 +44,7 @@ export interface ListingDraftForm {
   amenities: string[];
   rulesText: string;
   imagesText: string;
+  cancellationPolicy?: CancellationPolicyCode | '';
 }
 
 export interface SavedDraft {
@@ -201,6 +228,21 @@ const emptyForm = (): ListingDraftForm => ({
               [(ngModel)]="form.rulesText"
               placeholder="Una regla por línea. Ej. No fumar"
             ></textarea>
+          </div>
+
+          <div class="field">
+            <label for="draft-cancellation-policy">Política de cancelación (HU-039)</label>
+            <select
+              id="draft-cancellation-policy"
+              name="cancellationPolicy"
+              [ngModel]="form.cancellationPolicy || 'FLEXIBLE'"
+              (ngModelChange)="selectCancellationPolicy($event)"
+            >
+              <option *ngFor="let policy of cancellationPolicies" [value]="policy.code">
+                {{ policy.name }} (100 % hasta 48 h antes · 50 % después)
+              </option>
+            </select>
+            <p class="sub-label" *ngIf="selectedCancellationPolicy">{{ selectedCancellationPolicy.description }}</p>
           </div>
 
           <fieldset class="field">
@@ -640,6 +682,9 @@ export class ListingDraftFormComponent implements OnInit {
 
   readonly maxImages = MAX_IMAGES;
 
+  cancellationPolicies: CancellationPolicyOption[] = CANCELLATION_POLICIES_CATALOG;
+  selectedCancellationPolicy: CancellationPolicyOption = CANCELLATION_POLICIES_CATALOG[0];
+
   form: ListingDraftForm = emptyForm();
   uploadedImages: string[] = [];
   uploading = false;
@@ -651,7 +696,27 @@ export class ListingDraftFormComponent implements OnInit {
   loading = false;
 
   ngOnInit(): void {
-    this.loadMyListings().catch(() => undefined);
+    void this.loadMyListings().catch(() => undefined);
+    void this.loadCancellationPolicies().catch(() => undefined);
+  }
+
+  /** HU-039 CA1: consulta el catálogo de políticas de cancelación y permite asociar la Flexible a la publicación. */
+  async loadCancellationPolicies(): Promise<void> {
+    const response = await fetch('/api/listings/cancellation-policies');
+    if (response.ok) {
+      const policies = (await response.json()) as CancellationPolicyOption[];
+      if (Array.isArray(policies) && policies.length > 0) {
+        this.cancellationPolicies = policies;
+        this.selectedCancellationPolicy =
+          policies.find((item) => item.code === (this.form.cancellationPolicy || 'FLEXIBLE')) ?? policies[0];
+      }
+    }
+  }
+
+  selectCancellationPolicy(code: CancellationPolicyCode): void {
+    this.form.cancellationPolicy = code;
+    this.selectedCancellationPolicy =
+      this.cancellationPolicies.find((item) => item.code === code) ?? CANCELLATION_POLICIES_CATALOG[0];
   }
 
   private authHeaders(): Record<string, string> {
@@ -819,6 +884,7 @@ export class ListingDraftFormComponent implements OnInit {
       amenities: this.form.amenities,
       rules: lines(this.form.rulesText),
       images: [...this.uploadedImages, ...lines(this.form.imagesText)],
+      cancellationPolicy: this.form.cancellationPolicy || undefined,
     };
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
   }

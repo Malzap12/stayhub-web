@@ -1,7 +1,7 @@
-import { formatCop, ListingDraftFormComponent, MAX_IMAGE_BYTES, parseCop } from './listing-draft-form.component';
+import { CANCELLATION_POLICIES_CATALOG, formatCop, ListingDraftFormComponent, MAX_IMAGE_BYTES, parseCop } from './listing-draft-form.component';
 import { clearActiveSession, SESSION_STORAGE_KEY } from '../../core/guards/auth.guard';
 
-describe('ListingDraftFormComponent (HU-010 · Crear una publicación en borrador)', () => {
+describe('ListingDraftFormComponent (HU-010 · Crear publicación y HU-039 · Política Flexible)', () => {
   let component: ListingDraftFormComponent;
   let fetchSpy: jasmine.Spy;
 
@@ -71,6 +71,24 @@ describe('ListingDraftFormComponent (HU-010 · Crear una publicación en borrado
     });
     expect(component.saved?.status).toBe('BORRADOR');
     expect(component.myListings[0].id).toBe('listing-1');
+  });
+
+  it('HU-039 CA1 y CA2: dispone de la política Flexible en el catálogo (100 % hasta 48 h antes y 50 % después con ejemplo de fechas) y permite asociarla a la publicación', async () => {
+    fetchSpy.and.returnValue(jsonResponse(CANCELLATION_POLICIES_CATALOG, 200));
+    await component.loadCancellationPolicies();
+
+    expect(component.cancellationPolicies).toHaveSize(1);
+    expect(component.cancellationPolicies[0].code).toBe('FLEXIBLE');
+    expect(component.cancellationPolicies[0].rules).toEqual([
+      { minHoursBeforeCheckIn: 48, refundPercentage: 100 },
+      { minHoursBeforeCheckIn: 0, refundPercentage: 50 },
+    ]);
+    expect(component.selectedCancellationPolicy.description).toContain('Por ejemplo, si tu llegada es el 15 de noviembre');
+
+    component.form.title = 'Cabaña con política Flexible';
+    component.selectCancellationPolicy('FLEXIBLE');
+
+    expect(component.buildPayload()['cancellationPolicy']).toBe('FLEXIBLE');
   });
 
   it('CA2: rechaza capacidad 0 y precio menor o igual a 0 con mensaje junto al campo', async () => {

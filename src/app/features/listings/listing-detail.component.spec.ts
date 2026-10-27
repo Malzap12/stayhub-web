@@ -3,7 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { amenityLabel, formatCop, ListingDetail, ListingDetailComponent } from './listing-detail.component';
 import { clearActiveSession, saveActiveSession } from '../../core/guards/auth.guard';
 
-describe('ListingDetailComponent · HU-026 Consultar el detalle de una publicación', () => {
+describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Política Flexible', () => {
   let fixture: ComponentFixture<ListingDetailComponent>;
   let element: HTMLElement;
 
@@ -24,8 +24,12 @@ describe('ListingDetailComponent · HU-026 Consultar el detalle de una publicaci
     cancellationPolicy: {
       code: 'FLEXIBLE',
       name: 'Flexible',
-      description: 'Reembolso del 100 % si cancelas hasta 48 horas antes de la llegada; después, del 50 %.',
-      rules: [],
+      description:
+        'Reembolso del 100 % si cancelas hasta 48 horas antes de la llegada y del 50 % después. Por ejemplo, si tu llegada es el 15 de noviembre a las 15:00, recibes el 100 % de devolución si cancelas hasta el 13 de noviembre a las 15:00 y el 50 % si cancelas entre el 13 y el 15 de noviembre antes del check-in.',
+      rules: [
+        { minHoursBeforeCheckIn: 48, refundPercentage: 100 },
+        { minHoursBeforeCheckIn: 0, refundPercentage: 50 },
+      ],
     },
     additionalServices: [{ name: 'Traslado desde el aeropuerto', cost: 80000 }],
     averageRating: 4.9,
@@ -83,6 +87,18 @@ describe('ListingDetailComponent · HU-026 Consultar el detalle de una publicaci
     }
     expect(element.querySelectorAll('.thumbs button').length).toBe(2);
     expect(element.querySelector('.main-image')?.getAttribute('src')).toBe('https://img/1.jpg');
+  });
+
+  it('HU-039 CA2: en el detalle de la publicación el texto de la política Flexible explica la regla con un ejemplo de fechas', async () => {
+    spyOn(window, 'fetch').and.returnValues(json(detail), json({ reviews: [] }));
+    await render();
+
+    const page = text();
+    expect(page).toContain('Política de cancelación · Flexible');
+    expect(page).toContain('100 % si cancelas hasta 48 horas antes de la llegada');
+    expect(page).toContain('50 % después');
+    expect(page).toContain('Por ejemplo, si tu llegada es el 15 de noviembre');
+    expect(page).toContain('13 de noviembre');
   });
 
   it('CA1: indica cuando no hay calificaciones ni servicios adicionales', async () => {
