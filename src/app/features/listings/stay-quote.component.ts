@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { Component, inject, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -397,7 +397,7 @@ export class StayQuoteComponent implements OnInit {
         this.guests = parsed.guests || 1;
         (parsed.selected || []).forEach((s: string) => this.selected.add(s));
         sessionStorage.removeItem(`pending_booking_${this.listingId}`);
-        this.submit();
+        void this.submit();
       } catch {}
     }
   }
@@ -501,7 +501,7 @@ export class StayQuoteComponent implements OnInit {
           }),
         );
       }
-      this.router?.navigate(['/auth/login'], {
+      void this.router?.navigate(['/auth/login'], {
         queryParams: { returnUrl: `/listings/${this.listingId}` },
       });
       return;
@@ -509,10 +509,7 @@ export class StayQuoteComponent implements OnInit {
 
     this.bookingLoading = true;
     this.errorMessage = '';
-    this.idempotencyKey ||=
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `idemp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    this.idempotencyKey ||= (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('idemp-' + Date.now());
 
     try {
       const response = await fetch('/api/bookings/instant', {
