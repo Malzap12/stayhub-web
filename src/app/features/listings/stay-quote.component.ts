@@ -1,6 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { Component, inject, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { getActiveSession } from '../../core/guards/auth.guard';
+import { BookingPaymentResult, TestCardPaymentComponent } from '../bookings/test-card-payment.component';
 
 /** Cotización tal como la devuelve POST /api/bookings/quote (HU-027). */
 export interface StayQuote {
@@ -32,12 +35,13 @@ export function formatQuoteAmount(value: number, negative = false): string {
 
 /**
  * HU-027 · Cotizar una estancia (CA1-CA4, RF-036 a RF-038).
- * El huésped elige fechas, huéspedes y servicios adicionales y ve el desglose línea por línea en COP.
+ * HU-030 · Reservar de forma inmediata (CA1-CA4, RF-041, RF-045, RF-046, RN-006, RN-015, RNF-008).
+ * El huésped elige fechas, huéspedes y adicionales; ve el desglose en COP y puede reservar de inmediato.
  */
 @Component({
   selector: 'app-stay-quote',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TestCardPaymentComponent],
   template: `
     <form class="quote" (ngSubmit)="submit()" novalidate aria-label="Cotizar estancia">
       <h3>Cotiza tu estancia</h3>
@@ -86,6 +90,48 @@ export function formatQuoteAmount(value: number, negative = false): string {
         <div><dt>Tarifa de servicio ({{ q.serviceFeePercentage }} %)</dt><dd>{{ amount(q.serviceFee) }}</dd></div>
         <div class="total"><dt>Total</dt><dd>{{ amount(q.totalAmount) }} {{ q.currency }}</dd></div>
       </dl>
+
+      <!-- HU-030: Reservar de forma inmediata (CA1, CA2, CA3, CA4) -->
+      <div class="instant-booking" *ngIf="quote && !confirmedBooking">
+        <button
+          type="button"
+          class="book-button"
+          *ngIf="!createdBooking"
+          (click)="startInstantBooking()"
+          [disabled]="bookingLoading"
+        >
+          {{ bookingLoading ? 'Preparando reserva…' : 'Reservar de forma inmediata' }}
+        </button>
+
+        <div class="payment-step" *ngIf="createdBooking">
+          <h4>Paga con tarjeta de prueba para confirmar</h4>
+          <app-test-card-payment
+            [bookingId]="createdBooking.id"
+            (paid)="onPaymentApproved($event)"
+            (declined)="onPaymentDeclined($event)"
+          ></app-test-card-payment>
+        </div>
+      </div>
+
+      <!-- HU-030 CA1: Reserva Confirmada con Código y Desglose -->
+      <div class="confirmed-card" *ngIf="confirmedBooking" role="status" aria-label="Reserva confirmada">
+        <div class="confirmed-header">
+          <span class="badge">CONFIRMADA</span>
+          <h3>¡Reserva Confirmada de Forma Inmediata!</h3>
+          <p class="code">Código de reserva: <strong>{{ confirmedBooking.code || confirmedBooking.id }}</strong></p>
+          <p class="ref" *ngIf="paymentReference">Referencia de pago: <code>{{ paymentReference }}</code></p>
+        </div>
+
+        <div class="confirmed-breakdown" *ngIf="quote as q">
+          <h4>Desglose conservado (CA2)</h4>
+          <div><span>{{ amount(q.nightlyRate) }} × {{ q.nights }} noches</span><span>{{ amount(q.baseAmount) }}</span></div>
+          <div *ngIf="q.discount > 0"><span>Descuento estancia larga</span><span>{{ amount(q.discount, true) }}</span></div>
+          <div><span>Limpieza</span><span>{{ amount(q.cleaningFee) }}</span></div>
+          <div *ngFor="let s of q.additionalServices"><span>{{ s.name }}</span><span>{{ amount(s.cost) }}</span></div>
+          <div><span>Tarifa de servicio ({{ q.serviceFeePercentage }} %)</span><span>{{ amount(q.serviceFee) }}</span></div>
+          <div class="total-confirmed"><span>Total facturado</span><span>{{ amount(q.totalAmount) }} {{ q.currency }}</span></div>
+        </div>
+      </div>
     </form>
   `,
   styles: [`
@@ -229,12 +275,101 @@ export function formatQuoteAmount(value: number, negative = false): string {
       font-weight: 800;
       color: #1d1d1f;
     }
+    .instant-booking {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .book-button {
+      height: 44px;
+      border: none;
+      border-radius: 980px;
+      background: #0071e3;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+    .book-button:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
+    .payment-step {
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px dashed #d2d2d7;
+    }
+    .payment-step h4 {
+      margin: 0 0 8px;
+      font-size: 0.88rem;
+      color: #1d1d1f;
+    }
+    .confirmed-card {
+      margin-top: 12px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .confirmed-header h3 {
+      margin: 6px 0 2px;
+      font-size: 1rem;
+      color: #166534;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #166534;
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .code {
+      margin: 4px 0 0;
+      font-size: 0.9rem;
+      color: #1d1d1f;
+    }
+    .code strong {
+      font-family: ui-monospace, monospace;
+      color: #0f172a;
+    }
+    .confirmed-breakdown {
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid #bbf7d0;
+      font-size: 0.82rem;
+      color: #374151;
+    }
+    .confirmed-breakdown h4 {
+      margin: 0 0 6px;
+      font-size: 0.84rem;
+    }
+    .confirmed-breakdown div {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .total-confirmed {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px solid #cbd5e1;
+      font-weight: 700;
+      color: #111827;
+    }
   `],
 })
-export class StayQuoteComponent {
+export class StayQuoteComponent implements OnInit {
   @Input() listingId = '';
   @Input() maxGuests?: number;
   @Input() additionalServices: Array<{ name: string; cost: number }> = [];
+
+  private readonly router = inject(Router, { optional: true });
 
   checkIn = '';
   checkOut = '';
@@ -242,9 +377,30 @@ export class StayQuoteComponent {
   readonly selected = new Set<string>();
   quote: StayQuote | null = null;
   loading = false;
+  bookingLoading = false;
   errorMessage = '';
   /** HU-028 CA3: noches del rango que no se pueden reservar, según el API. */
   unavailableNights: string[] = [];
+
+  createdBooking: any = null;
+  confirmedBooking: any = null;
+  paymentReference = '';
+  idempotencyKey = '';
+
+  ngOnInit(): void {
+    const saved = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`pending_booking_${this.listingId}`) : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        this.checkIn = parsed.checkIn || '';
+        this.checkOut = parsed.checkOut || '';
+        this.guests = parsed.guests || 1;
+        (parsed.selected || []).forEach((s: string) => this.selected.add(s));
+        sessionStorage.removeItem(`pending_booking_${this.listingId}`);
+        void this.submit();
+      } catch {}
+    }
+  }
 
   amount(value: number, negative = false): string {
     return formatQuoteAmount(value, negative);
@@ -263,6 +419,8 @@ export class StayQuoteComponent {
     this.quote = null;
     this.errorMessage = '';
     this.unavailableNights = [];
+    this.createdBooking = null;
+    this.confirmedBooking = null;
   }
 
   /** "2026-12-20" -> "20 dic. 2026" */
@@ -291,6 +449,8 @@ export class StayQuoteComponent {
   async submit(): Promise<void> {
     this.quote = null;
     this.unavailableNights = [];
+    this.createdBooking = null;
+    this.confirmedBooking = null;
     this.errorMessage = this.validate();
     if (this.errorMessage) {
       return;
@@ -305,7 +465,6 @@ export class StayQuoteComponent {
           checkIn: this.checkIn,
           checkOut: this.checkOut,
           guests: Number(this.guests),
-          // Mantiene el orden en que la publicación ofrece los servicios.
           additionalServices: this.additionalServices.map((s) => s.name).filter((name) => this.selected.has(name)),
         }),
       });
@@ -321,5 +480,75 @@ export class StayQuoteComponent {
     } finally {
       this.loading = false;
     }
+  }
+
+  /**
+   * HU-030 · Reservar de forma inmediata.
+   * CA4: Si no ha iniciado sesión, guarda la reserva pendiente y redirige al login.
+   * CA1: Crea la reserva en el backend para presentar el formulario de pago sandbox.
+   */
+  async startInstantBooking(): Promise<void> {
+    const session = getActiveSession();
+    if (!session) {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(
+          `pending_booking_${this.listingId}`,
+          JSON.stringify({
+            checkIn: this.checkIn,
+            checkOut: this.checkOut,
+            guests: this.guests,
+            selected: Array.from(this.selected),
+          }),
+        );
+      }
+      void this.router?.navigate(['/auth/login'], {
+        queryParams: { returnUrl: `/listings/${this.listingId}` },
+      });
+      return;
+    }
+
+    this.bookingLoading = true;
+    this.errorMessage = '';
+    this.idempotencyKey ||= (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('idemp-' + Date.now());
+
+    try {
+      const response = await fetch('/api/bookings/instant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.token}`,
+        },
+        body: JSON.stringify({
+          listingId: this.listingId,
+          checkIn: this.checkIn,
+          checkOut: this.checkOut,
+          guests: Number(this.guests),
+          additionalServices: Array.from(this.selected),
+          idempotencyKey: this.idempotencyKey,
+        }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        // CA3 · Publicación no activa o rechazo
+        this.errorMessage = [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible iniciar la reserva.';
+        return;
+      }
+
+      this.createdBooking = body;
+    } catch {
+      this.errorMessage = 'Error de conexión al procesar la reserva.';
+    } finally {
+      this.bookingLoading = false;
+    }
+  }
+
+  onPaymentApproved(result: BookingPaymentResult): void {
+    this.confirmedBooking = result.booking;
+    this.paymentReference = result.payment.reference;
+  }
+
+  onPaymentDeclined(result: BookingPaymentResult): void {
+    this.paymentReference = result.payment.reference;
   }
 }
