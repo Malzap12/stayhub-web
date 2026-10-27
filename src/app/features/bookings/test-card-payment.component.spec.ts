@@ -51,12 +51,12 @@ describe('TestCardPaymentComponent · HU-037 Pagar la reserva en modo de pruebas
 
   it('CA3: indica el modo de pruebas y lista las tarjetas de prueba del proveedor', async () => {
     spyOn(window, 'fetch').and.returnValue(json(testCards));
-    await component.ngOnInit();
+    await component.loadTestCards();
     fixture.detectChanges();
 
     expect(text()).toContain('Modo de pruebas');
     expect(text()).toContain('No se cobra dinero real');
-    expect(fixture.nativeElement.querySelectorAll('.chip').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.chip')).toHaveSize(2);
   });
 
   it('CA1: con la tarjeta aprobada muestra el pago APROBADO con su referencia y emite paid', async () => {
