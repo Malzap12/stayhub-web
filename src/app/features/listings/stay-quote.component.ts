@@ -421,6 +421,8 @@ export class StayQuoteComponent implements OnInit {
     this.unavailableNights = [];
     this.createdBooking = null;
     this.confirmedBooking = null;
+    // HU-032 CA2: otra estancia es otra solicitud y lleva una clave nueva; los reintentos de la misma conservan la suya.
+    this.idempotencyKey = '';
   }
 
   /** "2026-12-20" -> "20 dic. 2026" */
@@ -451,6 +453,7 @@ export class StayQuoteComponent implements OnInit {
     this.unavailableNights = [];
     this.createdBooking = null;
     this.confirmedBooking = null;
+    this.idempotencyKey = '';
     this.errorMessage = this.validate();
     if (this.errorMessage) {
       return;
