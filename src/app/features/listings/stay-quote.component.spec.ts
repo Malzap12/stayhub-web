@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { formatQuoteAmount, StayQuote, StayQuoteComponent } from './stay-quote.component';
 
 describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
@@ -31,7 +32,7 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
     );
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [StayQuoteComponent] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [StayQuoteComponent], providers: [provideRouter([])] }).compileComponents();
     fixture = TestBed.createComponent(StayQuoteComponent);
     component = fixture.componentInstance;
     component.listingId = 'apto-criterios';
@@ -197,6 +198,69 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
       component.clear();
       expect(component.errorMessage).toBe('');
       expect(component.unavailableNights).toEqual([]);
+    });
+  });
+  describe('HU-030 Reservar de forma inmediata', () => {
+    it('CA4: si no ha iniciado sesión, guarda la reserva pendiente y redirige al login', async () => {
+      sessionStorage.clear();
+      const router = TestBed.inject(Router);
+      const navSpy = spyOn(router, 'navigate');
+
+      component.checkIn = '2027-03-01';
+      component.checkOut = '2027-03-04';
+      component.guests = 2;
+      component.quote = ca3;
+
+      await component.startInstantBooking();
+
+      expect(sessionStorage.getItem('pending_booking_apto-criterios')).toBeTruthy();
+      expect(navSpy).toHaveBeenCalledWith(['/auth/login'], {
+        queryParams: { returnUrl: '/listings/apto-criterios' },
+      });
+    });
+
+    it('CA3: si la publicación dejó de estar activa, muestra el mensaje de error del API', async () => {
+      sessionStorage.setItem('auth_session', JSON.stringify({ token: 'jwt-guest', role: 'HUESPED' }));
+      spyOn(window, 'fetch').and.returnValue(
+        json({ message: 'Solo se pueden reservar publicaciones activas' }, 400),
+      );
+
+      component.quote = ca3;
+      await component.startInstantBooking();
+      fixture.detectChanges();
+
+      expect(component.errorMessage).toContain('Solo se pueden reservar publicaciones activas');
+      expect(component.createdBooking).toBeNull();
+    });
+
+    it('CA1: cuando el pago simulado se aprueba, la reserva queda CONFIRMADA con código y desglose', () => {
+      component.quote = ca3;
+      component.createdBooking = { id: 'b-123' };
+
+      component.onPaymentApproved({
+        booking: { id: 'b-123', code: 'RES-8KQ2M7X1', status: 'CONFIRMADA' },
+        payment: {
+          id: 'pay-1',
+          reference: 'TEST-ABC123XYZ',
+          bookingId: 'b-123',
+          status: 'APROBADO',
+          message: 'Pago aprobado',
+          amount: 803000,
+          currency: 'COP',
+          cardBrand: 'VISA',
+          cardLast4: '4242',
+          mode: 'TEST',
+          provider: 'StayHub Sandbox',
+          processedAt: new Date().toISOString(),
+        },
+      });
+
+      fixture.detectChanges();
+      const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(text).toContain('CONFIRMADA');
+      expect(text).toContain('RES-8KQ2M7X1');
+      expect(text).toContain('TEST-ABC123XYZ');
+      expect(text).toContain('Desglose conservado');
     });
   });
 });
