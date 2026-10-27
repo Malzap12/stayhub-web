@@ -1,7 +1,68 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Booking, BookingStatus } from '../../shared/models/booking.model';
+import { getActiveSession } from '../../core/guards/auth.guard';
+
+/** Reserva tal como la devuelve GET /api/bookings/my (HU-003, HU-030, HU-040). */
+export interface ApiBooking {
+  id: string;
+  listingId: string;
+  guestId: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  nights?: number;
+  nightlyRate?: number;
+  baseAmount?: number;
+  cleaningFee?: number;
+  serviceFee?: number;
+  totalAmount: number;
+  status: BookingStatus;
+  listingTitle?: string;
+  listingCity?: string;
+  listingImage?: string;
+  cancellationPolicyName?: string;
+  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; releasedNights: string[] };
+}
+
+/** HU-040: la llegada es a las 15:00 del día de llegada, hora de Colombia (igual que en el API). */
+export const arrivalTime = (checkIn: string): number => Date.parse(`${checkIn.slice(0, 10)}T15:00:00-05:00`);
+
+/** HU-039: política Flexible, 100 % hasta 48 h antes de la llegada y 50 % después, sobre el total menos la tarifa de servicio. */
+export function estimateRefund(booking: Pick<Booking, 'checkIn' | 'total' | 'serviceFee'>, now = Date.now()): { percentage: number; amount: number } {
+  const percentage = arrivalTime(booking.checkIn) - now >= 48 * 3_600_000 ? 100 : 50;
+  return { percentage, amount: Math.round(((booking.total - booking.serviceFee) * percentage) / 100) };
+}
+
+export function toBooking(api: ApiBooking): Booking {
+  const nights = api.nights ?? Math.round((Date.parse(api.checkOut) - Date.parse(api.checkIn)) / 86_400_000);
+  return {
+    id: api.id,
+    listingId: api.listingId,
+    listingTitle: api.listingTitle ?? 'Publicación',
+    listingCity: api.listingCity ?? '',
+    imageUrl: api.listingImage,
+    guestId: api.guestId,
+    checkIn: api.checkIn.slice(0, 10),
+    checkOut: api.checkOut.slice(0, 10),
+    nights,
+    guests: api.guests,
+    nightlyRate: api.nightlyRate ?? 0,
+    baseAmount: api.baseAmount ?? 0,
+    cleaningFee: api.cleaningFee ?? 0,
+    serviceFee: api.serviceFee ?? 0,
+    total: api.totalAmount,
+    status: api.status,
+    cancellationPolicy: api.cancellationPolicyName ?? 'Flexible',
+    cancellationReason: api.cancellation?.reason,
+    cancelledAt: api.cancellation?.cancelledAt
+      ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota' }).format(new Date(api.cancellation.cancelledAt))
+      : undefined,
+    refundAmount: api.cancellation?.refundAmount,
+    refundPercentage: api.cancellation?.refundPercentage,
+  };
+}
 
 @Component({
   selector: 'app-my-bookings',
@@ -58,10 +119,10 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
           <button
             type="button"
             class="pill-btn"
-            [class.active]="selectedStatus === 'PENDIENTE_APROBACION'"
-            (click)="setStatusFilter('PENDIENTE_APROBACION')"
+            [class.active]="selectedStatus === 'PENDIENTE'"
+            (click)="setStatusFilter('PENDIENTE')"
           >
-            Pendientes ({{ countByStatus('PENDIENTE_APROBACION') }})
+            Pendientes de pago ({{ countByStatus('PENDIENTE') }})
           </button>
           <button
             type="button"
@@ -99,6 +160,8 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
           />
         </div>
       </div>
+
+      <p class="loading-note" *ngIf="loading">Cargando tus reservas…</p>
 
       <!-- Listado de tarjetas de reserva -->
       <div class="bookings-grid" *ngIf="paginatedBookings.length > 0">
@@ -163,13 +226,17 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
               <strong>En revisión administrativa (RN-020):</strong> La publicación asociada está bajo inspección. Tu reserva se conserva activa mientras el administrador la resuelve (RF-069).
             </div>
 
+            <div *ngIf="item.status === 'PENDIENTE'" class="info-notice pending">
+              <strong>Pendiente de pago:</strong> paga con una tarjeta de prueba desde el detalle de la publicación para confirmarla.
+            </div>
+
             <div *ngIf="item.status === 'PENDIENTE_APROBACION'" class="info-notice pending">
               <strong>Esperando aprobación (RF-050):</strong> El anfitrión está revisando tu solicitud.
             </div>
 
             <div *ngIf="item.status === 'CANCELADA'" class="info-notice cancelled">
               <strong>Cancelada el {{ item.cancelledAt || 'Recientemente' }}:</strong> Motivo: {{ item.cancellationReason || 'Solicitado por el usuario' }}.
-              <span *ngIf="item.refundAmount !== undefined"> Devolución simulada: <strong>\${{ item.refundAmount | number:'1.0-0' }} COP</strong></span>
+              <span *ngIf="item.refundAmount !== undefined"> Devolución simulada: <strong>\${{ item.refundAmount | number:'1.0-0' }} COP</strong><span *ngIf="item.refundPercentage !== undefined"> ({{ item.refundPercentage }} %)</span></span>
             </div>
 
             <!-- Calificación de estancia completada (RF-063) -->
@@ -214,13 +281,16 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
             <!-- Botones de acción -->
             <div class="card-actions">
               <button
-                *ngIf="item.status === 'CONFIRMADA'"
+                *ngIf="canCancel(item)"
                 type="button"
                 class="action-btn danger"
                 (click)="openCancellationModal(item)"
               >
                 Cancelar Reserva (RF-053)
               </button>
+              <span *ngIf="item.status === 'CONFIRMADA' && !canCancel(item)" class="arrival-passed">
+                La llegada ya pasó: esta reserva no se puede cancelar.
+              </span>
 
               <button
                 *ngIf="item.status === 'PENDIENTE_APROBACION'"
@@ -244,7 +314,7 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
       </div>
 
       <!-- Estado vacío -->
-      <div class="empty-state" *ngIf="paginatedBookings.length === 0">
+      <div class="empty-state" *ngIf="!loading && paginatedBookings.length === 0">
         <h3>No se encontraron reservas</h3>
         <p>No hay reservas que coincidan con el estado seleccionado o término de búsqueda.</p>
       </div>
@@ -288,9 +358,9 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
 
           <div class="modal-body">
             <p>
-              Estás a punto de cancelar tu reserva en <strong>{{ cancellingBooking.listingTitle }}</strong>.
-              Según la <strong>Política {{ cancellingBooking.cancellationPolicy }} (RF-058)</strong>,
-              la tarifa de servicio no es reembolsable.
+              Estás a punto de cancelar tu reserva en <strong>{{ cancellingBooking.listingTitle }}</strong>
+              (llegada {{ cancellingBooking.checkIn }}). Según la <strong>Política {{ cancellingBooking.cancellationPolicy }} (RF-058)</strong>,
+              recibes el 100 % si cancelas hasta 48 horas antes de la llegada y el 50 % después; la tarifa de servicio no es reembolsable.
             </p>
 
             <div class="refund-calc">
@@ -303,8 +373,8 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
                 <span>-\${{ cancellingBooking.serviceFee | number:'1.0-0' }} COP</span>
               </div>
               <div class="calc-row total">
-                <span>Devolución simulada (RF-054):</span>
-                <strong>\${{ (cancellingBooking.total - cancellingBooking.serviceFee) | number:'1.0-0' }} COP</strong>
+                <span>Devolución estimada ({{ refundEstimate.percentage }} %):</span>
+                <strong>\${{ refundEstimate.amount | number:'1.0-0' }} COP</strong>
               </div>
             </div>
 
@@ -321,8 +391,8 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
             <button type="button" class="action-btn secondary" (click)="closeCancellationModal()">
               Volver
             </button>
-            <button type="button" class="action-btn danger" (click)="confirmCancellation()">
-              Confirmar Cancelación y Devolución
+            <button type="button" class="action-btn danger" (click)="confirmCancellation()" [disabled]="cancelling">
+              {{ cancelling ? 'Cancelando…' : 'Confirmar Cancelación y Devolución' }}
             </button>
           </div>
         </div>
@@ -331,6 +401,15 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
   `,
   styles: [
     `
+      .loading-note {
+        color: #64748b;
+        margin: 1rem 0;
+      }
+      .arrival-passed {
+        color: #64748b;
+        font-size: 0.85rem;
+        align-self: center;
+      }
       .bookings-shell {
         max-width: 1200px;
         margin: 0 auto;
@@ -844,7 +923,7 @@ import { Booking, BookingStatus } from '../../shared/models/booking.model';
     `,
   ],
 })
-export class MyBookingsComponent {
+export class MyBookingsComponent implements OnInit {
   defaultImage =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuDBzLb4D0hXTtv94YgrWMhNgADYVAoLJcmapt80ln2soBQUUBy3oShdBd4G1QtRCxOjFmc57ejII1muyXGvGVLKcAY5w0xes8kqHdV_mRJ30LorfhTepvJyN0pQd2arlng8xqWXsQ8bEvxzpDRaJr2Z5BMkb7E3yt4oPZZ4bo4xytWiDYdJ68OOK7vGg_7GXuRjvSk9WOP4JawgX_ezJSmmpqi-bc_UXmWQKrH5rR_rNYdVAxfqqt7q';
 
@@ -866,121 +945,51 @@ export class MyBookingsComponent {
   cancellingBooking: Booking | null = null;
   cancellationReason = 'Cambio imprevisto de itinerario';
 
-  bookings: Booking[] = [
-    {
-      id: 'LR-RSV-2026-8812',
-      listingId: 'listing-cartagena-1',
-      listingTitle: 'Villa Solarium & Spa privada frente al mar',
-      listingCity: 'Cartagena',
-      imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDBzLb4D0hXTtv94YgrWMhNgADYVAoLJcmapt80ln2soBQUUBy3oShdBd4G1QtRCxOjFmc57ejII1muyXGvGVLKcAY5w0xes8kqHdV_mRJ30LorfhTepvJyN0pQd2arlng8xqWXsQ8bEvxzpDRaJr2Z5BMkb7E3yt4oPZZ4bo4xytWiDYdJ68OOK7vGg_7GXuRjvSk9WOP4JawgX_ezJSmmpqi-bc_UXmWQKrH5rR_rNYdVAxfqqt7q',
-      guestId: 'guest-me',
-      guestName: 'Miguel A.',
-      hostName: 'Carlos Restrepo',
-      checkIn: '2026-11-10',
-      checkOut: '2026-11-14',
-      nights: 4,
-      guests: 4,
-      nightlyRate: 850000,
-      baseAmount: 3400000,
-      cleaningFee: 180000,
-      serviceFee: 252000,
-      total: 3832000,
-      status: 'CONFIRMADA',
-      cancellationPolicy: 'Flexible',
-    },
-    {
-      id: 'LR-RSV-2026-9102',
-      listingId: 'listing-medellin-1',
-      listingTitle: 'Penthouse Panorámico con Jacuzzi',
-      listingCity: 'Medellín',
-      imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuD5n6vcB5gNZemJWNhs1lAt6A282zkV-lPp9N9UKtrrwK58aKy0Hz4WMibtwnr06yR6HPl6v49gbZVrIQzFer6xDhmtYLluVB8zxvitTZ7ILuQ0xl2uPQjmigRowQuqQDHtXO61AbqR2zDYMFv_cbJuDkoVxBSvE2hzoRyz5f8-7Oq-_1bnBj66IgZFhxXglIb67fLGgXb_K3wZcTTKidGVc-BkvoVBbDkyWkyLIfxPBL88vvHqUXXo',
-      guestId: 'guest-me',
-      guestName: 'Miguel A.',
-      hostName: 'Laura Restrepo',
-      checkIn: '2026-11-20',
-      checkOut: '2026-11-24',
-      nights: 4,
-      guests: 2,
-      nightlyRate: 650000,
-      baseAmount: 2600000,
-      cleaningFee: 120000,
-      serviceFee: 170000,
-      total: 2890000,
-      status: 'PENDIENTE_APROBACION',
-      cancellationPolicy: 'Flexible',
-    },
-    {
-      id: 'LR-RSV-2026-9240',
-      listingId: 'listing-santamarta-1',
-      listingTitle: 'Suite Esmeralda Frente a la Playa',
-      listingCity: 'Santa Marta',
-      imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBthlHtuo1QMEL31CZM-R0fbvFhD1y5L1S-Fin-4zVxovath7pP0G4z7MMMDFvoo39_I99FCQMjBpmGl4ocNSdKbJD3TMn5bc1uzCrUaFK22XzA80PZnJ1AAusSK7F45eb2oEDJc_Jo_RAqyLrR7oLBj2LN11P0ZuTGZDlHA98dACkBPKhIAAOrNWklhhk8UzVJb7LgSARhJKDvLt2y0SK4aPf0U85lvKdd6-_m7wdV0bfZFUEUJSWM',
-      guestId: 'guest-me',
-      guestName: 'Miguel A.',
-      hostName: 'Andrés Salgado',
-      checkIn: '2026-12-01',
-      checkOut: '2026-12-06',
-      nights: 5,
-      guests: 3,
-      nightlyRate: 550000,
-      baseAmount: 2750000,
-      cleaningFee: 150000,
-      serviceFee: 250000,
-      total: 3150000,
-      status: 'EN_REVISION',
-      cancellationPolicy: 'Flexible',
-    },
-    {
-      id: 'LR-RSV-2026-7201',
-      listingId: 'listing-leyva-1',
-      listingTitle: 'Finca Boutique Valle de Leyva',
-      listingCity: 'Villa de Leyva',
-      imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBH5qtkNm0qHPGUpaVtqbt7qlrSvEiXCFGY5vjjxvYe8BzaTBbX4vZhLnBZ7jGeA2L0apgEeaQVE7Vd0WS34oFMvruMUbdQHousRPCek5L6BXGk0BgLkbo8DFOo3dIhjG0r6koS_A2pkc5dGrqIrWw_0aAK8EO-q-0Efl4RBNeQK3SBbxqzlQE00LqFN8T4hg-8F0FwO1se9dRsCw1-oqMJ5J08oFZGYSxYlvQvewMmm_ZxU_bxq-6R',
-      guestId: 'guest-me',
-      guestName: 'Miguel A.',
-      hostName: 'Beatriz Gómez',
-      checkIn: '2026-10-01',
-      checkOut: '2026-10-04',
-      nights: 3,
-      guests: 4,
-      nightlyRate: 600000,
-      baseAmount: 1800000,
-      cleaningFee: 150000,
-      serviceFee: 200000,
-      total: 2150000,
-      status: 'COMPLETADA',
-      cancellationPolicy: 'Flexible',
-    },
-    {
-      id: 'LR-RSV-2026-6410',
-      listingId: 'listing-bogota-1',
-      listingTitle: 'Apartamento Loft Contemporáneo Usaquén',
-      listingCity: 'Bogotá',
-      imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuD5n6vcB5gNZemJWNhs1lAt6A282zkV-lPp9N9UKtrrwK58aKy0Hz4WMibtwnr06yR6HPl6v49gbZVrIQzFer6xDhmtYLluVB8zxvitTZ7ILuQ0xl2uPQjmigRowQuqQDHtXO61AbqR2zDYMFv_cbJuDkoVxBSvE2hzoRyz5f8-7Oq-_1bnBj66IgZFhxXglIb67fLGgXb_K3wZcTTKidGVc-BkvoVBbDkyWkyLIfxPBL88vvHqUXXo',
-      guestId: 'guest-me',
-      guestName: 'Miguel A.',
-      hostName: 'Carlos Mendoza',
-      checkIn: '2026-09-12',
-      checkOut: '2026-09-15',
-      nights: 3,
-      guests: 2,
-      nightlyRate: 500000,
-      baseAmount: 1500000,
-      cleaningFee: 150000,
-      serviceFee: 200000,
-      total: 1850000,
-      status: 'CANCELADA',
-      cancellationPolicy: 'Flexible',
-      cancelledAt: '2026-09-08',
-      cancellationReason: 'Cambio imprevisto de itinerario',
-      refundAmount: 1650000,
-    },
-  ];
+  bookings: Booking[] = [];
+  loading = false;
+  cancelling = false;
+
+  ngOnInit(): void {
+    void this.loadBookings();
+  }
+
+  /** HU-040: reservas reales del huésped de la sesión (GET /api/bookings/my). */
+  async loadBookings(): Promise<void> {
+    const session = getActiveSession();
+    if (!session) {
+      return;
+    }
+    this.loading = true;
+    try {
+      const response = await fetch('/api/bookings/my', { headers: { Authorization: `Bearer ${session.token}` } });
+      if (!response.ok) {
+        this.showError('No fue posible cargar tus reservas.');
+        return;
+      }
+      const data: ApiBooking[] = await response.json();
+      this.bookings = data
+        .map(toBooking)
+        .sort((a, b) => b.checkIn.localeCompare(a.checkIn));
+    } catch {
+      this.showError('Error de conexión al cargar tus reservas.');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  /** HU-040 CA2: solo se cancela una reserva CONFIRMADA cuya llegada no ha ocurrido. */
+  canCancel(booking: Booking, now = Date.now()): boolean {
+    return booking.status === 'CONFIRMADA' && now < arrivalTime(booking.checkIn);
+  }
+
+  get refundEstimate(): { percentage: number; amount: number } {
+    return this.cancellingBooking ? estimateRefund(this.cancellingBooking) : { percentage: 0, amount: 0 };
+  }
+
+  private showError(message: string): void {
+    this.feedbackMessage = message;
+    this.feedbackIsError = true;
+  }
 
   countByStatus(status: BookingStatus): number {
     return this.bookings.filter((b) => b.status === status).length;
@@ -1037,18 +1046,34 @@ export class MyBookingsComponent {
     this.cancellingBooking = null;
   }
 
-  confirmCancellation(): void {
-    if (!this.cancellingBooking) return;
-    const b = this.cancellingBooking;
-    const refund = b.total - b.serviceFee;
-    b.status = 'CANCELADA';
-    b.cancellationReason = this.cancellationReason;
-    b.cancelledAt = new Date().toISOString().split('T')[0];
-    b.refundAmount = refund;
+  /** HU-040 CA1, CA3: cancela en el API, que libera el periodo y registra la cancelación con su devolución. */
+  async confirmCancellation(): Promise<void> {
+    const booking = this.cancellingBooking;
+    const session = getActiveSession();
+    if (!booking || !session || this.cancelling) return;
 
-    this.feedbackMessage = `Reserva ${b.id} cancelada exitosamente. Se liberó el periodo (RF-055) y se procesó la devolución simulada por $${refund.toLocaleString('es-CO')} COP (RF-054).`;
-    this.feedbackIsError = false;
-    this.closeCancellationModal();
+    this.cancelling = true;
+    try {
+      const response = await fetch(`/api/bookings/${encodeURIComponent(booking.id)}/cancel`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ reason: this.cancellationReason }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.showError([body?.message].flat().filter(Boolean).join(' ') || 'No fue posible cancelar la reserva.');
+        return;
+      }
+      const updated = toBooking(body as ApiBooking);
+      this.bookings = this.bookings.map((item) => (item.id === updated.id ? { ...item, ...updated, imageUrl: item.imageUrl, listingTitle: item.listingTitle, listingCity: item.listingCity } : item));
+      this.feedbackMessage = `Reserva cancelada. Las fechas quedaron disponibles de nuevo (RF-055) y la devolución simulada es de $${(updated.refundAmount ?? 0).toLocaleString('es-CO')} COP (${updated.refundPercentage ?? 0} %).`;
+      this.feedbackIsError = false;
+    } catch {
+      this.showError('Error de conexión al cancelar la reserva.');
+    } finally {
+      this.cancelling = false;
+      this.closeCancellationModal();
+    }
   }
 
   cancelPendingBooking(booking: Booking): void {

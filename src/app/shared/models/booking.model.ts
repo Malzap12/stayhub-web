@@ -1,4 +1,5 @@
 export type BookingStatus =
+  | 'PENDIENTE'
   | 'CONFIRMADA'
   | 'PENDIENTE_APROBACION'
   | 'EN_REVISION'
@@ -24,10 +25,11 @@ export interface Booking {
   serviceFee: number;
   total: number;
   status: BookingStatus;
-  cancellationPolicy: 'Flexible' | 'Moderada' | 'Estricta';
+  cancellationPolicy: string;
   cancellationReason?: string;
   cancelledAt?: string;
   refundAmount?: number;
+  refundPercentage?: number;
   rating?: number;
   reviewComment?: string;
   reviewedAt?: string;
