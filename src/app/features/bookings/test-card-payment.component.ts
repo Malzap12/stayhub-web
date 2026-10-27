@@ -173,7 +173,11 @@ export class TestCardPaymentComponent implements OnInit {
   errorMessage = '';
   result: BookingPaymentResult | null = null;
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
+    void this.loadTestCards();
+  }
+
+  async loadTestCards(): Promise<void> {
     try {
       const response = await fetch('/api/payments/test-cards');
       if (response.ok) {
