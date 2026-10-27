@@ -144,4 +144,54 @@ describe('MyBookingsComponent · HU-034 · HU-040 · HU-041', () => {
     expect(completed.reviewComment).toBe('Excelente servicio y comodidades.');
     expect(component.feedbackIsError).toBeFalse();
   });
+
+  it('HU-034 CA1: muestra reservas pasadas y futuras ordenadas por fecha de llegada con filtro por estado', () => {
+    const past = toBooking(apiBooking({ id: 'b-past', checkIn: '2025-02-10', status: 'COMPLETADA' }));
+    const future1 = toBooking(apiBooking({ id: 'b-future-1', checkIn: '2027-01-15', status: 'CONFIRMADA' }));
+    const future2 = toBooking(apiBooking({ id: 'b-future-2', checkIn: '2027-08-20', status: 'CONFIRMADA' }));
+    const pending = toBooking(apiBooking({ id: 'b-pending', checkIn: '2026-12-01', status: 'PENDIENTE' }));
+
+    // Desordenadas en bookings
+    component.bookings = [future2, past, pending, future1];
+
+    // Se ven ordenadas por fecha de llegada cronológicamente
+    expect(component.filteredBookings.map((b) => b.id)).toEqual(['b-past', 'b-pending', 'b-future-1', 'b-future-2']);
+
+    // Filtro por estado
+    component.setStatusFilter('CONFIRMADA');
+    expect(component.filteredBookings.map((b) => b.id)).toEqual(['b-future-1', 'b-future-2']);
+
+    component.setStatusFilter('COMPLETADA');
+    expect(component.filteredBookings.map((b) => b.id)).toEqual(['b-past']);
+  });
+
+  it('HU-034 CA2: cuando hay muchas reservas, las muestra paginadas y navega entre páginas', () => {
+    const manyBookings = Array.from({ length: 12 }, (_, i) => {
+      const idx = i + 1;
+      const dayStr = idx < 10 ? `0${idx}` : `${idx}`;
+      return toBooking(apiBooking({ id: `item-${idx}`, checkIn: `2027-03-${dayStr}` }));
+    });
+
+    component.bookings = manyBookings;
+    component.pageSize = 5;
+    component.currentPage = 1;
+
+    expect(component.totalPages).toBe(3);
+    expect(component.paginatedBookings).toHaveSize(5);
+    expect(component.paginatedBookings[0].id).toBe('item-1');
+    expect(component.paginatedBookings[4].id).toBe('item-5');
+
+    // Navegación a página 2
+    component.goToPage(2);
+    expect(component.currentPage).toBe(2);
+    expect(component.paginatedBookings).toHaveSize(5);
+    expect(component.paginatedBookings[0].id).toBe('item-6');
+
+    // Navegación a página 3 (última)
+    component.goToPage(3);
+    expect(component.currentPage).toBe(3);
+    expect(component.paginatedBookings).toHaveSize(2);
+    expect(component.paginatedBookings[0].id).toBe('item-11');
+    expect(component.paginatedBookings[1].id).toBe('item-12');
+  });
 });
