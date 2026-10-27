@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ApiBooking, arrivalTime, estimateRefund, MyBookingsComponent, toBooking } from './my-bookings.component';
 
-describe('MyBookingsComponent · HU-034 · HU-040', () => {
+describe('MyBookingsComponent · HU-034 · HU-040 · HU-041', () => {
   let component: MyBookingsComponent;
   let fixture: ComponentFixture<MyBookingsComponent>;
 
@@ -91,11 +91,45 @@ describe('MyBookingsComponent · HU-034 · HU-040', () => {
     expect(component.bookings[0].status).toBe('CONFIRMADA');
   });
 
-  it('HU-039: estima el 100 % hasta 48 h antes de la llegada y el 50 % después', () => {
-    const booking = { checkIn: '2027-03-10', total: 1045000, serviceFee: 95000 };
+  it('HU-039 y HU-041 (CA1, CA2, CA3): calcula la devolución sin tarifa de servicio (650.000 COP a 5 días y 325.000 COP a 24 h) y muestra la regla aplicada en el detalle', () => {
+    const booking715 = { checkIn: '2027-03-10', total: 715000, serviceFee: 65000 };
     const arrival = arrivalTime('2027-03-10');
-    expect(estimateRefund(booking, arrival - 48 * 3_600_000)).toEqual({ percentage: 100, amount: 950000 });
-    expect(estimateRefund(booking, arrival - 47 * 3_600_000)).toEqual({ percentage: 50, amount: 475000 });
+
+    // CA1: 5 días antes -> 650.000 COP (100 % sin la tarifa de servicio)
+    expect(estimateRefund(booking715, arrival - 5 * 24 * 3_600_000)).toEqual({
+      percentage: 100,
+      amount: 650000,
+      appliedRule: 'Política Flexible: 100 % de devolución (sin la tarifa de servicio) por cancelar al menos 48 h antes de la llegada',
+    });
+
+    // CA2: 24 horas antes -> 325.000 COP (50 %)
+    expect(estimateRefund(booking715, arrival - 24 * 3_600_000)).toEqual({
+      percentage: 50,
+      amount: 325000,
+      appliedRule: 'Política Flexible: 50 % de devolución (sin la tarifa de servicio) por cancelar con menos de 48 h de anticipación a la llegada',
+    });
+
+    // CA3: en el detalle de la cancelación se muestran el valor devuelto y la regla aplicada
+    const cancelled = toBooking(
+      apiBooking({
+        totalAmount: 715000,
+        serviceFee: 65000,
+        status: 'CANCELADA',
+        cancellation: {
+          cancelledAt: new Date().toISOString(),
+          reason: 'Imprevisto',
+          refundAmount: 325000,
+          refundPercentage: 50,
+          appliedRule: 'Política Flexible: 50 % de devolución (sin la tarifa de servicio) por cancelar con menos de 48 h de anticipación a la llegada',
+          releasedNights: [day(20)],
+        },
+      }),
+    );
+    component.bookings = [cancelled];
+    fixture.detectChanges();
+    const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(html).toContain('325,000');
+    expect(html).toContain('Política Flexible: 50 % de devolución (sin la tarifa de servicio)');
   });
 
   it('CA4: permite calificar de 1 a 5 estrellas y reseñar una reserva COMPLETADA (RF-063)', () => {
