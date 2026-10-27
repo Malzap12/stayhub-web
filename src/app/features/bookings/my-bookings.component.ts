@@ -23,16 +23,23 @@ export interface ApiBooking {
   listingCity?: string;
   listingImage?: string;
   cancellationPolicyName?: string;
-  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; releasedNights: string[] };
+  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; appliedRule?: string; releasedNights: string[] };
 }
 
 /** HU-040: la llegada es a las 15:00 del día de llegada, hora de Colombia (igual que en el API). */
 export const arrivalTime = (checkIn: string): number => Date.parse(`${checkIn.slice(0, 10)}T15:00:00-05:00`);
 
-/** HU-039: política Flexible, 100 % hasta 48 h antes de la llegada y 50 % después, sobre el total menos la tarifa de servicio. */
-export function estimateRefund(booking: Pick<Booking, 'checkIn' | 'total' | 'serviceFee'>, now = Date.now()): { percentage: number; amount: number } {
-  const percentage = arrivalTime(booking.checkIn) - now >= 48 * 3_600_000 ? 100 : 50;
-  return { percentage, amount: Math.round(((booking.total - booking.serviceFee) * percentage) / 100) };
+/** HU-039 y HU-041 (CA1, CA2, CA3): política Flexible, 100 % hasta 48 h antes de la llegada y 50 % después, sobre el total menos la tarifa de servicio. */
+export function estimateRefund(
+  booking: Pick<Booking, 'checkIn' | 'total' | 'serviceFee'>,
+  now = Date.now(),
+): { percentage: number; amount: number; appliedRule: string } {
+  const isFullRefund = arrivalTime(booking.checkIn) - now >= 48 * 3_600_000;
+  const percentage = isFullRefund ? 100 : 50;
+  const appliedRule = isFullRefund
+    ? 'Política Flexible: 100 % de devolución (sin la tarifa de servicio) por cancelar al menos 48 h antes de la llegada'
+    : 'Política Flexible: 50 % de devolución (sin la tarifa de servicio) por cancelar con menos de 48 h de anticipación a la llegada';
+  return { percentage, amount: Math.round(((booking.total - booking.serviceFee) * percentage) / 100), appliedRule };
 }
 
 export function toBooking(api: ApiBooking): Booking {
@@ -61,6 +68,7 @@ export function toBooking(api: ApiBooking): Booking {
       : undefined,
     refundAmount: api.cancellation?.refundAmount,
     refundPercentage: api.cancellation?.refundPercentage,
+    appliedRule: api.cancellation?.appliedRule,
   };
 }
 
@@ -982,8 +990,8 @@ export class MyBookingsComponent implements OnInit {
     return booking.status === 'CONFIRMADA' && now < arrivalTime(booking.checkIn);
   }
 
-  get refundEstimate(): { percentage: number; amount: number } {
-    return this.cancellingBooking ? estimateRefund(this.cancellingBooking) : { percentage: 0, amount: 0 };
+  get refundEstimate(): { percentage: number; amount: number; appliedRule: string } {
+    return this.cancellingBooking ? estimateRefund(this.cancellingBooking) : { percentage: 0, amount: 0, appliedRule: '' };
   }
 
   private showError(message: string): void {
