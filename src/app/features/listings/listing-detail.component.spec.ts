@@ -81,7 +81,7 @@ describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Po
       '48 horas',
       'Traslado desde el aeropuerto',
       '$ 80.000',
-      '★ 4.90 · 18 reseñas',
+      '★ 4.9 · 18 reseñas',
     ]) {
       expect(page).toContain(expected);
     }
@@ -105,7 +105,7 @@ describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Po
     spyOn(window, 'fetch').and.returnValue(json({ ...detail, reviewCount: 0, averageRating: 0, additionalServices: [] }));
     await render();
 
-    expect(text()).toContain('Sin calificaciones todavía');
+    expect(text()).toContain('Sin reseñas todavía');
     expect(text()).toContain('Este alojamiento no ofrece servicios adicionales.');
   });
 
@@ -133,5 +133,55 @@ describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Po
     expect(amenityLabel('BALCON_PRIVADO')).toBe('Balcon privado');
     expect(formatCop(1250000)).toBe('$ 1.250.000');
     expect(formatCop(undefined)).toBe('Por definir');
+  });
+  describe('HU-048 · Consultar reseñas y calificación (RF-065, RN-025)', () => {
+    it('CA1: muestra la calificación promedio con un decimal, número de reseñas y las reseñas de la más reciente a la más antigua', async () => {
+      const listingWithReviews: ListingDetail = {
+        ...detail,
+        averageRating: 4.85,
+        reviewCount: 2,
+      };
+      const mockReviews = [
+        {
+          id: 'review-old',
+          authorName: 'Carlos Mendoza',
+          rating: 4,
+          comment: 'Muy buena experiencia.',
+          createdAt: '2026-10-01T10:00:00.000Z',
+        },
+        {
+          id: 'review-new',
+          authorName: 'Laura Restrepo',
+          rating: 5,
+          comment: 'Excelente ubicación y muy limpio.',
+          createdAt: '2026-10-15T15:00:00.000Z',
+        },
+      ];
+
+      spyOn(window, 'fetch').and.returnValues(json(listingWithReviews), json({ reviews: mockReviews }));
+      await render();
+
+      const page = text();
+      expect(page).toContain('★ 4.9 · 2 reseñas');
+      expect(page).toContain('Laura Restrepo');
+      expect(page).toContain('Carlos Mendoza');
+
+      const lauraPos = page.indexOf('Laura Restrepo');
+      const carlosPos = page.indexOf('Carlos Mendoza');
+      expect(lauraPos).toBeLessThan(carlosPos);
+    });
+
+    it('CA2: cuando la publicación no tiene reseñas muestra «Sin reseñas todavía»', async () => {
+      const listingWithoutReviews: ListingDetail = {
+        ...detail,
+        averageRating: 0,
+        reviewCount: 0,
+      };
+
+      spyOn(window, 'fetch').and.returnValue(json(listingWithoutReviews));
+      await render();
+
+      expect(text()).toContain('Sin reseñas todavía');
+    });
   });
 });
