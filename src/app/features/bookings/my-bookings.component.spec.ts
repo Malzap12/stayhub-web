@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ApiBooking, arrivalTime, estimateRefund, MyBookingsComponent, toBooking } from './my-bookings.component';
+import { ApiBooking, arrivalTime, estimateRefund, isReviewWindowOpen, MyBookingsComponent, reviewDeadline, toBooking } from './my-bookings.component';
 
 describe('MyBookingsComponent · HU-034 · HU-040 · HU-041', () => {
   let component: MyBookingsComponent;
@@ -132,17 +132,60 @@ describe('MyBookingsComponent · HU-034 · HU-040 · HU-041', () => {
     expect(html).toContain('Política Flexible: 50 % de devolución (sin la tarifa de servicio)');
   });
 
-  it('CA4: permite calificar de 1 a 5 estrellas y reseñar una reserva COMPLETADA (RF-063)', () => {
-    const completed = toBooking(apiBooking({ id: 'booking-3', status: 'COMPLETADA' }));
+  it('HU-047 CA1: publica en el API la calificación de 1 a 5 y la reseña de una reserva COMPLETADA (RF-063)', async () => {
+    const completed = toBooking(apiBooking({ id: 'booking-3', status: 'COMPLETADA', checkIn: day(-5), checkOut: day(-2) }));
     component.bookings = [completed];
+    const fetchSpy = spyOn(window, 'fetch').and.returnValue(
+      json({ id: 'review-1', bookingId: 'booking-3', rating: 5, comment: 'Excelente servicio y comodidades.', createdAt: '2026-11-06T02:00:00Z' }, 201),
+    );
 
+    expect(component.canReview(completed)).toBeTrue();
     component.setTempRating(completed.id, 5);
-    component.tempComments[completed.id] = 'Excelente servicio y comodidades.';
-    component.submitReview(completed);
+    component.tempComments[completed.id] = '  Excelente servicio y comodidades.  ';
+    await component.submitReview(completed);
 
+    const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+    expect(url).toBe('/api/reviews');
+    expect(JSON.parse(String(init.body))).toEqual({ bookingId: 'booking-3', rating: 5, comment: 'Excelente servicio y comodidades.' });
     expect(completed.rating).toBe(5);
-    expect(completed.reviewComment).toBe('Excelente servicio y comodidades.');
+    // 6 de noviembre a las 02:00 UTC es 5 de noviembre en Colombia.
+    expect(completed.reviewedAt).toBe('2026-11-05');
+    expect(component.canReview(completed)).toBeFalse();
     expect(component.feedbackIsError).toBeFalse();
+  });
+
+  it('HU-047 CA2 y CA3: muestra el motivo cuando el API rechaza la reseña', async () => {
+    const completed = toBooking(apiBooking({ id: 'booking-3', status: 'COMPLETADA', checkIn: day(-5), checkOut: day(-2) }));
+    spyOn(window, 'fetch').and.returnValue(json({ message: 'Ya reseñaste esta estancia', reason: 'RESENA_DUPLICADA' }, 409));
+
+    component.setTempRating(completed.id, 4);
+    component.tempComments[completed.id] = 'Muy bien';
+    await component.submitReview(completed);
+
+    expect(completed.rating).toBeUndefined();
+    expect(component.feedbackIsError).toBeTrue();
+    expect(component.feedbackMessage).toBe('Ya reseñaste esta estancia');
+  });
+
+  it('HU-047 CA2 y CA4: no ofrece reseñar reservas no completadas ni pasado el plazo de 30 días', () => {
+    const confirmed = toBooking(apiBooking({ status: 'CONFIRMADA' }));
+    const expired = toBooking(apiBooking({ id: 'old', status: 'COMPLETADA', checkIn: day(-40), checkOut: day(-35) }));
+    const reviewed = toBooking(apiBooking({ id: 'r', status: 'COMPLETADA', checkIn: day(-5), checkOut: day(-2), review: { id: 'review-1', rating: 4, comment: 'Bien', createdAt: '2026-11-01T10:00:00Z' } }));
+
+    expect(component.canReview(confirmed)).toBeFalse();
+    expect(component.canReview(expired)).toBeFalse();
+    expect(component.canReview(reviewed)).toBeFalse();
+    expect(reviewed.rating).toBe(4);
+
+    component.bookings = [expired];
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('El plazo para reseñar esta estancia venció');
+  });
+
+  it('HU-047 CA4: el plazo termina 30 días después de la salida, en hora de Colombia', () => {
+    expect(reviewDeadline('2026-10-06')).toBe('2026-11-05');
+    expect(isReviewWindowOpen('2026-10-06', Date.parse('2026-11-06T04:30:00Z'))).toBeTrue();
+    expect(isReviewWindowOpen('2026-10-06', Date.parse('2026-11-06T05:30:00Z'))).toBeFalse();
   });
 
   it('HU-034 CA1: muestra reservas pasadas y futuras ordenadas por fecha de llegada con filtro por estado', () => {
