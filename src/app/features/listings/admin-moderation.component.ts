@@ -5,6 +5,19 @@ import { getActiveSession } from '../../core/guards/auth.guard';
 import { HostModerationNotification, Listing, ListingStatus } from '../../shared/models/listing.model';
 
 /** Publicación tal como la devuelve GET /api/listings/pending. */
+
+/** Usuario tal como lo devuelve GET /api/users para moderación. */
+export interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  role: 'HUESPED' | 'ANFITRION' | 'ADMINISTRADOR';
+  status: 'ACTIVA' | 'DESACTIVADA' | 'RESTRINGIDA';
+  restrictionReason?: string;
+  createdAt?: string;
+}
+
 export interface ApiPendingListing {
   id: string;
   title: string;
@@ -58,6 +71,7 @@ interface ModerationResponse {
           <span class="stat-pill pending">Pendientes: {{ pendingQueue.length }}</span>
           <span class="stat-pill active">Aprobadas hoy: {{ activeSearchListings.length }}</span>
           <span class="stat-pill draft">Devueltas hoy: {{ returnedDraftListings.length }}</span>
+          <span class="stat-pill restricted">Restringidos: {{ restrictedUsersCount }}</span>
         </div>
       </header>
 
@@ -173,6 +187,78 @@ interface ModerationResponse {
             >
               Bloquear
             </button>
+          </li>
+        </ul>
+      </section>
+
+      
+      <!-- HU-053: Restringir a un usuario que incumple las políticas -->
+      <section class="queue-section restrict-section" aria-label="Gestión de usuarios y restricciones">
+        <h2>Restringir usuarios por políticas</h2>
+        <p class="subtitle">
+          Invalida la sesión del usuario e impide nuevos inicios de sesión (CA1). Si es anfitrión, sus publicaciones
+          ACTIVAS pasan a PAUSADA y sus reservas futuras a EN_REVISION (CA2). Al levantar la restricción podrá volver a operar y sus publicaciones seguirán pausadas hasta que las reactive (CA3).
+        </p>
+
+        <input
+          type="search"
+          class="search-input"
+          [(ngModel)]="userFilter"
+          placeholder="Buscar usuario por nombre, correo o rol"
+          aria-label="Buscar usuario para restringir"
+        />
+
+        <p class="empty-state" *ngIf="!loading && filteredUsers.length === 0">
+          No hay usuarios registrados que coincidan con la búsqueda.
+        </p>
+
+        <ul class="block-list user-list" *ngIf="filteredUsers.length > 0">
+          <li class="block-item user-item" *ngFor="let u of filteredUsers">
+            <div class="block-info">
+              <h3>{{ u.name }}</h3>
+              <p class="meta">{{ u.email }} · Rol: <strong>{{ u.role }}</strong></p>
+              <span class="status-badge" [attr.data-status]="u.status">{{ u.status }}</span>
+              <p class="reason-visible" *ngIf="u.status === 'RESTRINGIDA' && u.restrictionReason">
+                Motivo: "{{ u.restrictionReason }}"
+              </p>
+            </div>
+
+            <div class="return-box" *ngIf="restrictingUserId === u.id">
+              <label [for]="'restrict-reason-' + u.id">Motivo de la restricción (obligatorio):</label>
+              <textarea
+                [id]="'restrict-reason-' + u.id"
+                rows="3"
+                [(ngModel)]="restrictReasonInput"
+                placeholder="Ej. Incumplimiento reiterado de normas de convivencia y políticas..."
+              ></textarea>
+              <p class="error-msg" *ngIf="restrictError">{{ restrictError }}</p>
+              <div class="return-actions">
+                <button type="button" class="btn-confirm-return" [disabled]="busyId === u.id" (click)="confirmRestrict(u.id)">
+                  {{ busyId === u.id ? 'Restringiendo…' : 'Confirmar restricción' }}
+                </button>
+                <button type="button" class="btn-cancel" (click)="cancelRestrict()">Cancelar</button>
+              </div>
+            </div>
+
+            <div class="actions" *ngIf="u.role !== 'ADMINISTRADOR'">
+              <button
+                type="button"
+                class="btn-block btn-restrict"
+                *ngIf="u.status !== 'RESTRINGIDA' && restrictingUserId !== u.id"
+                (click)="openRestrictPrompt(u.id)"
+              >
+                Restringir
+              </button>
+              <button
+                type="button"
+                class="btn-approve btn-unrestrict"
+                *ngIf="u.status === 'RESTRINGIDA'"
+                [disabled]="busyId === u.id"
+                (click)="confirmUnrestrict(u.id)"
+              >
+                Levantar restricción
+              </button>
+            </div>
           </li>
         </ul>
       </section>
@@ -423,6 +509,11 @@ interface ModerationResponse {
     .status-badge[data-status='ACTIVA'] { background: #e8f8ee; color: #166534; }
     .status-badge[data-status='BORRADOR'], .status-badge[data-status='PAUSADA'] { background: #f5f5f7; color: #3a3a3c; }
     .status-badge[data-status='BLOQUEADA'] { background: #fef2f2; color: #991b1b; }
+    .stat-pill.restricted { background: #fef2f2; color: #991b1b; }
+    .status-badge[data-status='RESTRINGIDA'] { background: #fef2f2; color: #991b1b; }
+    .btn-unrestrict { background: #0071e3; color: #ffffff; border-color: #0071e3; }
+    .btn-unrestrict:hover { background: #0077ed; }
+
     .btn-block { background: #ffffff; color: #b91c1c; border-color: #fecaca; }
     .notif-tag.returned { background: #fef2f2; color: #991b1b; }
   `],
@@ -440,6 +531,13 @@ export class AdminModerationComponent implements OnInit {
   feedbackMessage = '';
   /** HU-051: todas las publicaciones (cualquier estado) para bloquear las engañosas. */
   allListings: ApiPendingListing[] = [];
+  /** HU-053: usuarios registrados para restringir o levantar restricción. */
+  allUsers: ApiUser[] = [];
+  userFilter = '';
+  restrictingUserId: string | null = null;
+  restrictReasonInput = '';
+  restrictError = '';
+
   blockFilter = '';
   blockingListingId: string | null = null;
   blockReasonInput = '';
@@ -531,6 +629,7 @@ export class AdminModerationComponent implements OnInit {
       const reviewed = this.listings.filter((item) => item.status !== 'PENDIENTE_REVISION');
       this.listings = [...(body as ApiPendingListing[]).map((item) => this.toListing(item)), ...reviewed];
       await this.loadAll();
+      await this.loadUsers();
     } catch {
       this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
     } finally {
@@ -543,6 +642,116 @@ export class AdminModerationComponent implements OnInit {
     const response = await fetch('/api/listings/admin/all', { headers: this.authHeaders() });
     if (response.ok) {
       this.allListings = (await response.json()) as ApiPendingListing[];
+    }
+  }
+
+  
+  /** HU-053: carga todos los usuarios para la sección de restricciones. */
+  async loadUsers(): Promise<void> {
+    const response = await fetch('/api/users', { headers: this.authHeaders() });
+    if (response.ok) {
+      this.allUsers = (await response.json()) as ApiUser[];
+    }
+  }
+
+  get filteredUsers(): ApiUser[] {
+    const term = this.userFilter.trim().toLowerCase();
+    if (!term) return this.allUsers;
+    return this.allUsers.filter((u) =>
+      [u.name, u.email, u.role, u.status].some((v) => v?.toLowerCase().includes(term)),
+    );
+  }
+
+  get restrictedUsersCount(): number {
+    return this.allUsers.filter((u) => u.status === 'RESTRINGIDA').length;
+  }
+
+  openRestrictPrompt(id: string): void {
+    this.restrictingUserId = id;
+    this.restrictReasonInput = '';
+    this.restrictError = '';
+  }
+
+  cancelRestrict(): void {
+    this.restrictingUserId = null;
+    this.restrictReasonInput = '';
+    this.restrictError = '';
+  }
+
+  /**
+   * HU-053 CA1 y CA2: restringe al usuario indicando el motivo.
+   * Invalida sus sesiones, pasa publicaciones activas a PAUSADA y reservas futuras a EN_REVISION.
+   */
+  async confirmRestrict(id: string): Promise<void> {
+    const reason = this.restrictReasonInput.trim();
+    if (reason.length < 5) {
+      this.restrictError = 'Indica el motivo de la restricción (al menos 5 caracteres).';
+      return;
+    }
+    const user = this.allUsers.find((u) => u.id === id);
+    if (!user) return;
+
+    this.busyId = id;
+    this.restrictError = '';
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(id)}/restrict`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify({ reason }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.restrictError = this.apiError(response.status, body, 'No fue posible restringir al usuario.');
+        return;
+      }
+      user.status = 'RESTRINGIDA';
+      user.restrictionReason = reason;
+
+      const affectedListings = (body as { pausedListings?: string[] })?.pausedListings ?? [];
+      const affectedBookings = (body as { bookingsUnderReview?: string[] })?.bookingsUnderReview ?? [];
+
+      this.feedbackMessage =
+        `Usuario "${user.name}" RESTRINGIDO: sus sesiones vigentes fueron invalidadas.` +
+        (affectedListings.length > 0 ? ` ${affectedListings.length} publicación(es) pasaron a PAUSADA.` : '') +
+        (affectedBookings.length > 0 ? ` ${affectedBookings.length} reserva(s) pasaron a EN_REVISION.` : '');
+
+      this.cancelRestrict();
+      await this.loadAll();
+    } catch {
+      this.restrictError = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.busyId = null;
+    }
+  }
+
+  /**
+   * HU-053 CA3: levanta la restricción al usuario para que pueda volver a iniciar sesión.
+   * Sus publicaciones continúan PAUSADAS hasta que las reactive.
+   */
+  async confirmUnrestrict(id: string): Promise<void> {
+    const user = this.allUsers.find((u) => u.id === id);
+    if (!user) return;
+
+    this.busyId = id;
+    this.errorMessage = '';
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(id)}/unrestrict`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.errorMessage = this.apiError(response.status, body, 'No fue posible levantar la restricción.');
+        return;
+      }
+      user.status = 'ACTIVA';
+      user.restrictionReason = undefined;
+
+      this.feedbackMessage = `Restricción levantada para "${user.name}". El usuario puede iniciar sesión de nuevo (sus publicaciones continúan PAUSADAS hasta que las reactive).`;
+    } catch {
+      this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.busyId = null;
     }
   }
 
