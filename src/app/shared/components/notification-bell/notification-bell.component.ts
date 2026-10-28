@@ -20,6 +20,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   RESERVA_CONFIRMADA: 'Reserva confirmada',
   RESERVA_CANCELADA: 'Reserva cancelada',
   RESERVA_EN_REVISION: 'Reserva en revisión',
+  RESERVA_COMPLETADA: 'Estancia completada',
   PUBLICACION_APROBADA: 'Publicación aprobada',
   PUBLICACION_DEVUELTA: 'Publicación devuelta',
   PUBLICACION_BLOQUEADA: 'Publicación bloqueada',
@@ -199,6 +200,8 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   routeFor(item: AppNotification): string | null {
     if (!item.entityId) return null;
     const role = getActiveSession()?.role;
+    // HU-046 CA3: la invitación a reseñar lleva a Mis reservas, donde está la calificación de la estancia.
+    if (item.type === 'RESERVA_COMPLETADA' && role === 'HUESPED') return '/mis-reservas';
     if (item.entity === 'Booking' && role === 'HUESPED') return `/mis-reservas/${item.entityId}`;
     if (item.entity === 'Booking' && role === 'ANFITRION') return '/anfitrion/publicaciones';
     if (item.entity === 'Listing' && item.type === 'PUBLICACION_APROBADA') return `/listings/${item.entityId}`;
