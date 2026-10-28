@@ -119,4 +119,81 @@ describe('ListingListComponent · HU-024 Buscar por ciudad, fechas y huéspedes'
 
     expect(element.querySelector('.alert-error')?.textContent).toContain('La fecha de salida debe ser posterior');
   });
+
+  describe('HU-025 · Filtrar por tipo, precio y servicios', () => {
+    it('CA1: envía el tipo y el rango de precio al API', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.resolveTo(searchResponse([chapinero]));
+      await render();
+
+      component.filters = { propertyType: 'APARTAMENTO', minPrice: 150000, maxPrice: 300000, amenities: [] };
+      await component.search();
+
+      const query = requestedQuery(fetchSpy);
+      expect(query.get('propertyType')).toBe('APARTAMENTO');
+      expect(query.get('minPrice')).toBe('150000');
+      expect(query.get('maxPrice')).toBe('300000');
+      expect(query.has('amenities')).toBeFalse();
+    });
+
+    it('CA2: al marcar Wi-Fi y Parqueadero busca de nuevo pidiendo ambos servicios', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.resolveTo(searchResponse([{ ...chapinero, amenities: ['WIFI', 'PARKING', 'WIFI'] }]));
+      await render();
+
+      component.toggleAmenity('WIFI');
+      component.toggleAmenity('PARQUEADERO');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(requestedQuery(fetchSpy).get('amenities')).toBe('WIFI,PARQUEADERO');
+      expect(component.activeFilterCount).toBe(2);
+      // Los códigos equivalentes se muestran con el mismo nombre y sin repetir.
+      expect(component.listings[0].amenities).toEqual(['Wi-Fi', 'Parqueadero']);
+      expect(element.querySelectorAll('.amenity-chip.selected').length).toBe(2);
+
+      component.toggleAmenity('WIFI');
+      expect(component.filters.amenities).toEqual(['PARQUEADERO']);
+    });
+
+    it('no busca si el precio mínimo es mayor que el máximo', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.resolveTo(searchResponse([chapinero]));
+      await render();
+      const calls = fetchSpy.calls.count();
+
+      component.filters = { propertyType: '', minPrice: 300000, maxPrice: 150000, amenities: [] };
+      await component.search();
+
+      expect(fetchSpy.calls.count()).toBe(calls);
+      expect(component.formError).toBe('El precio mínimo no puede ser mayor que el precio máximo.');
+    });
+
+    it('CA3: si ningún resultado cumple los filtros muestra «Sin resultados» y permite limpiarlos', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.resolveTo(searchResponse([]));
+      await render();
+      component.filters = { propertyType: 'FINCA', minPrice: 900000, maxPrice: null, amenities: ['PISCINA'] };
+      await component.search();
+      fixture.detectChanges();
+
+      const empty = element.querySelector('.empty-state') as HTMLElement;
+      expect(empty.textContent).toContain('Sin resultados');
+      const clear = empty.querySelector('button') as HTMLButtonElement;
+      expect(clear.textContent).toContain('Limpiar filtros');
+
+      fetchSpy.and.resolveTo(searchResponse([chapinero]));
+      clear.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.hasActiveFilters).toBeFalse();
+      const query = requestedQuery(fetchSpy);
+      expect(['propertyType', 'minPrice', 'maxPrice', 'amenities'].some((key) => query.has(key))).toBeFalse();
+      expect(element.querySelectorAll('.listing-card').length).toBe(1);
+    });
+
+    it('sin filtros activos conserva el mensaje de la búsqueda por ciudad y fechas', async () => {
+      spyOn(window, 'fetch').and.resolveTo(searchResponse([]));
+      await render();
+      expect(element.querySelector('.empty-state')?.textContent).toContain('No encontramos alojamientos');
+      expect(element.querySelector('.clear-filters')).toBeNull();
+    });
+  });
 });

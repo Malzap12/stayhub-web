@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AMENITY_FILTERS, amenityLabel } from '../../shared/models/amenities';
 
 export interface PublicListingItem {
   id: string;
@@ -15,6 +16,8 @@ export interface PublicListingItem {
   imageUrl: string;
   hostName: string;
   description: string;
+  /** HU-025: nombres de los servicios para comparar resultados. */
+  amenities: string[];
 }
 
 /** Publicación tal como la devuelve GET /api/listings/search. */
@@ -30,6 +33,7 @@ export interface ApiListing {
   images?: string[];
   rating?: number;
   hostName?: string;
+  amenities?: string[];
 }
 
 interface SearchResponse {
@@ -43,6 +47,16 @@ export interface SearchForm {
   checkOut: string;
   guests: number;
 }
+
+/** HU-025 · Filtros de tipo, rango de precio por noche (COP) y servicios. */
+export interface SearchFilters {
+  propertyType: string;
+  minPrice: number | null;
+  maxPrice: number | null;
+  amenities: string[];
+}
+
+export const emptyFilters = (): SearchFilters => ({ propertyType: '', minPrice: null, maxPrice: null, amenities: [] });
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   CASA: 'Casa',
@@ -116,6 +130,59 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
             <button type="button" class="clear-btn" (click)="clearSearch()">Limpiar</button>
           </div>
           <p class="form-error" *ngIf="formError" role="alert">{{ formError }}</p>
+
+          <!-- HU-025 · Filtrar por tipo, precio y servicios -->
+          <fieldset class="filters" aria-label="Filtros">
+            <legend class="sr-only">Filtros</legend>
+            <div class="field field-type">
+              <label for="filter-type">Tipo de alojamiento</label>
+              <select id="filter-type" name="propertyType" [(ngModel)]="filters.propertyType" (ngModelChange)="search()">
+                <option value="">Todos</option>
+                <option *ngFor="let type of propertyTypes" [value]="type.value">{{ type.label }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filter-min-price">Precio mínimo (COP)</label>
+              <input
+                id="filter-min-price"
+                name="minPrice"
+                type="number"
+                min="0"
+                step="10000"
+                placeholder="Ej. 150000"
+                [(ngModel)]="filters.minPrice"
+                [class.input-error]="!!priceError"
+              />
+            </div>
+            <div class="field">
+              <label for="filter-max-price">Precio máximo (COP)</label>
+              <input
+                id="filter-max-price"
+                name="maxPrice"
+                type="number"
+                min="0"
+                step="10000"
+                placeholder="Ej. 300000"
+                [(ngModel)]="filters.maxPrice"
+                [class.input-error]="!!priceError"
+              />
+            </div>
+            <div class="amenity-filters" role="group" aria-label="Servicios">
+              <span class="amenity-title">Servicios</span>
+              <label class="amenity-chip" *ngFor="let amenity of amenityOptions" [class.selected]="isAmenitySelected(amenity.value)">
+                <input
+                  type="checkbox"
+                  [value]="amenity.value"
+                  [checked]="isAmenitySelected(amenity.value)"
+                  (change)="toggleAmenity(amenity.value)"
+                />
+                {{ amenity.label }}
+              </label>
+            </div>
+            <button type="button" class="clear-btn clear-filters" *ngIf="hasActiveFilters" (click)="clearFilters()">
+              Limpiar filtros ({{ activeFilterCount }})
+            </button>
+          </fieldset>
         </form>
 
       </header>
@@ -125,7 +192,13 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 
       <ng-container *ngIf="!loading && !errorMessage && searched">
         <p class="results-summary" *ngIf="listings.length > 0" role="status">{{ resultsSummary }}</p>
-        <div class="empty-state" *ngIf="listings.length === 0" role="status">
+        <!-- HU-025 CA3: sin resultados con los filtros, con la opción de limpiarlos -->
+        <div class="empty-state" *ngIf="listings.length === 0 && hasActiveFilters" role="status">
+          <h2>Sin resultados</h2>
+          <p>Ningún alojamiento cumple los filtros que elegiste.</p>
+          <button type="button" class="search-btn" (click)="clearFilters()">Limpiar filtros</button>
+        </div>
+        <div class="empty-state" *ngIf="listings.length === 0 && !hasActiveFilters" role="status">
           <h2>No encontramos alojamientos</h2>
           <p>Prueba con otra ciudad, otras fechas o menos huéspedes.</p>
         </div>
@@ -157,6 +230,10 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 
             <h2>{{ item.title }}</h2>
             <p class="listing-desc">{{ item.description }}</p>
+            <ul class="amenity-list" *ngIf="item.amenities.length > 0" aria-label="Servicios">
+              <li *ngFor="let amenity of item.amenities.slice(0, 4)">{{ amenity }}</li>
+              <li *ngIf="item.amenities.length > 4">+{{ item.amenities.length - 4 }}</li>
+            </ul>
 
             <div class="listing-footer">
               <div class="price-block">
@@ -301,6 +378,107 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
+    }
+    .filters {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: end;
+      margin: 4px 0 0;
+      padding: 14px 0 0;
+      border: none;
+      border-top: 1px solid #f0f0f2;
+      min-width: 0;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .search-form select {
+      height: 40px;
+      padding: 0 10px;
+      border-radius: 12px;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      color: #1d1d1f;
+      font-size: 0.88rem;
+      width: 100%;
+    }
+    .amenity-filters {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .amenity-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6e6e73;
+      margin-right: 4px;
+    }
+    .search-form .amenity-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 980px;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: normal;
+      text-transform: none;
+      color: #1d1d1f;
+      cursor: pointer;
+    }
+    .search-form .amenity-chip input {
+      width: auto;
+      height: auto;
+      margin: 0;
+      accent-color: #1d1d1f;
+    }
+    .search-form .amenity-chip.selected {
+      background: #1d1d1f;
+      border-color: #1d1d1f;
+      color: #ffffff;
+    }
+    .clear-filters {
+      justify-self: start;
+    }
+    @media (max-width: 860px) {
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+      .filters .field-type {
+        grid-column: 1 / -1;
+      }
+    }
+    .amenity-list {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 12px;
+      padding: 0;
+    }
+    .amenity-list li {
+      padding: 3px 9px;
+      border-radius: 980px;
+      background: #f2f2f7;
+      color: #3a3a3c;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .empty-state .search-btn {
+      margin-top: 8px;
     }
     .form-error {
       grid-column: 1 / -1;
@@ -490,6 +668,9 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 })
 export class ListingListComponent implements OnInit {
   form: SearchForm = { city: '', checkIn: '', checkOut: '', guests: 1 };
+  filters: SearchFilters = emptyFilters();
+  readonly amenityOptions = AMENITY_FILTERS;
+  readonly propertyTypes = Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => ({ value, label }));
   listings: PublicListingItem[] = [];
   loading = false;
   searched = false;
@@ -525,6 +706,44 @@ export class ListingListComponent implements OnInit {
     return checkOut <= checkIn ? 'La fecha de salida debe ser posterior a la fecha de llegada.' : '';
   }
 
+  /** HU-025: el precio mínimo no puede ser negativo ni mayor que el máximo. */
+  get priceError(): string {
+    const { minPrice, maxPrice } = this.filters;
+    if ((minPrice != null && minPrice < 0) || (maxPrice != null && maxPrice < 0)) {
+      return 'Los precios no pueden ser negativos.';
+    }
+    if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
+      return 'El precio mínimo no puede ser mayor que el precio máximo.';
+    }
+    return '';
+  }
+
+  get activeFilterCount(): number {
+    const { propertyType, minPrice, maxPrice, amenities } = this.filters;
+    return (propertyType ? 1 : 0) + (minPrice != null ? 1 : 0) + (maxPrice != null ? 1 : 0) + amenities.length;
+  }
+
+  get hasActiveFilters(): boolean {
+    return this.activeFilterCount > 0;
+  }
+
+  isAmenitySelected(code: string): boolean {
+    return this.filters.amenities.includes(code);
+  }
+
+  /** HU-025 CA2: cada servicio marcado se suma a los requeridos y la búsqueda se repite. */
+  toggleAmenity(code: string): void {
+    const selected = this.filters.amenities;
+    this.filters.amenities = selected.includes(code) ? selected.filter((item) => item !== code) : [...selected, code];
+    void this.search();
+  }
+
+  /** HU-025 CA3: quita los filtros y vuelve a buscar con la ciudad, fechas y huéspedes actuales. */
+  clearFilters(): void {
+    this.filters = emptyFilters();
+    void this.search();
+  }
+
   get guestsError(): string {
     const guests = Number(this.form.guests);
     return Number.isInteger(guests) && guests >= 1 ? '' : 'El número de huéspedes debe ser al menos 1.';
@@ -542,12 +761,26 @@ export class ListingListComponent implements OnInit {
       params.set('checkOut', this.form.checkOut);
     }
     params.set('guests', String(this.form.guests));
+    // HU-025: tipo, rango de precio y servicios (todos los marcados).
+    const { propertyType, minPrice, maxPrice, amenities } = this.filters;
+    if (propertyType) {
+      params.set('propertyType', propertyType);
+    }
+    if (minPrice != null) {
+      params.set('minPrice', String(minPrice));
+    }
+    if (maxPrice != null) {
+      params.set('maxPrice', String(maxPrice));
+    }
+    if (amenities.length > 0) {
+      params.set('amenities', amenities.join(','));
+    }
     return params.toString();
   }
 
   /** HU-024 · Busca en el API; si el formulario tiene errores no ejecuta la búsqueda (CA3). */
   async search(): Promise<void> {
-    this.formError = this.datesError || this.guestsError;
+    this.formError = this.datesError || this.guestsError || this.priceError;
     if (this.formError) {
       return;
     }
@@ -574,6 +807,7 @@ export class ListingListComponent implements OnInit {
 
   clearSearch(): void {
     this.form = { city: '', checkIn: '', checkOut: '', guests: 1 };
+    this.filters = emptyFilters();
     void this.search();
   }
 
@@ -599,6 +833,7 @@ export class ListingListComponent implements OnInit {
       imageUrl: listing.images?.[0] ?? '',
       hostName: listing.hostName ?? 'Anfitrión',
       description: listing.description ?? '',
+      amenities: [...new Set((listing.amenities ?? []).map(amenityLabel))],
     };
   }
 }
