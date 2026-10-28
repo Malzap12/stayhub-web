@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { getActiveSession } from '../../../core/guards/auth.guard';
 
-/** Notificación tal como la devuelve GET /api/notifications (HU-043 CA3). */
+/** Notificación tal como la devuelve GET /api/notifications (HU-043 CA3, HU-044 CA1/CA2). */
 export interface AppNotification {
   id: string;
   type: string;
@@ -28,10 +28,12 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
 
 /** Cada cuánto se revisa si llegaron notificaciones nuevas. */
 export const NOTIFICATIONS_REFRESH_MS = 30_000;
+export const DEFAULT_NOTIFICATIONS_PAGE_SIZE = 10;
 
 /**
  * HU-043 · Recibir notificaciones de los eventos (CA1, CA2, CA3 · RF-059).
- * Campana de la barra superior con el número de notificaciones sin leer y la lista de cada usuario.
+ * HU-044 · Consultar mis notificaciones (CA1, CA2 · RF-060, RNF-022).
+ * Campana de la barra superior con el número de notificaciones sin leer, listado paginado de la más reciente a la más antigua y navegación a la entidad relacionada.
  */
 @Component({
   selector: 'app-notification-bell',
@@ -51,9 +53,9 @@ export const NOTIFICATIONS_REFRESH_MS = 30_000;
           <strong>Notificaciones</strong>
           <button type="button" class="link" *ngIf="unread > 0" (click)="markAllAsRead()">Marcar todas como leídas</button>
         </div>
-        <p class="empty" *ngIf="notifications.length === 0">No tienes notificaciones.</p>
+        <p class="empty" *ngIf="visibleNotifications.length === 0">No tienes notificaciones.</p>
         <ul>
-          <li *ngFor="let item of notifications" [class.unread]="!item.read">
+          <li *ngFor="let item of visibleNotifications" [class.unread]="!item.read">
             <button type="button" class="item" (click)="openNotification(item)">
               <span class="dot" *ngIf="!item.read" aria-label="Sin leer"></span>
               <span class="content">
@@ -64,6 +66,11 @@ export const NOTIFICATIONS_REFRESH_MS = 30_000;
             </button>
           </li>
         </ul>
+        <div class="pagination" *ngIf="totalPages > 1" aria-label="Paginación de notificaciones">
+          <button type="button" class="page-btn" [disabled]="page <= 1" (click)="goToPage(page - 1)">Anterior</button>
+          <span class="page-info">Página {{ page }} de {{ totalPages }}</span>
+          <button type="button" class="page-btn" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button>
+        </div>
       </div>
     </div>
   `,
@@ -85,6 +92,10 @@ export const NOTIFICATIONS_REFRESH_MS = 30_000;
       .type { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
       .message { font-size: 0.86rem; color: #1d1d1f; }
       .date { font-size: 0.72rem; color: #94a3b8; }
+      .pagination { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 1rem; border-top: 1px solid #f1f5f9; background: #f8fafc; }
+      .page-btn { border: 1px solid #cbd5e1; background: #fff; color: #1e293b; border-radius: 8px; padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+      .page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      .page-info { font-size: 0.75rem; color: #475569; font-weight: 500; }
     `,
   ],
 })
@@ -92,9 +103,24 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   notifications: AppNotification[] = [];
   unread = 0;
   open = false;
+  page = 1;
+  limit = DEFAULT_NOTIFICATIONS_PAGE_SIZE;
+  total = 0;
+  totalPages = 1;
   private timer?: ReturnType<typeof setInterval>;
 
   constructor(private readonly router?: Router) {}
+
+  get visibleNotifications(): AppNotification[] {
+    const sorted = [...this.notifications].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    if (sorted.length > this.limit) {
+      const start = (this.page - 1) * this.limit;
+      return sorted.slice(start, start + this.limit);
+    }
+    return sorted;
+  }
 
   ngOnInit(): void {
     void this.load();
@@ -117,14 +143,36 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   async load(): Promise<void> {
-    const response = await this.request('/api/notifications');
+    const url =
+      this.page > 1
+        ? `/api/notifications?page=${this.page}&limit=${this.limit}`
+        : '/api/notifications';
+    const response = await this.request(url);
     if (!response?.ok) return;
-    const body = (await response.json()) as { data: AppNotification[]; unread: number };
-    this.notifications = body.data ?? [];
+    const body = (await response.json()) as {
+      data: AppNotification[];
+      unread: number;
+      page?: number;
+      limit?: number;
+      total?: number;
+      totalPages?: number;
+    };
+    this.notifications = [...(body.data ?? [])].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
     this.unread = body.unread ?? 0;
+    this.total = body.total ?? this.notifications.length;
+    this.totalPages = body.totalPages ?? Math.max(1, Math.ceil(this.total / this.limit));
   }
 
-  /** CA3: abrir una notificación la marca como leída y lleva a la reserva o publicación relacionada. */
+  /** HU-044 CA1: cambiar de página en el panel de notificaciones. */
+  async goToPage(targetPage: number): Promise<void> {
+    if (targetPage < 1 || targetPage > this.totalPages || targetPage === this.page) return;
+    this.page = targetPage;
+    await this.load();
+  }
+
+  /** HU-043 CA3 / HU-044 CA2: abrir una notificación la marca como leída y navega al detalle de la reserva o publicación relacionada. */
   async openNotification(item: AppNotification): Promise<void> {
     if (!item.read) {
       const response = await this.request(`/api/notifications/${encodeURIComponent(item.id)}/read`, 'PATCH');
@@ -149,10 +197,13 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   routeFor(item: AppNotification): string | null {
+    if (!item.entityId) return null;
     const role = getActiveSession()?.role;
     if (item.entity === 'Booking' && role === 'HUESPED') return `/mis-reservas/${item.entityId}`;
     if (item.entity === 'Booking' && role === 'ANFITRION') return '/anfitrion/publicaciones';
+    if (item.entity === 'Listing' && item.type === 'PUBLICACION_APROBADA') return `/listings/${item.entityId}`;
     if (item.entity === 'Listing' && role === 'ANFITRION') return '/anfitrion/mis-publicaciones';
+    if (item.entity === 'Listing') return `/listings/${item.entityId}`;
     return null;
   }
 
