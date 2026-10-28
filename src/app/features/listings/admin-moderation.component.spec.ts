@@ -137,6 +137,7 @@ describe('AdminModerationComponent · HU-050', () => {
       fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
         json(String(input).endsWith('/admin/all') ? all.map((item) => ({ ...item })) : pending),
       );
+      component.activeTab = 'publicaciones';
       fixture.detectChanges();
       await fixture.whenStable();
       fixture.detectChanges();
@@ -190,7 +191,7 @@ describe('AdminModerationComponent · HU-050', () => {
       expect(init.method).toBe('PATCH');
       expect(JSON.parse(String(init.body))).toEqual({ reason: 'Fotos que no corresponden' });
       expect(component.allListings[0]).toEqual(jasmine.objectContaining({ status: 'BLOQUEADA', blockReason: 'Fotos que no corresponden' }));
-      expect(component.feedbackMessage).toContain('2 reserva(s) futura(s) pasaron a EN_REVISION (RES-AAA, RES-BBB)');
+      expect(component.feedbackMessage).toContain('2 reserva(s) futura(s) quedaron en revisión (RES-AAA, RES-BBB)');
       expect(component.notifications[0].type).toBe('BLOQUEADA');
       expect(component.blockingListingId).toBeNull();
     });
@@ -276,9 +277,9 @@ describe('AdminModerationComponent · HU-050', () => {
       const updated = component.allUsers.find((u) => u.id === 'user-anfitrion');
       expect(updated?.status).toBe('RESTRINGIDA');
       expect(updated?.restrictionReason).toBe('Estafas y cancelaciones reiteradas');
-      expect(component.feedbackMessage).toContain('RESTRINGIDO');
-      expect(component.feedbackMessage).toContain('2 publicación(es) pasaron a PAUSADA');
-      expect(component.feedbackMessage).toContain('2 reserva(s) pasaron a EN_REVISION');
+      expect(component.feedbackMessage).toContain('quedó restringido');
+      expect(component.feedbackMessage).toContain('2 publicación(es) quedaron pausadas');
+      expect(component.feedbackMessage).toContain('2 reserva(s) quedaron en revisión');
       expect(component.restrictingUserId).toBeNull();
     });
 
@@ -304,8 +305,42 @@ describe('AdminModerationComponent · HU-050', () => {
       expect(unmuted?.status).toBe('ACTIVA');
       expect(unmuted?.restrictionReason).toBeUndefined();
       expect(component.feedbackMessage).toContain('Restricción levantada');
-      expect(component.feedbackMessage).toContain('sus publicaciones continúan PAUSADAS');
+      expect(component.feedbackMessage).toContain('sus publicaciones siguen pausadas');
     });
   });
 
+
+  describe('Diseño de la moderación: pestañas, filtros y diálogo del motivo', () => {
+    it('abre el diálogo de la acción elegida y lo cierra al cancelar', () => {
+      component.allListings = [{ id: 'l1', title: 'Villa', status: 'ACTIVA' } as ApiPendingListing];
+      component.openBlockPrompt('l1');
+      expect(component.dialog).toEqual(jasmine.objectContaining({ kind: 'block', subject: 'Villa', confirm: 'Bloquear' }));
+      component.setDialogReason('Fotos falsas');
+      expect(component.blockReasonInput).toBe('Fotos falsas');
+      component.closeDialog();
+      expect(component.dialog).toBeNull();
+    });
+
+    it('filtra publicaciones por estado y usuarios por rol o restricción, con nombres legibles', () => {
+      component.allListings = [
+        { id: 'a', title: 'A', status: 'ACTIVA' },
+        { id: 'b', title: 'B', status: 'BLOQUEADA' },
+      ] as ApiPendingListing[];
+      component.listingStatusFilter = 'BLOQUEADA';
+      expect(component.visibleListings.map((item) => item.id)).toEqual(['b']);
+      expect(component.countListings('ACTIVA')).toBe(1);
+
+      component.allUsers = [
+        { id: 'u1', name: 'Laura Gómez', email: 'l@x.com', role: 'HUESPED', status: 'ACTIVA' },
+        { id: 'u2', name: 'Pedro', email: 'p@x.com', role: 'ANFITRION', status: 'RESTRINGIDA' },
+      ];
+      component.userRoleFilter = 'RESTRINGIDA';
+      expect(component.visibleUsers.map((u) => u.id)).toEqual(['u2']);
+      component.userRoleFilter = 'HUESPED';
+      expect(component.visibleUsers.map((u) => u.id)).toEqual(['u1']);
+      expect(component.roleLabel('ANFITRION')).toBe('Anfitrión');
+      expect(component.userStatusLabel('RESTRINGIDA')).toBe('Restringida');
+      expect(component.initials('Laura Gómez')).toBe('LG');
+    });
+  });
 });

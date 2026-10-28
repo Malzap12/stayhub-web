@@ -75,7 +75,7 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
               name="name"
               type="text"
               autocomplete="name"
-              placeholder="Ej. Miguel Ángel Alza"
+              placeholder="Tu nombre y apellido"
               [(ngModel)]="form.name"
               (blur)="touched.name = true"
               [class.input-error]="(touched.name || submitted) && nameError"

@@ -7,11 +7,12 @@ import {
   StoredSession,
 } from '../../../core/guards/auth.guard';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
+import { StatusLabelPipe } from '../../models/display.model';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, NotificationBellComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, NotificationBellComponent, StatusLabelPipe],
   template: `
     <header class="apple-navbar">
       <div class="apple-navbar-inner">
@@ -43,7 +44,7 @@ import { NotificationBellComponent } from '../notification-bell/notification-bel
               <span class="avatar-circle">{{ user.name.charAt(0).toUpperCase() }}</span>
               <div class="profile-meta">
                 <span class="profile-name">{{ user.name }}</span>
-                <span class="profile-role">{{ user.role }}</span>
+                <span class="profile-role">{{ user.role | statusLabel }}</span>
               </div>
             </a>
             <button type="button" class="apple-logout-btn" (click)="logout()">

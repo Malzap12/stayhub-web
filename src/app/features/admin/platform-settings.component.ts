@@ -45,7 +45,7 @@ import {
             </span>
           </div>
           <p class="card-description">
-            Porcentaje aplicado sobre el valor de las noches reservadas en cotizaciones nuevas (RN-014: 0 % a 30 %).
+            Porcentaje aplicado sobre el valor de las noches reservadas en cotizaciones nuevas (entre 0 % y 30 %).
             Las reservas ya confirmadas conservan la tarifa original con que fueron creadas.
           </p>
 

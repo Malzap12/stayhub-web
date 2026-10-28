@@ -8,6 +8,8 @@ export type BookingStatus =
 
 export interface Booking {
   id: string;
+  /** Código visible de la reserva, por ejemplo RES-8D17F0D7. */
+  code?: string;
   listingId: string;
   listingTitle: string;
   listingCity: string;

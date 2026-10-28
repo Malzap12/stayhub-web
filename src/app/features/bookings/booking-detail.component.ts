@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { formatQuoteAmount } from '../listings/stay-quote.component';
+import { StatusLabelPipe } from '../../shared/models/display.model';
 
 /** Detalle de una reserva tal como lo devuelve GET /api/bookings/:id (HU-033). */
 export interface BookingDetail {
@@ -51,7 +52,7 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
 @Component({
   selector: 'app-booking-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, StatusLabelPipe],
   template: `
     <section class="detail-shell">
       <a routerLink="/mis-reservas" class="back">← Mis reservas</a>
@@ -71,7 +72,7 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
         </header>
 
         <div class="status" [ngClass]="b.status.toLowerCase()">
-          <span class="status-tag">{{ b.status }}</span>
+          <span class="status-tag">{{ b.status | statusLabel }}</span>
           <p>{{ statusExplanation(b.status) }}</p>
         </div>
 
@@ -105,7 +106,7 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
             </div>
             <div class="row total"><span>Total</span><span>{{ money(b.totalAmount) }} {{ b.currency }}</span></div>
             <p class="payment" *ngIf="b.payment">
-              Pago {{ b.payment.status }} · {{ b.payment.cardBrand }} ···· {{ b.payment.cardLast4 }} · Ref. {{ b.payment.reference }}
+              Pago {{ b.payment.status | statusLabel }} · {{ b.payment.cardBrand }} ···· {{ b.payment.cardLast4 }} · Ref. {{ b.payment.reference }}
             </p>
           </article>
 

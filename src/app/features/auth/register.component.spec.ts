@@ -13,7 +13,7 @@ describe('RegisterComponent (HU-001 · MA-36)', () => {
   });
 
   it('CA3: should validate password with at least 8 characters and letters + numbers', () => {
-    component.form.name = 'Miguel Alza';
+    component.form.name = 'Laura Gómez';
     component.form.email = 'miguel@stayhub.com';
     component.form.password = '12345';
     expect(component.passwordError).toContain('al menos 8 caracteres');
@@ -30,7 +30,7 @@ describe('RegisterComponent (HU-001 · MA-36)', () => {
 
   it('CA1 & CA2: should create account and reject duplicate email in local fallback', async () => {
     component.form = {
-      name: 'Miguel Alza',
+      name: 'Laura Gómez',
       email: 'nuevo@stayhub.com',
       password: 'Password123',
       role: 'ANFITRION',
@@ -45,7 +45,7 @@ describe('RegisterComponent (HU-001 · MA-36)', () => {
   });
 
   it('HU-006: el teléfono es opcional, pero si se diligencia debe ser válido', () => {
-    component.form.name = 'Miguel Alza';
+    component.form.name = 'Laura Gómez';
     component.form.email = 'miguel@stayhub.com';
     component.form.password = 'ClaveValida123';
 

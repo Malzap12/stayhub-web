@@ -8,11 +8,12 @@ import {
   saveActiveSession,
   StoredSession,
 } from '../../core/guards/auth.guard';
+import { StatusLabelPipe } from '../../shared/models/display.model';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, StatusLabelPipe],
   template: `
     <div class="cupertino-portal">
       <!-- Layout Dividido Minimalista Estilo Cupertino (7 Cols Izquierda / 5 Cols Derecha) -->
@@ -201,7 +202,7 @@ import {
 
           <!-- CA1: Vista de sesión autenticada con opciones según el rol -->
           <div *ngIf="activeSession" class="role-session-panel" role="status">
-            <div class="session-badge">Sesión autenticada · {{ activeSession.role }}</div>
+            <div class="session-badge">Sesión iniciada · {{ activeSession.role | statusLabel }}</div>
             <h2>Hola, {{ activeSession.name }}</h2>
             <p class="session-email">{{ activeSession.email }}</p>
 
