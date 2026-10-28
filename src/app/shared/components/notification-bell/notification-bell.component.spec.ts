@@ -69,6 +69,12 @@ describe('NotificationBellComponent · HU-043 Recibir notificaciones de los even
     expect(component.unread).toBe(0);
   });
 
+  it('HU-046 CA3: la invitación a reseñar lleva al huésped a Mis reservas', () => {
+    const completed: AppNotification = { ...confirmed, type: 'RESERVA_COMPLETADA', message: '¡Cuéntanos cómo te fue y reseña el alojamiento!' };
+    expect(component.label('RESERVA_COMPLETADA')).toBe('Estancia completada');
+    expect(component.routeFor(completed)).toBe('/mis-reservas');
+  });
+
   it('CA2: lleva al anfitrión a sus publicaciones y nombra cada tipo de evento', () => {
     sessionStorage.setItem('auth_session', JSON.stringify({ token: 'jwt-host', role: 'ANFITRION', expiresAt: Date.now() + 3_600_000 }));
     expect(component.routeFor({ ...confirmed, entity: 'Listing', type: 'PUBLICACION_DEVUELTA' })).toBe('/anfitrion/mis-publicaciones');
