@@ -25,7 +25,22 @@ export interface ApiBooking {
   listingImage?: string;
   cancellationPolicyName?: string;
   cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; appliedRule?: string; releasedNights: string[] };
+  review?: { id: string; rating: number; comment: string; createdAt: string };
 }
+
+/** HU-047 CA4: se puede reseñar hasta 30 días después de la salida (igual que en el API). */
+export const REVIEW_WINDOW_DAYS = 30;
+
+export function reviewDeadline(checkOut: string): string {
+  const date = new Date(`${checkOut.slice(0, 10)}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + REVIEW_WINDOW_DAYS);
+  return date.toISOString().slice(0, 10);
+}
+
+/** Fecha de hoy (AAAA-MM-DD) en hora de Colombia. */
+export const bogotaToday = (now = Date.now()): string => new Date(now - 5 * 3_600_000).toISOString().slice(0, 10);
+
+export const isReviewWindowOpen = (checkOut: string, now = Date.now()): boolean => bogotaToday(now) <= reviewDeadline(checkOut);
 
 /** HU-040: la llegada es a las 15:00 del día de llegada, hora de Colombia (igual que en el API). */
 export const arrivalTime = (checkIn: string): number => Date.parse(`${checkIn.slice(0, 10)}T15:00:00-05:00`);
@@ -70,6 +85,9 @@ export function toBooking(api: ApiBooking): Booking {
     refundAmount: api.cancellation?.refundAmount,
     refundPercentage: api.cancellation?.refundPercentage,
     appliedRule: api.cancellation?.appliedRule,
+    rating: api.review?.rating,
+    reviewComment: api.review?.comment,
+    reviewedAt: api.review?.createdAt ? bogotaToday(Date.parse(api.review.createdAt)) : undefined,
   };
 }
 
@@ -250,8 +268,12 @@ export function toBooking(api: ApiBooking): Booking {
 
             <!-- Calificación de estancia completada (RF-063) -->
             <div *ngIf="item.status === 'COMPLETADA'" class="review-box">
-              <div *ngIf="!item.rating; else reviewDone">
+              <p *ngIf="!item.rating && !canReview(item)" class="review-meta">
+                El plazo para reseñar esta estancia venció el {{ deadlineOf(item) }} (30 días después de la salida).
+              </p>
+              <div *ngIf="!item.rating && canReview(item)">
                 <span class="review-title">Calificar y reseñar estancia (RF-063):</span>
+                <span class="review-meta">Puedes reseñarla hasta el {{ deadlineOf(item) }}.</span>
                 <div class="star-rating">
                   <button
                     *ngFor="let star of [1,2,3,4,5]"
@@ -273,18 +295,18 @@ export function toBooking(api: ApiBooking): Booking {
                   placeholder="Escribe tu reseña para la comunidad..."
                 ></textarea>
                 <div class="review-actions">
-                  <button type="button" class="action-btn primary small" (click)="submitReview(item)">
-                    Publicar Reseña
+                  <button type="button" class="action-btn primary small" [disabled]="submittingReview" (click)="submitReview(item)">
+                    {{ submittingReview ? 'Publicando...' : 'Publicar Reseña' }}
                   </button>
                 </div>
               </div>
-              <ng-template #reviewDone>
+              <ng-container *ngIf="item.rating">
                 <div class="submitted-review">
                   <span class="star-display">★ {{ item.rating }}.0</span>
                   <p class="review-text">"{{ item.reviewComment }}"</p>
-                  <span class="review-meta">Reseña verificada y publicada</span>
+                  <span class="review-meta">Reseña publicada<span *ngIf="item.reviewedAt"> el {{ item.reviewedAt }}</span></span>
                 </div>
-              </ng-template>
+              </ng-container>
             </div>
 
             <!-- Botones de acción -->
@@ -955,6 +977,7 @@ export class MyBookingsComponent implements OnInit {
   // Interactive Reviews
   tempRatings: Record<string, number> = {};
   tempComments: Record<string, string> = {};
+  submittingReview = false;
 
   // Cancellation Modal
   cancellingBooking: Booking | null = null;
@@ -1107,9 +1130,20 @@ export class MyBookingsComponent implements OnInit {
     this.tempRatings[bookingId] = rating;
   }
 
-  submitReview(booking: Booking): void {
+  /** HU-047 · Solo reservas COMPLETADAS sin reseña y dentro del plazo de 30 días (CA2, CA3, CA4). */
+  canReview(booking: Booking): boolean {
+    return booking.status === 'COMPLETADA' && !booking.rating && isReviewWindowOpen(booking.checkOut);
+  }
+
+  deadlineOf(booking: Booking): string {
+    return reviewDeadline(booking.checkOut);
+  }
+
+  /** HU-047 CA1: publica la reseña en el API; los rechazos (CA2, CA3, CA4) se muestran con el motivo del API. */
+  async submitReview(booking: Booking): Promise<void> {
     const rating = this.tempRatings[booking.id];
     const comment = (this.tempComments[booking.id] || '').trim();
+    const session = getActiveSession();
 
     if (!rating) {
       this.feedbackMessage = 'Por favor selecciona una calificación de 1 a 5 estrellas.';
@@ -1122,12 +1156,30 @@ export class MyBookingsComponent implements OnInit {
       return;
     }
 
-    booking.rating = rating;
-    booking.reviewComment = comment;
-    booking.reviewedAt = new Date().toISOString().split('T')[0];
+    if (!session || this.submittingReview) return;
 
-    this.feedbackMessage = `¡Gracias! Reseña y calificación de ${rating} estrellas registradas para ${booking.id} (RF-064).`;
-    this.feedbackIsError = false;
+    this.submittingReview = true;
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ bookingId: booking.id, rating, comment }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.showError([body?.message].flat().filter(Boolean).join(' ') || 'No fue posible publicar la reseña.');
+        return;
+      }
+      booking.rating = body.rating;
+      booking.reviewComment = body.comment;
+      booking.reviewedAt = bogotaToday(body.createdAt ? Date.parse(body.createdAt) : Date.now());
+      this.feedbackMessage = `¡Gracias! Tu reseña de ${body.rating} estrella(s) quedó publicada en el alojamiento (RF-064).`;
+      this.feedbackIsError = false;
+    } catch {
+      this.showError('Error de conexión al publicar la reseña.');
+    } finally {
+      this.submittingReview = false;
+    }
   }
 
   showVoucherMessage(bookingId: string): void {
