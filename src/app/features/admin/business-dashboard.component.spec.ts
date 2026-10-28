@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { BusinessDashboardComponent, Dashboard, toBars } from './business-dashboard.component';
+import { BusinessDashboardComponent, Dashboard, fileNameFrom, toBars } from './business-dashboard.component';
 import { SESSION_STORAGE_KEY } from '../../core/guards/auth.guard';
 
 describe('BusinessDashboardComponent · HU-056', () => {
@@ -85,5 +85,58 @@ describe('BusinessDashboardComponent · HU-056', () => {
 
     expect(component.dashboard).toBeNull();
     expect(component.errorMessage).toBe('Solo el administrador puede ver los indicadores del negocio.');
+  });
+
+  describe('HU-058 · Exportar reportes a Excel', () => {
+    it('CA1: descarga el reporte con los filtros elegidos y el nombre que indica el API', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.returnValue(json(dashboard));
+      await render();
+      const downloadSpy = spyOn(component, 'download');
+      fetchSpy.and.returnValue(
+        Promise.resolve(
+          new Response(new Blob(['xlsx']), {
+            status: 200,
+            headers: { 'Content-Disposition': 'attachment; filename="stayhub-reservas-20261028T1530.xlsx"' },
+          }),
+        ),
+      );
+      component.exportFilters = { report: 'reservas', from: '2026-10-01', to: '2026-10-31', city: ' Medellín ', status: 'CONFIRMADA' };
+
+      await component.exportReport();
+
+      const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+      expect(url).toBe('/api/reports/export/reservas?from=2026-10-01&to=2026-10-31&city=Medell%C3%ADn&status=CONFIRMADA');
+      expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer jwt-admin');
+      expect(downloadSpy).toHaveBeenCalledWith(jasmine.any(Blob), 'stayhub-reservas-20261028T1530.xlsx');
+      expect(component.exportMessage).toContain('stayhub-reservas-20261028T1530.xlsx');
+    });
+
+    it('no envía la ciudad en el reporte de usuarios y ofrece los estados de cada reporte', () => {
+      component.exportFilters = { report: 'usuarios', from: '', to: '', city: 'Bogotá', status: '' };
+      expect(component.exportQuery()).toBe('');
+      expect(component.statusOptions).toContain('RESTRINGIDA');
+      component.exportFilters.report = 'ingresos';
+      expect(component.statusOptions).toEqual([]);
+    });
+
+    it('valida las fechas y muestra el error del API', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.returnValue(json(dashboard));
+      await render();
+      const calls = fetchSpy.calls.count();
+      component.exportFilters = { report: 'reservas', from: '2026-10-31', to: '2026-10-01', city: '', status: '' };
+      await component.exportReport();
+      expect(fetchSpy.calls.count()).toBe(calls);
+      expect(component.exportError).toContain('no puede ser posterior');
+
+      fetchSpy.and.returnValue(json({ message: 'La fecha inicial debe tener el formato AAAA-MM-DD' }, 400));
+      component.exportFilters = { report: 'reservas', from: '2026-10-01', to: '', city: '', status: '' };
+      await component.exportReport();
+      expect(component.exportError).toBe('La fecha inicial debe tener el formato AAAA-MM-DD');
+    });
+
+    it('lee el nombre del archivo de Content-Disposition', () => {
+      expect(fileNameFrom('attachment; filename="a.xlsx"', 'b.xlsx')).toBe('a.xlsx');
+      expect(fileNameFrom(null, 'b.xlsx')).toBe('b.xlsx');
+    });
   });
 });
