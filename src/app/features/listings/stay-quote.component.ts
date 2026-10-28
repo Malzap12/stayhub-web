@@ -1,7 +1,7 @@
 import { Component, inject, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { BookingPaymentResult, TestCardPaymentComponent } from '../bookings/test-card-payment.component';
 
@@ -41,7 +41,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
 @Component({
   selector: 'app-stay-quote',
   standalone: true,
-  imports: [CommonModule, FormsModule, TestCardPaymentComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TestCardPaymentComponent],
   template: `
     <form class="quote" (ngSubmit)="submit()" novalidate aria-label="Cotizar estancia">
       <div class="picker">
@@ -76,7 +76,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
         </p>
       </div>
       <button type="submit" class="quote-button" *ngIf="!quote" [disabled]="loading">{{ loading ? 'Calculando…' : 'Ver precio total' }}</button>
-      <p class="charge-note" *ngIf="!confirmedBooking">Aún no se te cobrará nada.</p>
+      <p class="charge-note" *ngIf="!confirmedBooking && !bookingRoleNotice">Aún no se te cobrará nada.</p>
 
       <!-- Desglose en COP -->
       <dl class="breakdown" *ngIf="quote as q" aria-label="Desglose de la cotización">
@@ -92,7 +92,13 @@ export function formatQuoteAmount(value: number, negative = false): string {
       </dl>
 
       <!-- Reserva inmediata -->
-      <div class="instant-booking" *ngIf="quote && !confirmedBooking">
+      <!-- RF-041: solo una cuenta de huésped reserva; el anfitrión gestiona sus fechas con bloqueos -->
+      <div class="role-note" *ngIf="quote && bookingRoleNotice" role="note">
+        <p>{{ bookingRoleNotice }}</p>
+        <a *ngIf="isHost" routerLink="/anfitrion/publicaciones">Ir al panel de anfitrión</a>
+      </div>
+
+      <div class="instant-booking" *ngIf="quote && !confirmedBooking && !bookingRoleNotice">
         <button
           type="button"
           class="book-button"
@@ -237,6 +243,24 @@ export function formatQuoteAmount(value: number, negative = false): string {
     }
     .quote-button, .book-button {
       background: linear-gradient(to right, #e61e4d 0%, #e31c5f 50%, #d70466 100%);
+    }
+    .role-note {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #f7f7f7;
+      border: 1px solid #ebebeb;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: #222222;
+    }
+    .role-note p {
+      margin: 0;
+    }
+    .role-note a {
+      display: inline-block;
+      margin-top: 8px;
+      font-weight: 600;
+      color: #222222;
     }
     .charge-note {
       margin: -2px 0 0;
@@ -519,7 +543,28 @@ export class StayQuoteComponent implements OnInit {
    * CA4: Si no ha iniciado sesión, guarda la reserva pendiente y redirige al login.
    * CA1: Crea la reserva en el backend para presentar el formulario de pago sandbox.
    */
+  /** Rol de la sesión, si hay una. Sin sesión se puede cotizar y, al reservar, se pide iniciar sesión. */
+  get isHost(): boolean {
+    return getActiveSession()?.role === 'ANFITRION';
+  }
+
+  /** RF-041: el anfitrión y el administrador no reservan; se les explica por qué en lugar del botón Reservar. */
+  get bookingRoleNotice(): string {
+    const role = getActiveSession()?.role;
+    if (role === 'ANFITRION') {
+      return 'Estás conectado como anfitrión. Para reservar, inicia sesión con una cuenta de huésped. Si este alojamiento es tuyo, bloquea tus fechas desde el panel de anfitrión.';
+    }
+    if (role === 'ADMINISTRADOR') {
+      return 'Las cuentas de administrador no pueden hacer reservas.';
+    }
+    return '';
+  }
+
   async startInstantBooking(): Promise<void> {
+    if (this.bookingRoleNotice) {
+      this.errorMessage = this.bookingRoleNotice;
+      return;
+    }
     const session = getActiveSession();
     if (!session) {
       if (typeof sessionStorage !== 'undefined') {

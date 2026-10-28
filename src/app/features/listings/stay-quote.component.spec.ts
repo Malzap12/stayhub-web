@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { formatQuoteAmount, StayQuote, StayQuoteComponent } from './stay-quote.component';
+import { clearActiveSession, saveActiveSession } from '../../core/guards/auth.guard';
 
 describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
   let fixture: ComponentFixture<StayQuoteComponent>;
@@ -298,6 +299,45 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
       const [first, second] = sentKeys(fetchSpy);
       expect(second).toBeTruthy();
       expect(second).not.toBe(first);
+    });
+  });
+
+  describe('RF-041 · Solo una cuenta de huésped reserva', () => {
+    const sessionAs = (role: 'HUESPED' | 'ANFITRION' | 'ADMINISTRADOR') =>
+      saveActiveSession({ token: `jwt-${role}`, email: `${role}@prueba.com`, name: role, role, expiresAt: Date.now() + 60_000 });
+
+    afterEach(() => clearActiveSession());
+
+    it('el anfitrión ve el precio y un aviso en lugar del botón Reservar, y no se crea la reserva', async () => {
+      sessionAs('ANFITRION');
+      const fetchSpy = spyOn(window, 'fetch');
+      component.quote = ca3;
+      fixture.detectChanges();
+
+      const element = fixture.nativeElement as HTMLElement;
+      expect(element.querySelector('.book-button')).toBeNull();
+      expect(element.querySelector('.role-note')?.textContent).toContain('cuenta de huésped');
+      expect(element.querySelector('.role-note a')?.getAttribute('href')).toBe('/anfitrion/publicaciones');
+
+      await component.startInstantBooking();
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(component.errorMessage).toContain('anfitrión');
+    });
+
+    it('el administrador tampoco puede reservar', () => {
+      sessionAs('ADMINISTRADOR');
+      component.quote = ca3;
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.book-button')).toBeNull();
+      expect(component.bookingRoleNotice).toContain('administrador');
+    });
+
+    it('el huésped sí ve el botón Reservar', () => {
+      sessionAs('HUESPED');
+      component.quote = ca3;
+      fixture.detectChanges();
+      expect(component.bookingRoleNotice).toBe('');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.book-button')).not.toBeNull();
     });
   });
 });
