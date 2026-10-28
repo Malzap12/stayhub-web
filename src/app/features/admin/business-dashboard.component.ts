@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { getActiveSession } from '../../core/guards/auth.guard';
 
 /** HU-056 · Respuesta de GET /api/reports/dashboard. */
@@ -29,6 +30,28 @@ export const BOOKING_STATUS_LABELS: Record<string, string> = {
   CANCELADA: 'Canceladas',
 };
 
+/** HU-058 · Reportes de gestión exportables a Excel (AMB-23). */
+export const EXPORT_REPORTS = [
+  { value: 'usuarios', label: 'Usuarios', statuses: ['ACTIVA', 'RESTRINGIDA', 'DESACTIVADA'] },
+  { value: 'publicaciones', label: 'Publicaciones', statuses: ['BORRADOR', 'PENDIENTE_REVISION', 'ACTIVA', 'PAUSADA', 'BLOQUEADA'] },
+  { value: 'reservas', label: 'Reservas', statuses: ['PENDIENTE', 'CONFIRMADA', 'COMPLETADA', 'EN_REVISION', 'CANCELADA'] },
+  { value: 'ingresos', label: 'Ingresos estimados', statuses: [] as string[] },
+  { value: 'demanda', label: 'Demanda por ciudad y tipo', statuses: [] as string[] },
+];
+
+export interface ExportFilters {
+  report: string;
+  from: string;
+  to: string;
+  city: string;
+  status: string;
+}
+
+/** Nombre del archivo que indica el API en Content-Disposition. */
+export function fileNameFrom(disposition: string | null, fallback: string): string {
+  return /filename="?([^";]+)"?/.exec(disposition ?? '')?.[1] ?? fallback;
+}
+
 /** Barras proporcionales al mayor valor (el mayor ocupa el 100 %). */
 export function toBars(entries: Array<[string, number, string?]>): Bar[] {
   const max = Math.max(0, ...entries.map(([, value]) => value));
@@ -43,7 +66,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
 @Component({
   selector: 'app-business-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="dash-shell">
       <header class="dash-header">
@@ -137,6 +160,46 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
           </section>
         </div>
       </ng-container>
+
+      <!-- HU-058 · Exportar reportes a Excel -->
+      <section class="panel export-panel" aria-label="Exportar reportes a Excel">
+        <h2>Exportar a Excel</h2>
+        <p class="panel-hint">
+          Descarga un archivo .xlsx con encabezados, los filtros aplicados, la fecha de generación y una fila de totales.
+        </p>
+        <form class="export-form" (ngSubmit)="exportReport()" novalidate>
+          <label>
+            <span>Reporte</span>
+            <select name="report" [(ngModel)]="exportFilters.report" (ngModelChange)="exportFilters.status = ''">
+              <option *ngFor="let report of exportReports" [value]="report.value">{{ report.label }}</option>
+            </select>
+          </label>
+          <label>
+            <span>Desde</span>
+            <input type="date" name="from" [(ngModel)]="exportFilters.from" />
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input type="date" name="to" [min]="exportFilters.from" [(ngModel)]="exportFilters.to" />
+          </label>
+          <label *ngIf="exportFilters.report !== 'usuarios'">
+            <span>Ciudad</span>
+            <input type="text" name="city" placeholder="Todas" [(ngModel)]="exportFilters.city" />
+          </label>
+          <label *ngIf="statusOptions.length > 0">
+            <span>Estado</span>
+            <select name="status" [(ngModel)]="exportFilters.status">
+              <option value="">Todos</option>
+              <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+            </select>
+          </label>
+          <button type="submit" class="refresh-btn" [disabled]="exporting">
+            {{ exporting ? 'Generando…' : 'Descargar .xlsx' }}
+          </button>
+        </form>
+        <p class="export-error" *ngIf="exportError" role="alert">{{ exportError }}</p>
+        <p class="export-ok" *ngIf="exportMessage" role="status">{{ exportMessage }}</p>
+      </section>
     </section>
   `,
   styles: [`
@@ -197,7 +260,21 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
     .revenue div { display: flex; justify-content: space-between; gap: 12px; font-size: 0.88rem; }
     .revenue dt { color: #6e6e73; }
     .revenue dd { margin: 0; font-weight: 700; }
+    .export-panel { margin-top: 16px; }
+    .export-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-top: 14px; }
+    .export-form label {
+      display: flex; flex-direction: column; gap: 6px; font-size: 0.72rem; font-weight: 700; color: #6e6e73;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .export-form select, .export-form input {
+      height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid #d2d2d7; background: #fff;
+      font: inherit; font-size: 0.86rem; color: #1d1d1f; text-transform: none; letter-spacing: normal; font-weight: 500; min-width: 0;
+    }
+    .export-form .refresh-btn { height: 38px; }
+    .export-error { margin: 12px 0 0; color: #b91c1c; font-size: 0.84rem; font-weight: 600; }
+    .export-ok { margin: 12px 0 0; color: #166534; font-size: 0.84rem; font-weight: 600; }
     @media (max-width: 520px) {
+      .export-form label { flex: 1 1 100%; }
       .dash-shell { padding: 24px 16px 56px; }
       .bars li { grid-template-columns: 100px 1fr 40px; }
     }
@@ -209,6 +286,11 @@ export class BusinessDashboardComponent implements OnInit {
   errorMessage = '';
   roleBars: Bar[] = [];
   statusBars: Bar[] = [];
+  readonly exportReports = EXPORT_REPORTS;
+  exportFilters: ExportFilters = { report: 'reservas', from: '', to: '', city: '', status: '' };
+  exporting = false;
+  exportError = '';
+  exportMessage = '';
 
   private readonly copFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
@@ -243,6 +325,66 @@ export class BusinessDashboardComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  get statusOptions(): string[] {
+    return EXPORT_REPORTS.find((report) => report.value === this.exportFilters.report)?.statuses ?? [];
+  }
+
+  /** Parámetros de GET /api/reports/export/:report con los filtros elegidos. */
+  exportQuery(): string {
+    const { from, to, city, status, report } = this.exportFilters;
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (city.trim() && report !== 'usuarios') params.set('city', city.trim());
+    if (status) params.set('status', status);
+    return params.toString();
+  }
+
+  /** HU-058 CA1: descarga el reporte .xlsx con los filtros elegidos. */
+  async exportReport(): Promise<void> {
+    const { from, to, report } = this.exportFilters;
+    this.exportError = '';
+    this.exportMessage = '';
+    if (from && to && from > to) {
+      this.exportError = 'La fecha «Desde» no puede ser posterior a «Hasta».';
+      return;
+    }
+    this.exporting = true;
+    try {
+      const token = getActiveSession()?.token;
+      const query = this.exportQuery();
+      const response = await fetch(`/api/reports/export/${report}${query ? `?${query}` : ''}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        this.exportError =
+          response.status === 403
+            ? 'Solo el administrador puede exportar reportes.'
+            : [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible generar el reporte.';
+        return;
+      }
+      const fileName = fileNameFrom(response.headers.get('Content-Disposition'), `stayhub-${report}.xlsx`);
+      this.download(await response.blob(), fileName);
+      this.exportMessage = `Se descargó ${fileName}.`;
+    } catch {
+      this.exportError = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.exporting = false;
+    }
+  }
+
+  download(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   setDashboard(dashboard: Dashboard): void {
