@@ -4,9 +4,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { AvailabilityCalendarComponent } from './availability-calendar.component';
 import { StayQuoteComponent } from './stay-quote.component';
-import { amenityLabel } from '../../shared/models/amenities';
+import { amenityLabel } from '../../shared/models/amenities.model';
 
-export { AMENITY_LABELS, amenityLabel } from '../../shared/models/amenities';
+export { AMENITY_LABELS, amenityLabel } from '../../shared/models/amenities.model';
 
 /** Detalle tal como lo devuelve GET /api/listings/:id (HU-026). */
 export interface ListingDetail {

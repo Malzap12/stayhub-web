@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AMENITY_FILTERS, amenityLabel } from '../../shared/models/amenities';
+import { AMENITY_FILTERS, amenityLabel } from '../../shared/models/amenities.model';
 
 export interface PublicListingItem {
   id: string;
