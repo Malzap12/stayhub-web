@@ -77,6 +77,14 @@ export function parseCop(text: string): number | null {
   return digits ? Number(digits) : null;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  BORRADOR: 'Borrador',
+  PENDIENTE_REVISION: 'En revisión',
+  ACTIVA: 'Activa',
+  PAUSADA: 'Pausada',
+  BLOQUEADA: 'Bloqueada',
+};
+
 const emptyForm = (): ListingDraftForm => ({
   title: '',
   description: '',
@@ -98,7 +106,7 @@ const emptyForm = (): ListingDraftForm => ({
   template: `
     <section class="draft-shell">
       <header class="draft-header">
-        <span class="eyebrow">HU-010 · Panel de Anfitrión (EP-03)</span>
+        <span class="eyebrow">Panel de anfitrión</span>
         <h1>Nueva publicación</h1>
         <p class="subtitle">
           Guarda tu alojamiento como <strong>borrador</strong>. Solo el título es obligatorio: puedes completar el resto después.
@@ -107,7 +115,7 @@ const emptyForm = (): ListingDraftForm => ({
       </header>
 
       <div *ngIf="saved" class="alert" [class.alert-success]="saved.isComplete" [class.alert-warning]="!saved.isComplete" role="status">
-        <strong>«{{ saved.title }}» quedó guardada en BORRADOR.</strong>
+        <strong>«{{ saved.title }}» quedó guardada como borrador.</strong>
         <span *ngIf="saved.isComplete">Tiene toda la información básica.</span>
         <span *ngIf="!saved.isComplete">
           Marcada como <b>incompleta</b>. Falta: {{ missingLabels(saved.missingFields) }}.
@@ -119,6 +127,14 @@ const emptyForm = (): ListingDraftForm => ({
 
       <div class="workspace">
         <form class="form-card" (ngSubmit)="save()" novalidate aria-label="Formulario de nueva publicación">
+          <section class="form-section">
+            <header class="section-head">
+              <span class="step">1</span>
+              <div>
+                <h2>Lo básico</h2>
+                <p>Un buen título y una descripción clara ayudan a los huéspedes a elegirte.</p>
+              </div>
+            </header>
           <div class="field">
             <label for="draft-title">Título <span class="required" aria-hidden="true">*</span></label>
             <input
@@ -139,6 +155,16 @@ const emptyForm = (): ListingDraftForm => ({
             <textarea id="draft-description" name="description" rows="3" [(ngModel)]="form.description"></textarea>
           </div>
 
+          </section>
+
+          <section class="form-section">
+            <header class="section-head">
+              <span class="step">2</span>
+              <div>
+                <h2>Ubicación</h2>
+                <p>Los huéspedes verán la ciudad; la dirección exacta les ayuda a llegar.</p>
+              </div>
+            </header>
           <div class="grid-2">
             <div class="field">
               <label for="draft-department">Departamento</label>
@@ -163,6 +189,16 @@ const emptyForm = (): ListingDraftForm => ({
             />
           </div>
 
+          </section>
+
+          <section class="form-section">
+            <header class="section-head">
+              <span class="step">3</span>
+              <div>
+                <h2>Tipo, capacidad y precio</h2>
+                <p>Indica cuántas personas pueden hospedarse y cuánto cobras por noche.</p>
+              </div>
+            </header>
           <div class="grid-3">
             <div class="field">
               <label for="draft-type">Tipo</label>
@@ -205,8 +241,18 @@ const emptyForm = (): ListingDraftForm => ({
             </div>
           </div>
 
+          </section>
+
+          <section class="form-section">
+            <header class="section-head">
+              <span class="step">4</span>
+              <div>
+                <h2>Servicios</h2>
+                <p>Marca todo lo que ofreces: los huéspedes filtran la búsqueda por servicios.</p>
+              </div>
+            </header>
           <fieldset class="field">
-            <legend>Servicios</legend>
+            <legend class="sr-only">Servicios</legend>
             <div class="chips">
               <label *ngFor="let item of amenityOptions" class="chip" [class.active]="form.amenities.includes(item.value)">
                 <input
@@ -219,6 +265,16 @@ const emptyForm = (): ListingDraftForm => ({
             </div>
           </fieldset>
 
+          </section>
+
+          <section class="form-section">
+            <header class="section-head">
+              <span class="step">5</span>
+              <div>
+                <h2>Reglas y cancelación</h2>
+                <p>Deja claras las normas de la casa y las condiciones de devolución.</p>
+              </div>
+            </header>
           <div class="field">
             <label for="draft-rules">Reglas de la casa</label>
             <textarea
@@ -231,7 +287,7 @@ const emptyForm = (): ListingDraftForm => ({
           </div>
 
           <div class="field">
-            <label for="draft-cancellation-policy">Política de cancelación (HU-039)</label>
+            <label for="draft-cancellation-policy">Política de cancelación</label>
             <select
               id="draft-cancellation-policy"
               name="cancellationPolicy"
@@ -245,8 +301,18 @@ const emptyForm = (): ListingDraftForm => ({
             <p class="sub-label" *ngIf="selectedCancellationPolicy">{{ selectedCancellationPolicy.description }}</p>
           </div>
 
+          </section>
+
+          <section class="form-section">
+            <header class="section-head">
+              <span class="step">6</span>
+              <div>
+                <h2>Fotos</h2>
+                <p>La primera foto será la portada. Sube fotos reales, bien iluminadas.</p>
+              </div>
+            </header>
           <fieldset class="field">
-            <legend>Imágenes</legend>
+            <legend class="sr-only">Imágenes</legend>
             <label
               class="dropzone"
               for="draft-image-files"
@@ -287,24 +353,42 @@ const emptyForm = (): ListingDraftForm => ({
             ></textarea>
           </fieldset>
 
-          <button type="submit" class="btn-primary" [disabled]="loading || uploading">
-            {{ loading ? 'Guardando…' : 'Guardar borrador' }}
-          </button>
+          </section>
+
+          <div class="form-actions">
+            <span class="muted">Solo el título es obligatorio. Puedes completar el resto después.</span>
+            <button type="submit" class="btn-primary" [disabled]="loading || uploading">
+              {{ loading ? 'Guardando…' : 'Guardar borrador' }}
+            </button>
+          </div>
         </form>
 
-        <aside class="list-card" aria-label="Mis publicaciones">
+        <aside class="side">
+        <div class="list-card progress-card" aria-label="Avance de la publicación">
+          <h2>Tu publicación</h2>
+          <p class="muted">{{ completedSteps }} de {{ checklist.length }} apartados listos</p>
+          <div class="progress" aria-hidden="true"><span [style.width.%]="(completedSteps / checklist.length) * 100"></span></div>
+          <ul class="checklist">
+            <li *ngFor="let item of checklist" [class.done]="item.done">
+              <span class="check" aria-hidden="true">{{ item.done ? '✓' : '' }}</span>{{ item.label }}
+            </li>
+          </ul>
+          <p class="muted tip">Cuando esté completa, envíala a revisión desde Mis publicaciones.</p>
+        </div>
+        <div class="list-card" aria-label="Mis publicaciones">
           <h2>Mis publicaciones</h2>
           <p *ngIf="myListings.length === 0" class="muted">Aún no tienes publicaciones.</p>
           <ul>
             <li *ngFor="let item of myListings">
               <div class="item-head">
                 <strong>{{ item.title }}</strong>
-                <span class="badge">{{ item.status }}</span>
+                <span class="badge">{{ statusLabel(item.status) }}</span>
               </div>
               <span *ngIf="!item.isComplete" class="badge badge-warning">Incompleta</span>
               <span *ngIf="item.isComplete" class="badge badge-success">Completa</span>
             </li>
           </ul>
+        </div>
         </aside>
       </div>
     </section>
@@ -360,7 +444,125 @@ const emptyForm = (): ListingDraftForm => ({
     .form-card {
       display: flex;
       flex-direction: column;
+      gap: 0;
+      padding: 8px 28px 0;
+    }
+    .form-section {
+      display: flex;
+      flex-direction: column;
       gap: 16px;
+      padding: 26px 0;
+      border-bottom: 1px solid #ebebeb;
+    }
+    .section-head {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .section-head h2 {
+      margin: 0 0 2px;
+      font-size: 1.12rem;
+      letter-spacing: -0.01em;
+      color: #1d1d1f;
+    }
+    .section-head p {
+      margin: 0;
+      font-size: 0.86rem;
+      color: #6e6e73;
+    }
+    .step {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #1d1d1f;
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .form-actions {
+      position: sticky;
+      bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 0 -28px;
+      padding: 16px 28px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid #ebebeb;
+      border-radius: 0 0 20px 20px;
+    }
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 96px;
+    }
+    .progress {
+      height: 8px;
+      border-radius: 980px;
+      background: #f2f2f7;
+      overflow: hidden;
+      margin: 10px 0 14px;
+    }
+    .progress span {
+      display: block;
+      height: 100%;
+      background: #1d1d1f;
+      border-radius: 980px;
+      transition: width 0.2s ease;
+    }
+    .checklist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: #6e6e73;
+    }
+    .checklist li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .checklist li.done {
+      color: #1d1d1f;
+      font-weight: 600;
+    }
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid #d2d2d7;
+      display: grid;
+      place-items: center;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+    .checklist li.done .check {
+      background: #16a34a;
+      border-color: #16a34a;
+      color: #ffffff;
+    }
+    .tip {
+      margin: 14px 0 0;
+      font-size: 0.8rem;
     }
     .grid-2,
     .grid-3 {
@@ -529,7 +731,7 @@ const emptyForm = (): ListingDraftForm => ({
       color: var(--apple-text-secondary, #6e6e73);
     }
     .btn-primary {
-      padding: 14px 20px;
+      padding: 13px 28px;
       border: none;
       border-radius: 14px;
       background: var(--apple-ink, #1d1d1f);
@@ -597,6 +799,15 @@ const emptyForm = (): ListingDraftForm => ({
       gap: 6px;
       font-size: 0.85rem;
     }
+    .list-card .checklist li {
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+    }
     .item-head {
       display: flex;
       justify-content: space-between;
@@ -625,6 +836,9 @@ const emptyForm = (): ListingDraftForm => ({
       .workspace {
         grid-template-columns: 1fr;
       }
+      .side {
+        position: static;
+      }
     }
     @media (max-width: 560px) {
       .grid-2,
@@ -639,6 +853,28 @@ const emptyForm = (): ListingDraftForm => ({
   `],
 })
 export class ListingDraftFormComponent implements OnInit {
+  /** Apartados de la publicación y si ya están completos, para la lista de avance. */
+  get checklist(): Array<{ label: string; done: boolean }> {
+    const f = this.form;
+    return [
+      { label: 'Título', done: !!f.title.trim() },
+      { label: 'Descripción', done: !!f.description.trim() },
+      { label: 'Ubicación', done: !!(f.department && f.city.trim() && f.address.trim()) },
+      { label: 'Tipo, capacidad y precio', done: !!(f.propertyType && f.maxGuests && f.pricePerNight) },
+      { label: 'Servicios', done: f.amenities.length > 0 },
+      { label: 'Reglas de la casa', done: !!f.rulesText.trim() },
+      { label: 'Fotos', done: this.uploadedImages.length > 0 || !!f.imagesText.trim() },
+    ];
+  }
+
+  get completedSteps(): number {
+    return this.checklist.filter((item) => item.done).length;
+  }
+
+  statusLabel(status: string): string {
+    return STATUS_LABELS[status] ?? status;
+  }
+
   static readonly FIELD_LABELS: Record<string, string> = {
     description: 'descripción',
     city: 'ciudad',
