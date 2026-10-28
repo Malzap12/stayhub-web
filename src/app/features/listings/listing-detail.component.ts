@@ -114,9 +114,9 @@ export function formatCop(value?: number | null): string {
           <p class="location">{{ item.location.text || 'Ubicación por definir' }}</p>
           <p class="rating" [class.muted]="item.reviewCount === 0">
             <ng-container *ngIf="item.reviewCount > 0; else noRating">
-              ★ {{ item.averageRating.toFixed(2) }} · {{ item.reviewCount }} {{ item.reviewCount === 1 ? 'reseña' : 'reseñas' }}
+              ★ {{ item.averageRating.toFixed(1) }} · {{ item.reviewCount }} {{ item.reviewCount === 1 ? 'reseña' : 'reseñas' }}
             </ng-container>
-            <ng-template #noRating>Sin calificaciones todavía</ng-template>
+            <ng-template #noRating>Sin reseñas todavía</ng-template>
           </p>
         </header>
 
@@ -181,7 +181,8 @@ export function formatCop(value?: number | null): string {
               <app-availability-calendar [listingId]="item.id" title="Disponibilidad"></app-availability-calendar>
             </section>
 
-            <section *ngIf="item.reviewCount > 0 && reviews.length > 0">
+            <!-- HU-048 (CA1, CA2) -->
+            <section class="reviews-section" *ngIf="item.reviewCount > 0 && reviews.length > 0">
               <h2>Reseñas</h2>
               <div class="reviews">
                 <div class="review" *ngFor="let review of reviews">
@@ -192,6 +193,10 @@ export function formatCop(value?: number | null): string {
                   <p>{{ review.comment }}</p>
                 </div>
               </div>
+            </section>
+            <section class="reviews-section" *ngIf="item.reviewCount === 0">
+              <h2>Reseñas</h2>
+              <p class="muted no-reviews">Sin reseñas todavía</p>
             </section>
           </div>
 
@@ -547,7 +552,11 @@ export class ListingDetailComponent implements OnInit {
       const body = (await response.json()) as {
         reviews?: Array<{ id: string; authorName: string; rating: number; comment: string; createdAt: string }>;
       };
-      this.reviews = (body.reviews ?? []).map((review) => ({
+      // HU-048 CA1: reseñas de la más reciente a la más antigua
+      const list = (body.reviews ?? [])
+        .slice()
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      this.reviews = list.map((review) => ({
         id: review.id,
         authorName: review.authorName,
         rating: review.rating,
