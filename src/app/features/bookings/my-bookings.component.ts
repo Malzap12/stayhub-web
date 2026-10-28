@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Booking, BookingStatus } from '../../shared/models/booking.model';
 import { getActiveSession } from '../../core/guards/auth.guard';
+import { StatusLabelPipe } from '../../shared/models/display.model';
 
 /** Reserva tal como la devuelve GET /api/bookings/my (HU-003, HU-030, HU-040). */
 export interface ApiBooking {
   id: string;
+  code?: string;
   listingId: string;
   guestId: string;
   checkIn: string;
@@ -62,6 +64,7 @@ export function toBooking(api: ApiBooking): Booking {
   const nights = api.nights ?? Math.round((Date.parse(api.checkOut) - Date.parse(api.checkIn)) / 86_400_000);
   return {
     id: api.id,
+    code: api.code,
     listingId: api.listingId,
     listingTitle: api.listingTitle ?? 'Publicación',
     listingCity: api.listingCity ?? '',
@@ -94,7 +97,7 @@ export function toBooking(api: ApiBooking): Booking {
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, StatusLabelPipe],
   template: `
     <section class="bookings-shell">
       <header class="bookings-header">
@@ -102,8 +105,8 @@ export function toBooking(api: ApiBooking): Booking {
           <span class="eyebrow">Portal del Huésped · Inversiones LR</span>
           <h1>Mis Reservas &amp; Estancias</h1>
           <p class="subtitle">
-            Consulta el historial de tus reservas, verifica el desglose de cotización en COP (RF-047),
-            gestiona cancelaciones con política transparente (RF-053) y califica estancias completadas (RF-063).
+            Consulta el historial de tus reservas, revisa el desglose de cada reserva en COP,
+            cancela según la política del alojamiento y califica las estancias completadas.
           </p>
         </div>
 
@@ -195,9 +198,9 @@ export function toBooking(api: ApiBooking): Booking {
         <article *ngFor="let item of paginatedBookings" class="booking-card" [class.cancelled]="item.status === 'CANCELADA'">
           <div class="card-media" [style.background-image]="'url(' + (item.imageUrl || defaultImage) + ')'">
             <span class="status-tag" [ngClass]="item.status.toLowerCase()">
-              {{ item.status }}
+              {{ item.status | statusLabel }}
             </span>
-            <span class="card-id">{{ item.id }}</span>
+            <span class="card-id" *ngIf="item.code">{{ item.code }}</span>
           </div>
 
           <div class="card-body">
@@ -250,7 +253,7 @@ export function toBooking(api: ApiBooking): Booking {
 
             <!-- Información según estado -->
             <div *ngIf="item.status === 'EN_REVISION'" class="info-notice revision">
-              <strong>En revisión administrativa (RN-020):</strong> El administrador bloqueó el alojamiento. Tu reserva se conserva mientras se resuelve y te avisaremos del resultado (RF-069).
+              <strong>En revisión:</strong> el administrador bloqueó el alojamiento. Tu reserva se conserva mientras se resuelve y te avisaremos del resultado.
             </div>
 
             <div *ngIf="item.status === 'PENDIENTE'" class="info-notice pending">
@@ -258,7 +261,7 @@ export function toBooking(api: ApiBooking): Booking {
             </div>
 
             <div *ngIf="item.status === 'PENDIENTE_APROBACION'" class="info-notice pending">
-              <strong>Esperando aprobación (RF-050):</strong> El anfitrión está revisando tu solicitud.
+              <strong>Esperando aprobación:</strong> El anfitrión está revisando tu solicitud.
             </div>
 
             <div *ngIf="item.status === 'CANCELADA'" class="info-notice cancelled">
@@ -272,7 +275,7 @@ export function toBooking(api: ApiBooking): Booking {
                 El plazo para reseñar esta estancia venció el {{ deadlineOf(item) }} (30 días después de la salida).
               </p>
               <div *ngIf="!item.rating && canReview(item)">
-                <span class="review-title">Calificar y reseñar estancia (RF-063):</span>
+                <span class="review-title">Califica y reseña tu estancia</span>
                 <span class="review-meta">Puedes reseñarla hasta el {{ deadlineOf(item) }}.</span>
                 <div class="star-rating">
                   <button
@@ -318,7 +321,7 @@ export function toBooking(api: ApiBooking): Booking {
                 class="action-btn danger"
                 (click)="openCancellationModal(item)"
               >
-                Cancelar Reserva (RF-053)
+                Cancelar reserva
               </button>
               <span *ngIf="item.status === 'CONFIRMADA' && !canCancel(item)" class="arrival-passed">
                 La llegada ya pasó: esta reserva no se puede cancelar.
@@ -391,7 +394,7 @@ export function toBooking(api: ApiBooking): Booking {
           <div class="modal-body">
             <p>
               Estás a punto de cancelar tu reserva en <strong>{{ cancellingBooking.listingTitle }}</strong>
-              (llegada {{ cancellingBooking.checkIn }}). Según la <strong>Política {{ cancellingBooking.cancellationPolicy }} (RF-058)</strong>,
+              (llegada {{ cancellingBooking.checkIn }}). Según la <strong>Política {{ cancellingBooking.cancellationPolicy }}</strong>,
               recibes el 100 % si cancelas hasta 48 horas antes de la llegada y el 50 % después; la tarifa de servicio no es reembolsable.
             </p>
 
@@ -410,7 +413,7 @@ export function toBooking(api: ApiBooking): Booking {
               </div>
             </div>
 
-            <label class="input-label" for="cancel-reason">Motivo de cancelación (obligatorio según RF-053):</label>
+            <label class="input-label" for="cancel-reason">Motivo de la cancelación (obligatorio):</label>
             <select id="cancel-reason" [(ngModel)]="cancellationReason" class="select-input">
               <option value="Cambio imprevisto de itinerario">Cambio imprevisto de itinerario</option>
               <option value="Motivos médicos o de salud">Motivos médicos o de salud</option>
@@ -1106,7 +1109,7 @@ export class MyBookingsComponent implements OnInit {
       }
       const updated = toBooking(body as ApiBooking);
       this.bookings = this.bookings.map((item) => (item.id === updated.id ? { ...item, ...updated, imageUrl: item.imageUrl, listingTitle: item.listingTitle, listingCity: item.listingCity } : item));
-      this.feedbackMessage = `Reserva cancelada. Las fechas quedaron disponibles de nuevo (RF-055) y la devolución simulada es de $${(updated.refundAmount ?? 0).toLocaleString('es-CO')} COP (${updated.refundPercentage ?? 0} %).`;
+      this.feedbackMessage = `Reserva cancelada. Las fechas quedaron disponibles de nuevo y la devolución simulada es de $${(updated.refundAmount ?? 0).toLocaleString('es-CO')} COP (${updated.refundPercentage ?? 0} %).`;
       this.feedbackIsError = false;
     } catch {
       this.showError('Error de conexión al cancelar la reserva.');
@@ -1173,7 +1176,7 @@ export class MyBookingsComponent implements OnInit {
       booking.rating = body.rating;
       booking.reviewComment = body.comment;
       booking.reviewedAt = bogotaToday(body.createdAt ? Date.parse(body.createdAt) : Date.now());
-      this.feedbackMessage = `¡Gracias! Tu reseña de ${body.rating} estrella(s) quedó publicada en el alojamiento (RF-064).`;
+      this.feedbackMessage = `¡Gracias! Tu reseña de ${body.rating} estrella(s) quedó publicada en el alojamiento.`;
       this.feedbackIsError = false;
     } catch {
       this.showError('Error de conexión al publicar la reseña.');

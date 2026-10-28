@@ -2,19 +2,20 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { getActiveSession, StoredSession } from '../../core/guards/auth.guard';
+import { StatusLabelPipe } from '../../shared/models/display.model';
 
 @Component({
   selector: 'app-access-denied',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, StatusLabelPipe],
   template: `
     <section class="cupertino-denied-wrapper" role="alert">
       <div class="cupertino-denied-card">
-        <span class="denied-badge">Error 403 · Acceso Denegado</span>
+        <span class="denied-badge">Acceso denegado</span>
         <h1>No tienes permisos para usar esta función</h1>
         <p>
           Esta sección exige un rol diferente al de tu cuenta actual
-          <strong *ngIf="session">({{ session.role }})</strong>.
+          <strong *ngIf="session">({{ session.role | statusLabel }})</strong>.
           Por seguridad, cada operación valida el rol correspondiente en interfaz y servidor.
         </p>
         <div class="denied-actions">
