@@ -40,6 +40,7 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
   CONFIRMADA: 'Tu reserva está pagada y las fechas quedaron bloqueadas para ti.',
   CANCELADA: 'La reserva se canceló y las fechas volvieron a estar disponibles.',
   COMPLETADA: 'La estancia ya terminó. Ya puedes reseñar el alojamiento desde Mis reservas.',
+  EN_REVISION: 'El administrador bloqueó el alojamiento y tu reserva quedó en revisión. Se conserva mientras se resuelve y te avisaremos del resultado.',
 };
 
 /**

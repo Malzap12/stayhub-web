@@ -111,6 +111,19 @@ interface ActivationFailure {
                 <span class="hint">El administrador la revisará antes de que aparezca en las búsquedas.</span>
               </div>
 
+              <!-- HU-051 CA4: tras corregir la publicación bloqueada, el anfitrión pide una nueva revisión -->
+              <div class="card-actions" *ngIf="item.status === 'BLOQUEADA'">
+                <button
+                  type="button"
+                  class="activate-btn"
+                  [disabled]="activatingId === item.id"
+                  (click)="requestActivation(item)"
+                >
+                  {{ activatingId === item.id ? 'Enviando a revisión…' : 'Solicitar nueva revisión' }}
+                </button>
+                <span class="hint">Corrige lo indicado en el motivo; el administrador la revisará de nuevo.</span>
+              </div>
+
               <!-- HU-013 CA2: campos faltantes devueltos por el sistema -->
               <div class="activation-error" *ngIf="activationErrors[item.id] as failure" role="alert">
                 <strong>{{ failure.message }}</strong>
@@ -465,7 +478,10 @@ export class MyListingsComponent implements OnInit {
       if (response.ok) {
         const updated = body as MyListing;
         this.listings = this.listings.map((listing) => (listing.id === item.id ? updated : listing));
-        this.successMessage = `«${item.title}» se envió a revisión. Aparecerá en las búsquedas cuando el administrador la apruebe.`;
+        this.successMessage =
+          item.status === 'BLOQUEADA'
+            ? `«${item.title}» se envió a una nueva revisión. Volverá a las búsquedas cuando el administrador la apruebe.`
+            : `«${item.title}» se envió a revisión. Aparecerá en las búsquedas cuando el administrador la apruebe.`;
         return;
       }
 

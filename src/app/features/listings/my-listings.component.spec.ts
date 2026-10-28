@@ -126,13 +126,28 @@ describe('MyListingsComponent · HU-012', () => {
   describe('HU-013 · Solicitar la activación', () => {
     const draft = listings[0];
 
-    it('CA1: solo los borradores ofrecen el botón de solicitar activación', async () => {
+    it('CA1: los borradores ofrecen solicitar activación y las bloqueadas una nueva revisión (HU-051 CA4)', async () => {
       respondWith(200, listings);
       await render();
 
       const cards = element.querySelectorAll('.listing-card');
       expect(cards[0].querySelector('.activate-btn')?.textContent?.trim()).toBe('Solicitar activación');
-      expect(cards[1].querySelector('.activate-btn')).toBeNull();
+      expect(cards[1].querySelector('.activate-btn')?.textContent?.trim()).toBe('Solicitar nueva revisión');
+    });
+
+    it('HU-051 CA4: al pedir la nueva revisión la publicación bloqueada pasa a En revisión', async () => {
+      const fetchSpy = respondWith(200, listings);
+      await render();
+      const blocked = listings[1];
+      fetchSpy.and.resolveTo(
+        new Response(JSON.stringify({ ...blocked, status: 'PENDIENTE_REVISION', statusLabel: 'En revisión', adminReason: undefined }), { status: 200 }),
+      );
+
+      await component.requestActivation(blocked);
+
+      expect(fetchSpy).toHaveBeenCalledWith('/api/listings/listing-2/request-activation', jasmine.objectContaining({ method: 'PATCH' }));
+      expect(component.listings[1].status).toBe('PENDIENTE_REVISION');
+      expect(component.successMessage).toContain('nueva revisión');
     });
 
     it('CA1 y CA3: al aprobarse la solicitud la tarjeta pasa a En revisión', async () => {
