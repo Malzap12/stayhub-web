@@ -67,6 +67,10 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
     <section class="calendar" aria-label="Calendario de disponibilidad">
       <header class="calendar-header">
         <h2>{{ title }}</h2>
+        <div class="pager" *ngIf="calendar && monthsPerPage < calendar.months.length">
+          <button type="button" (click)="page = page - 1" [disabled]="page === 0" aria-label="Meses anteriores">‹</button>
+          <button type="button" (click)="page = page + 1" [disabled]="(page + 1) * monthsPerPage >= calendar.months.length" aria-label="Meses siguientes">›</button>
+        </div>
         <ul class="legend" *ngIf="calendar">
           <li *ngFor="let status of legend"><span class="swatch" [attr.data-status]="status"></span>{{ label(status) }}</li>
         </ul>
@@ -81,14 +85,14 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
 
       <ng-container *ngIf="!loading && calendar">
         <p class="summary" *ngIf="calendar.view === 'PUBLICA'">
-          {{ availableNights }} noches disponibles entre el {{ calendar.today }} y el {{ calendar.to }}.
+          {{ availableNights }} noches disponibles hasta el {{ longDate(calendar.to) }}.
         </p>
         <p class="summary" *ngIf="calendar.view === 'ANFITRION'">
           Próximos 12 meses: {{ count('DISPONIBLE') }} disponibles · {{ count('RESERVADA') }} reservadas · {{ count('BLOQUEADA') }} bloqueadas.
         </p>
 
-        <div class="months">
-          <div class="month" *ngFor="let month of calendar.months">
+        <div class="months" [class.paged]="monthsPerPage < calendar.months.length">
+          <div class="month" *ngFor="let month of visibleMonths">
             <h3>{{ monthName(month.month) }}</h3>
             <div class="weekdays" aria-hidden="true">
               <span *ngFor="let d of weekdays">{{ d }}</span>
@@ -174,6 +178,29 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       font-weight: 600;
       cursor: pointer;
     }
+    .pager {
+      display: flex;
+      gap: 6px;
+      order: 3;
+    }
+    .pager button {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .pager button:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+    .months.paged {
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+      gap: 28px;
+    }
     .months {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -223,6 +250,9 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
 export class AvailabilityCalendarComponent implements OnChanges {
   @Input() listingId = '';
   @Input() title = 'Calendario de disponibilidad';
+  /** Meses visibles a la vez; con menos de 12 se navega con flechas (detalle de la publicación). */
+  @Input() monthsPerPage = 12;
+  page = 0;
 
   readonly weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
   calendar: ListingCalendar | null = null;
@@ -232,6 +262,15 @@ export class AvailabilityCalendarComponent implements OnChanges {
 
   ngOnChanges(): void {
     void this.load();
+  }
+
+  get visibleMonths(): ListingCalendar['months'] {
+    const months = this.calendar?.months ?? [];
+    return months.slice(this.page * this.monthsPerPage, (this.page + 1) * this.monthsPerPage);
+  }
+
+  longDate(date: string): string {
+    return new Date(`${date}T00:00:00Z`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   }
 
   get legend(): CalendarDayStatus[] {

@@ -184,4 +184,15 @@ describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Po
       expect(text()).toContain('Sin reseñas todavía');
     });
   });
+
+  it('muestra el resumen del alojamiento: tipo y ciudad, capacidad, habitaciones y baños', async () => {
+    spyOn(window, 'fetch').and.returnValues(json(detail), json({ reviews: [] }));
+    await render();
+
+    expect(text()).toContain('Apartamento en Bogotá');
+    expect(text()).toContain('2 huéspedes · 1 habitación · 1 baño');
+    expect(text()).toContain('Reembolso total si cancelas hasta 48 h antes de la llegada.');
+    expect(element.querySelector('.host-avatar')?.textContent?.trim()).toBe('VR');
+    expect(element.querySelectorAll('.amenities li svg').length).toBe(2);
+  });
 });

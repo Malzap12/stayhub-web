@@ -44,21 +44,20 @@ export function formatQuoteAmount(value: number, negative = false): string {
   imports: [CommonModule, FormsModule, TestCardPaymentComponent],
   template: `
     <form class="quote" (ngSubmit)="submit()" novalidate aria-label="Cotizar estancia">
-      <h3>Cotiza tu estancia</h3>
-      <div class="dates">
-        <label>
+      <div class="picker">
+        <label class="cell">
           <span>Llegada</span>
           <input type="date" name="checkIn" [(ngModel)]="checkIn" (ngModelChange)="clear()" />
         </label>
-        <label>
+        <label class="cell">
           <span>Salida</span>
           <input type="date" name="checkOut" [min]="checkIn" [(ngModel)]="checkOut" (ngModelChange)="clear()" />
         </label>
+        <label class="cell full">
+          <span>Huéspedes</span>
+          <input type="number" name="guests" min="1" [attr.max]="maxGuests || null" [(ngModel)]="guests" (ngModelChange)="clear()" />
+        </label>
       </div>
-      <label>
-        <span>Huéspedes</span>
-        <input type="number" name="guests" min="1" [attr.max]="maxGuests || null" [(ngModel)]="guests" (ngModelChange)="clear()" />
-      </label>
       <p class="hint" *ngIf="maxGuests">Máximo {{ maxGuests }} {{ maxGuests === 1 ? 'huésped' : 'huéspedes' }}.</p>
 
       <fieldset *ngIf="additionalServices.length > 0">
@@ -76,9 +75,10 @@ export function formatQuoteAmount(value: number, negative = false): string {
           Noches no disponibles: {{ nightsLabel }}. Revisa el calendario de disponibilidad.
         </p>
       </div>
-      <button type="submit" [disabled]="loading">{{ loading ? 'Cotizando…' : 'Cotizar' }}</button>
+      <button type="submit" class="quote-button" *ngIf="!quote" [disabled]="loading">{{ loading ? 'Calculando…' : 'Ver precio total' }}</button>
+      <p class="charge-note" *ngIf="!confirmedBooking">Aún no se te cobrará nada.</p>
 
-      <!-- CA1-CA4: desglose en COP -->
+      <!-- Desglose en COP -->
       <dl class="breakdown" *ngIf="quote as q" aria-label="Desglose de la cotización">
         <div><dt>{{ amount(q.nightlyRate) }} × {{ q.nights }} {{ q.nights === 1 ? 'noche' : 'noches' }}</dt><dd>{{ amount(q.baseAmount) }}</dd></div>
         <div class="discount" [class.applied]="q.discount > 0">
@@ -91,7 +91,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
         <div class="total"><dt>Total</dt><dd>{{ amount(q.totalAmount) }} {{ q.currency }}</dd></div>
       </dl>
 
-      <!-- HU-030: Reservar de forma inmediata (CA1, CA2, CA3, CA4) -->
+      <!-- Reserva inmediata -->
       <div class="instant-booking" *ngIf="quote && !confirmedBooking">
         <button
           type="button"
@@ -100,7 +100,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
           (click)="startInstantBooking()"
           [disabled]="bookingLoading"
         >
-          {{ bookingLoading ? 'Preparando reserva…' : 'Reservar de forma inmediata' }}
+          {{ bookingLoading ? 'Preparando reserva…' : 'Reservar' }}
         </button>
 
         <div class="payment-step" *ngIf="createdBooking">
@@ -113,17 +113,17 @@ export function formatQuoteAmount(value: number, negative = false): string {
         </div>
       </div>
 
-      <!-- HU-030 CA1: Reserva Confirmada con Código y Desglose -->
+      <!-- Reserva confirmada con su código y desglose -->
       <div class="confirmed-card" *ngIf="confirmedBooking" role="status" aria-label="Reserva confirmada">
         <div class="confirmed-header">
-          <span class="badge">CONFIRMADA</span>
-          <h3>¡Reserva Confirmada de Forma Inmediata!</h3>
+          <span class="badge">Confirmada</span>
+          <h3>¡Tu reserva está confirmada!</h3>
           <p class="code">Código de reserva: <strong>{{ confirmedBooking.code || confirmedBooking.id }}</strong></p>
           <p class="ref" *ngIf="paymentReference">Referencia de pago: <code>{{ paymentReference }}</code></p>
         </div>
 
         <div class="confirmed-breakdown" *ngIf="quote as q">
-          <h4>Desglose conservado (CA2)</h4>
+          <h4>Desglose de tu reserva</h4>
           <div><span>{{ amount(q.nightlyRate) }} × {{ q.nights }} noches</span><span>{{ amount(q.baseAmount) }}</span></div>
           <div *ngIf="q.discount > 0"><span>Descuento estancia larga</span><span>{{ amount(q.discount, true) }}</span></div>
           <div><span>Limpieza</span><span>{{ amount(q.cleaningFee) }}</span></div>
@@ -138,69 +138,79 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .quote {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-top: 18px;
-      padding-top: 16px;
-      border-top: 1px solid #e5e5ea;
+      gap: 12px;
     }
-    h3 {
-      margin: 0;
-      font-size: 0.98rem;
-    }
-    .dates {
+    .picker {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      border: 1px solid #b0b0b0;
+      border-radius: 10px;
+      overflow: hidden;
     }
-    label {
+    .cell {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      color: #6e6e73;
+      gap: 2px;
+      padding: 10px 12px 8px;
+      font-size: 0.64rem;
+      font-weight: 800;
+      color: #222222;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      min-width: 0;
     }
-    input[type='date'], input[type='number'] {
-      height: 38px;
-      padding: 0 10px;
-      border: 1px solid #d2d2d7;
+    .cell + .cell {
+      border-left: 1px solid #b0b0b0;
+    }
+    .cell.full {
+      grid-column: 1 / -1;
+      border-left: none;
+      border-top: 1px solid #b0b0b0;
+    }
+    .cell:focus-within {
+      box-shadow: inset 0 0 0 2px #222222;
       border-radius: 10px;
+    }
+    .cell input {
+      border: none;
+      padding: 0;
+      height: 24px;
       font: inherit;
-      font-size: 0.86rem;
-      color: #1d1d1f;
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: #222222;
       text-transform: none;
       letter-spacing: normal;
-      font-weight: 400;
+      background: transparent;
       width: 100%;
-      box-sizing: border-box;
+      min-width: 0;
+      outline: none;
     }
     fieldset {
-      border: none;
+      border: 1px solid #ebebeb;
+      border-radius: 10px;
       margin: 0;
-      padding: 0;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
     legend {
-      font-size: 0.74rem;
-      font-weight: 700;
-      color: #6e6e73;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #222222;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-bottom: 4px;
+      padding: 0 4px;
     }
     .extra {
+      display: flex;
       flex-direction: row;
       align-items: center;
       gap: 8px;
-      text-transform: none;
-      letter-spacing: normal;
-      font-size: 0.86rem;
+      font-size: 0.88rem;
       font-weight: 500;
-      color: #1d1d1f;
+      color: #222222;
       cursor: pointer;
     }
     .extra span {
@@ -208,19 +218,31 @@ export function formatQuoteAmount(value: number, negative = false): string {
     }
     .extra input {
       width: auto;
+      accent-color: #222222;
     }
     button {
-      height: 42px;
+      height: 48px;
       border: none;
-      border-radius: 980px;
-      background: #1d1d1f;
+      border-radius: 10px;
+      background: #222222;
       color: #ffffff;
+      font: inherit;
+      font-size: 0.98rem;
       font-weight: 600;
       cursor: pointer;
     }
     button:disabled {
       opacity: 0.6;
       cursor: progress;
+    }
+    .quote-button, .book-button {
+      background: linear-gradient(to right, #e61e4d 0%, #e31c5f 50%, #d70466 100%);
+    }
+    .charge-note {
+      margin: -2px 0 0;
+      text-align: center;
+      font-size: 0.82rem;
+      color: #6a6a6a;
     }
     .error {
       padding: 10px 12px;
@@ -242,7 +264,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .hint {
       margin: -4px 0 0;
       font-size: 0.76rem;
-      color: #6e6e73;
+      color: #6a6a6a;
     }
     .breakdown {
       margin: 4px 0 0;
@@ -251,11 +273,16 @@ export function formatQuoteAmount(value: number, negative = false): string {
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      padding: 7px 0;
-      font-size: 0.88rem;
+      padding: 6px 0;
+      font-size: 0.94rem;
     }
     .breakdown dt {
-      color: #3a3a3c;
+      color: #222222;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .breakdown dd {
+      color: #222222;
     }
     .breakdown dd {
       margin: 0;
@@ -266,10 +293,13 @@ export function formatQuoteAmount(value: number, negative = false): string {
       color: #166534;
     }
     .breakdown .total {
-      margin-top: 4px;
-      padding-top: 10px;
-      border-top: 1px solid #e5e5ea;
+      margin-top: 8px;
+      padding-top: 16px;
+      border-top: 1px solid #dddddd;
       font-size: 1rem;
+    }
+    .breakdown .total dt {
+      text-decoration: none;
     }
     .breakdown .total dt, .breakdown .total dd {
       font-weight: 800;
@@ -282,13 +312,12 @@ export function formatQuoteAmount(value: number, negative = false): string {
       gap: 10px;
     }
     .book-button {
-      height: 44px;
+      height: 48px;
       border: none;
-      border-radius: 980px;
-      background: #0071e3;
+      border-radius: 10px;
       color: #ffffff;
       font-weight: 600;
-      font-size: 0.92rem;
+      font-size: 0.98rem;
       cursor: pointer;
     }
     .book-button:disabled {

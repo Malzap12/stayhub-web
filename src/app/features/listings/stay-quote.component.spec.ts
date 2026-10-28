@@ -257,10 +257,10 @@ describe('StayQuoteComponent · HU-027 Cotizar una estancia', () => {
 
       fixture.detectChanges();
       const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-      expect(text).toContain('CONFIRMADA');
+      expect(text).toContain('Confirmada');
       expect(text).toContain('RES-8KQ2M7X1');
       expect(text).toContain('TEST-ABC123XYZ');
-      expect(text).toContain('Desglose conservado');
+      expect(text).toContain('Desglose de tu reserva');
     });
   });
   describe('HU-032 · Evitar reservas duplicadas por reintentos', () => {
