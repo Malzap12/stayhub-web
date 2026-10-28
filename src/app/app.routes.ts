@@ -82,6 +82,15 @@ export const routes: Routes = [
       ),
   },
   {
+    // HU-056 CA3: solo el administrador abre el dashboard de indicadores.
+    path: 'admin/indicadores',
+    canActivate: [roleGuard(['ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/admin/business-dashboard.component').then(
+        (m) => m.BusinessDashboardComponent,
+      ),
+  },
+  {
     path: 'admin/moderacion',
     canActivate: [roleGuard(['ADMINISTRADOR'])],
     loadComponent: () =>
