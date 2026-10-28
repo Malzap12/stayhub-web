@@ -30,7 +30,7 @@ export const BOOKING_STATUS_LABELS: Record<string, string> = {
   CANCELADA: 'Canceladas',
 };
 
-/** HU-058 · Reportes de gestión exportables a Excel (AMB-23). */
+/** HU-058 y HU-059 · Reportes de gestión exportables a Excel y PDF (AMB-23). */
 export const EXPORT_REPORTS = [
   { value: 'usuarios', label: 'Usuarios', statuses: ['ACTIVA', 'RESTRINGIDA', 'DESACTIVADA'] },
   { value: 'publicaciones', label: 'Publicaciones', statuses: ['BORRADOR', 'PENDIENTE_REVISION', 'ACTIVA', 'PAUSADA', 'BLOQUEADA'] },
@@ -60,8 +60,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
 
 /**
  * HU-056 · Ver los indicadores del negocio (CA1, CA3 · RF-074, RN-026).
- * CA1: usuarios por rol, publicaciones ACTIVAS, reservas por estado, ingresos estimados y las 5 ciudades con más
- * reservas confirmadas y completadas. CA3: la ruta solo la abre el administrador y el API responde 403 a otros roles.
+ * HU-058 · Exportar reportes a Excel y HU-059 · Exportar reportes a PDF (CA1, CA2 · RF-076, RF-077, RN-026).
  */
 @Component({
   selector: 'app-business-dashboard',
@@ -161,11 +160,11 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
         </div>
       </ng-container>
 
-      <!-- HU-058 · Exportar reportes a Excel -->
-      <section class="panel export-panel" aria-label="Exportar reportes a Excel">
-        <h2>Exportar a Excel</h2>
+      <!-- HU-058 y HU-059 · Exportar reportes a Excel y PDF -->
+      <section class="panel export-panel" aria-label="Exportar reportes a Excel o PDF">
+        <h2>Exportar reportes (Excel y PDF)</h2>
         <p class="panel-hint">
-          Descarga un archivo .xlsx con encabezados, los filtros aplicados, la fecha de generación y una fila de totales.
+          Descarga un archivo .xlsx o un documento .pdf con título, los filtros aplicados, la fecha de generación, la tabla de datos y una fila de totales que coincide en ambos formatos.
         </p>
         <form class="export-form" (ngSubmit)="exportReport()" novalidate>
           <label>
@@ -196,6 +195,9 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
           <button type="submit" class="refresh-btn" [disabled]="exporting">
             {{ exporting ? 'Generando…' : 'Descargar .xlsx' }}
           </button>
+          <button type="button" class="refresh-btn pdf-btn" [disabled]="exporting" (click)="exportReportPdf()">
+            {{ exporting ? 'Generando…' : 'Descargar .pdf' }}
+          </button>
         </form>
         <p class="export-error" *ngIf="exportError" role="alert">{{ exportError }}</p>
         <p class="export-ok" *ngIf="exportMessage" role="status">{{ exportMessage }}</p>
@@ -217,6 +219,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
       border-radius: 980px; padding: 9px 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
       background: #1d1d1f; color: #fff; border: none;
     }
+    .refresh-btn.pdf-btn { background: #374151; }
     .refresh-btn:disabled { opacity: 0.6; cursor: default; }
     .alert-error {
       padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #fef2f2; color: #991b1b;
@@ -342,8 +345,8 @@ export class BusinessDashboardComponent implements OnInit {
     return params.toString();
   }
 
-  /** HU-058 CA1: descarga el reporte .xlsx con los filtros elegidos. */
-  async exportReport(): Promise<void> {
+  /** HU-058 CA1 y HU-059 CA1: descarga el reporte en formato .xlsx o .pdf con los filtros elegidos. */
+  async exportReport(format: 'xlsx' | 'pdf' = 'xlsx'): Promise<void> {
     const { from, to, report } = this.exportFilters;
     this.exportError = '';
     this.exportMessage = '';
@@ -355,7 +358,8 @@ export class BusinessDashboardComponent implements OnInit {
     try {
       const token = getActiveSession()?.token;
       const query = this.exportQuery();
-      const response = await fetch(`/api/reports/export/${report}${query ? `?${query}` : ''}`, {
+      const suffix = format === 'pdf' ? '/pdf' : '';
+      const response = await fetch(`/api/reports/export/${report}${suffix}${query ? `?${query}` : ''}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) {
@@ -366,7 +370,7 @@ export class BusinessDashboardComponent implements OnInit {
             : [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible generar el reporte.';
         return;
       }
-      const fileName = fileNameFrom(response.headers.get('Content-Disposition'), `stayhub-${report}.xlsx`);
+      const fileName = fileNameFrom(response.headers.get('Content-Disposition'), `stayhub-${report}.${format}`);
       this.download(await response.blob(), fileName);
       this.exportMessage = `Se descargó ${fileName}.`;
     } catch {
@@ -374,6 +378,11 @@ export class BusinessDashboardComponent implements OnInit {
     } finally {
       this.exporting = false;
     }
+  }
+
+  /** HU-059 CA1: descarga el reporte seleccionado en PDF (.pdf). */
+  async exportReportPdf(): Promise<void> {
+    return this.exportReport('pdf');
   }
 
   download(blob: Blob, fileName: string): void {
