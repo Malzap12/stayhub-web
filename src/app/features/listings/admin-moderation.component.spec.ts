@@ -207,4 +207,105 @@ describe('AdminModerationComponent · HU-050', () => {
       expect(component.allListings[0].status).toBe('ACTIVA');
     });
   });
+
+  describe('HU-053 · Restringir a un usuario (CA1, CA2, CA3 · RF-070, RF-071, RN-020, RN-021)', () => {
+    const users = [
+      { id: 'user-huesped', name: 'Pedro Huésped', email: 'pedro@stayhub.com', role: 'HUESPED', status: 'ACTIVA' },
+      { id: 'user-anfitrion', name: 'Ana Anfitriona', email: 'ana@stayhub.com', role: 'ANFITRION', status: 'ACTIVA' },
+      { id: 'user-restringido', name: 'Malo Restringido', email: 'malo@stayhub.com', role: 'HUESPED', status: 'RESTRINGIDA', restrictionReason: 'Fiestas prohibidas' },
+    ];
+
+    const loadWithUsers = async () => {
+      fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith('/users')) return json(users.map((u) => ({ ...u })));
+        if (url.endsWith('/admin/all')) return json([]);
+        return json(pending);
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('lista los usuarios registrados y distingue activos de restringidos', async () => {
+      await loadWithUsers();
+
+      expect(component.allUsers.length).toBe(3);
+      expect(component.restrictedUsersCount).toBe(1);
+
+      component.userFilter = 'anfitriona';
+      expect(component.filteredUsers.map((u) => u.id)).toEqual(['user-anfitrion']);
+    });
+
+    it('CA1: exige el motivo de la restricción antes de llamar al API (al menos 5 caracteres)', async () => {
+      await loadWithUsers();
+      const callsBefore = fetchSpy.calls.count();
+
+      component.openRestrictPrompt('user-anfitrion');
+      component.restrictReasonInput = 'abc'; // Menos de 5 caracteres
+      await component.confirmRestrict('user-anfitrion');
+
+      expect(fetchSpy.calls.count()).toBe(callsBefore);
+      expect(component.restrictError).toContain('motivo');
+    });
+
+    it('CA1 y CA2: restringe al usuario, invalida sesiones y reporta publicaciones pausadas y reservas a revisión', async () => {
+      await loadWithUsers();
+
+      fetchSpy.and.returnValue(
+        json({
+          userId: 'user-anfitrion',
+          email: 'ana@stayhub.com',
+          status: 'RESTRINGIDA',
+          restrictionReason: 'Estafas y cancelaciones reiteradas',
+          pausedListings: ['listing-1', 'listing-2'],
+          bookingsUnderReview: ['RES-101', 'RES-102'],
+          message: 'Usuario Ana Anfitriona restringido exitosamente.',
+        }),
+      );
+
+      component.openRestrictPrompt('user-anfitrion');
+      component.restrictReasonInput = 'Estafas y cancelaciones reiteradas';
+      await component.confirmRestrict('user-anfitrion');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+      expect(url).toBe('/api/users/user-anfitrion/restrict');
+      expect(init.method).toBe('PATCH');
+      expect(JSON.parse(String(init.body))).toEqual({ reason: 'Estafas y cancelaciones reiteradas' });
+
+      const updated = component.allUsers.find((u) => u.id === 'user-anfitrion');
+      expect(updated?.status).toBe('RESTRINGIDA');
+      expect(updated?.restrictionReason).toBe('Estafas y cancelaciones reiteradas');
+      expect(component.feedbackMessage).toContain('RESTRINGIDO');
+      expect(component.feedbackMessage).toContain('2 publicación(es) pasaron a PAUSADA');
+      expect(component.feedbackMessage).toContain('2 reserva(s) pasaron a EN_REVISION');
+      expect(component.restrictingUserId).toBeNull();
+    });
+
+    it('CA3: levanta la restricción al usuario e informa que sus publicaciones siguen pausadas', async () => {
+      await loadWithUsers();
+
+      fetchSpy.and.returnValue(
+        json({
+          userId: 'user-restringido',
+          email: 'malo@stayhub.com',
+          status: 'ACTIVA',
+          message: 'Restricción levantada exitosamente.',
+        }),
+      );
+
+      await component.confirmUnrestrict('user-restringido');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+      expect(url).toBe('/api/users/user-restringido/unrestrict');
+      expect(init.method).toBe('PATCH');
+
+      const unmuted = component.allUsers.find((u) => u.id === 'user-restringido');
+      expect(unmuted?.status).toBe('ACTIVA');
+      expect(unmuted?.restrictionReason).toBeUndefined();
+      expect(component.feedbackMessage).toContain('Restricción levantada');
+      expect(component.feedbackMessage).toContain('sus publicaciones continúan PAUSADAS');
+    });
+  });
+
 });
