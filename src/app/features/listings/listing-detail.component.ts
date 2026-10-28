@@ -4,6 +4,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { AvailabilityCalendarComponent } from './availability-calendar.component';
 import { StayQuoteComponent } from './stay-quote.component';
+import { amenityLabel } from '../../shared/models/amenities.model';
+
+export { AMENITY_LABELS, amenityLabel } from '../../shared/models/amenities.model';
 
 /** Detalle tal como lo devuelve GET /api/listings/:id (HU-026). */
 export interface ListingDetail {
@@ -39,35 +42,6 @@ export interface DetailReview {
   rating: number;
   comment: string;
   date: string;
-}
-
-/** Nombre de cada servicio, tanto los del formulario del anfitrión como los de las publicaciones demo. */
-export const AMENITY_LABELS: Record<string, string> = {
-  WIFI: 'Wi-Fi',
-  COCINA: 'Cocina',
-  KITCHEN: 'Cocina',
-  PARQUEADERO: 'Parqueadero',
-  PARKING: 'Parqueadero',
-  PISCINA: 'Piscina',
-  POOL: 'Piscina',
-  AIRE_ACONDICIONADO: 'Aire acondicionado',
-  AC: 'Aire acondicionado',
-  TV: 'TV',
-  LAVADORA: 'Lavadora',
-  MASCOTAS: 'Admite mascotas',
-  WORKSPACE: 'Espacio de trabajo',
-  HEATING: 'Calefacción',
-  GYM: 'Gimnasio',
-  FIREPLACE: 'Chimenea',
-  CHIMENEA: 'Chimenea',
-};
-
-export function amenityLabel(code: string): string {
-  if (AMENITY_LABELS[code]) {
-    return AMENITY_LABELS[code];
-  }
-  const text = code.replace(/_/g, ' ').toLowerCase();
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 const copFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
