@@ -250,7 +250,7 @@ export function toBooking(api: ApiBooking): Booking {
 
             <!-- Información según estado -->
             <div *ngIf="item.status === 'EN_REVISION'" class="info-notice revision">
-              <strong>En revisión administrativa (RN-020):</strong> La publicación asociada está bajo inspección. Tu reserva se conserva activa mientras el administrador la resuelve (RF-069).
+              <strong>En revisión administrativa (RN-020):</strong> El administrador bloqueó el alojamiento. Tu reserva se conserva mientras se resuelve y te avisaremos del resultado (RF-069).
             </div>
 
             <div *ngIf="item.status === 'PENDIENTE'" class="info-notice pending">

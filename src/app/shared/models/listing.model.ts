@@ -58,7 +58,7 @@ export interface HostModerationNotification {
   listingId: string;
   listingTitle: string;
   hostName: string;
-  type: 'APROBADA' | 'DEVUELTA';
+  type: 'APROBADA' | 'DEVUELTA' | 'BLOQUEADA';
   message: string;
   reason?: string;
   createdAt: string;

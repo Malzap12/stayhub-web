@@ -61,7 +61,7 @@ describe('AdminModerationComponent · HU-050', () => {
   it('CA1: carga la cola del API con el token del admin y la ordena por fecha de solicitud', async () => {
     await loadQueue();
 
-    const [url, init] = fetchSpy.calls.mostRecent().args;
+    const [url, init] = fetchSpy.calls.argsFor(0);
     expect(url).toBe('/api/listings/pending');
     expect((init?.headers as Record<string, string>)['Authorization']).toBe('Bearer jwt-admin');
     expect(component.pendingQueue.map((l) => l.id)).toEqual(['pending-listing-1', 'pending-listing-2']);
@@ -125,5 +125,86 @@ describe('AdminModerationComponent · HU-050', () => {
     await fixture.whenStable();
 
     expect(component.errorMessage).toContain('Tu sesión expiró');
+  });
+
+  describe('HU-051 · Bloquear una publicación engañosa', () => {
+    const all: ApiPendingListing[] = [
+      { id: 'activa-1', title: 'Villa engañosa en Barú', city: 'Cartagena', status: 'ACTIVA', hostName: 'Pedro' },
+      { id: 'bloqueada-1', title: 'Loft ya bloqueado', city: 'Bogotá', status: 'BLOQUEADA', hostName: 'Ana', blockReason: 'Fotos falsas' },
+    ];
+
+    const loadAll = async () => {
+      fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
+        json(String(input).endsWith('/admin/all') ? all.map((item) => ({ ...item })) : pending),
+      );
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('lista todas las publicaciones en cualquier estado y solo ofrece bloquear las que no están BLOQUEADAS', async () => {
+      await loadAll();
+
+      expect(fetchSpy.calls.allArgs().map(([url]) => url)).toContain('/api/listings/admin/all');
+      const items = (fixture.nativeElement as HTMLElement).querySelectorAll('.block-item');
+      expect(items.length).toBe(2);
+      expect(items[0].querySelector('.btn-block')).not.toBeNull();
+      expect(items[1].querySelector('.btn-block')).toBeNull();
+      expect(items[1].textContent).toContain('Fotos falsas');
+
+      component.blockFilter = 'barú';
+      expect(component.filteredAllListings.map((item) => item.id)).toEqual(['activa-1']);
+    });
+
+    it('CA1: exige el motivo antes de llamar al API', async () => {
+      await loadAll();
+      const calls = fetchSpy.calls.count();
+      component.openBlockPrompt('activa-1');
+      component.blockReasonInput = '  ';
+
+      await component.confirmBlock('activa-1');
+
+      expect(fetchSpy.calls.count()).toBe(calls);
+      expect(component.blockError).toContain('motivo');
+    });
+
+    it('CA1, CA2 y CA3: bloquea con el motivo e informa las reservas que pasaron a revisión', async () => {
+      await loadAll();
+      fetchSpy.and.returnValue(
+        json({
+          listingId: 'activa-1',
+          status: 'BLOQUEADA',
+          previousStatus: 'ACTIVA',
+          blockReason: 'Fotos que no corresponden',
+          bookingsUnderReview: ['RES-AAA', 'RES-BBB'],
+          notification: { id: 'n-1', type: 'BLOQUEADA', message: 'Tu publicación fue bloqueada', reason: 'Fotos que no corresponden', createdAt: '2026-10-27T10:00:00Z' },
+        }),
+      );
+      component.openBlockPrompt('activa-1');
+      component.blockReasonInput = '  Fotos que no corresponden  ';
+
+      await component.confirmBlock('activa-1');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+      expect(url).toBe('/api/listings/activa-1/block');
+      expect(init.method).toBe('PATCH');
+      expect(JSON.parse(String(init.body))).toEqual({ reason: 'Fotos que no corresponden' });
+      expect(component.allListings[0]).toEqual(jasmine.objectContaining({ status: 'BLOQUEADA', blockReason: 'Fotos que no corresponden' }));
+      expect(component.feedbackMessage).toContain('2 reserva(s) futura(s) pasaron a EN_REVISION (RES-AAA, RES-BBB)');
+      expect(component.notifications[0].type).toBe('BLOQUEADA');
+      expect(component.blockingListingId).toBeNull();
+    });
+
+    it('muestra el error del API si el bloqueo se rechaza', async () => {
+      await loadAll();
+      fetchSpy.and.returnValue(json({ message: 'La publicación ya está BLOQUEADA' }, 400));
+      component.openBlockPrompt('activa-1');
+      component.blockReasonInput = 'Fotos que no corresponden';
+
+      await component.confirmBlock('activa-1');
+
+      expect(component.blockError).toBe('La publicación ya está BLOQUEADA');
+      expect(component.allListings[0].status).toBe('ACTIVA');
+    });
   });
 });

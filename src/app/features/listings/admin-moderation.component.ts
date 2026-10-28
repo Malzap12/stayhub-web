@@ -18,13 +18,25 @@ export interface ApiPendingListing {
   hostName?: string;
   requestedAt?: string;
   images?: string[];
+  blockReason?: string;
 }
+
+/** HU-051: nombre de cada estado en la lista de publicaciones del administrador. */
+export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
+  BORRADOR: 'Borrador',
+  PENDIENTE_REVISION: 'En revisión',
+  ACTIVA: 'Activa',
+  PAUSADA: 'Pausada',
+  BLOQUEADA: 'Bloqueada',
+};
 
 interface ModerationResponse {
   listingId: string;
   status: ListingStatus;
   returnReason?: string;
-  notification: { id: string; type: 'APROBADA' | 'DEVUELTA'; message: string; reason?: string; createdAt: string };
+  blockReason?: string;
+  bookingsUnderReview?: string[];
+  notification: { id: string; type: 'APROBADA' | 'DEVUELTA' | 'BLOQUEADA'; message: string; reason?: string; createdAt: string };
 }
 
 @Component({
@@ -112,6 +124,59 @@ interface ModerationResponse {
         </div>
       </section>
 
+      <!-- HU-051: bloquear una publicación engañosa en cualquier estado -->
+      <section class="queue-section block-section" aria-label="Bloquear publicaciones">
+        <h2>Bloquear una publicación engañosa</h2>
+        <p class="subtitle">
+          Bloquea una publicación en cualquier estado indicando el motivo: deja de aparecer en las búsquedas, sus
+          reservas futuras pasan a revisión y se notifica al anfitrión y a los huéspedes afectados.
+        </p>
+        <input
+          class="block-filter"
+          type="search"
+          [(ngModel)]="blockFilter"
+          placeholder="Buscar por título, ciudad o anfitrión"
+          aria-label="Buscar publicación para bloquear"
+        />
+        <p class="empty-state" *ngIf="!loading && filteredAllListings.length === 0">No hay publicaciones que coincidan.</p>
+        <ul class="block-list" *ngIf="filteredAllListings.length > 0">
+          <li class="block-item" *ngFor="let item of filteredAllListings" [attr.data-id]="item.id">
+            <div class="block-info">
+              <strong>{{ item.title }}</strong>
+              <span class="meta">{{ item.city || 'Sin ciudad' }} · {{ item.hostName || 'Anfitrión' }}</span>
+              <span class="status-badge" [attr.data-status]="item.status">{{ statusLabel(item.status) }}</span>
+              <p class="reason-visible" *ngIf="item.status === 'BLOQUEADA' && item.blockReason">Motivo: "{{ item.blockReason }}"</p>
+            </div>
+
+            <div class="return-box" *ngIf="blockingListingId === item.id">
+              <label [for]="'block-reason-' + item.id">Motivo del bloqueo (obligatorio):</label>
+              <textarea
+                [id]="'block-reason-' + item.id"
+                rows="3"
+                [(ngModel)]="blockReasonInput"
+                placeholder="Ej. Las fotografías no corresponden al inmueble y la dirección es falsa..."
+              ></textarea>
+              <p class="error-msg" *ngIf="blockError">{{ blockError }}</p>
+              <div class="return-actions">
+                <button type="button" class="btn-confirm-return" [disabled]="busyId === item.id" (click)="confirmBlock(item.id)">
+                  {{ busyId === item.id ? 'Bloqueando…' : 'Confirmar bloqueo' }}
+                </button>
+                <button type="button" class="btn-cancel" (click)="cancelBlock()">Cancelar</button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="btn-block"
+              *ngIf="item.status !== 'BLOQUEADA' && blockingListingId !== item.id"
+              (click)="openBlockPrompt(item.id)"
+            >
+              Bloquear
+            </button>
+          </li>
+        </ul>
+      </section>
+
       <!-- CA2 & CA3: Trazabilidad de resultados (Búsqueda pública, Borradores del anfitrión y Notificaciones) -->
       <div class="outcomes-grid">
         <section class="outcome-panel">
@@ -148,7 +213,7 @@ interface ModerationResponse {
         <h3>Notificaciones enviadas a anfitriones ({{ notifications.length }})</h3>
         <ul class="notif-list">
           <li *ngFor="let n of notifications">
-            <span class="notif-tag" [class.approved]="n.type === 'APROBADA'" [class.returned]="n.type === 'DEVUELTA'">
+            <span class="notif-tag" [class.approved]="n.type === 'APROBADA'" [class.returned]="n.type !== 'APROBADA'">
               {{ n.type }}
             </span>
             <strong>{{ n.hostName }}:</strong> {{ n.message }}
@@ -329,6 +394,36 @@ interface ModerationResponse {
       margin-right: 6px;
     }
     .notif-tag.approved { background: #e8f8ee; color: #166534; }
+    .block-section { margin-top: 36px; }
+    .block-filter {
+      width: 100%;
+      max-width: 420px;
+      margin: 14px 0;
+      padding: 9px 14px;
+      border-radius: 980px;
+      border: 1px solid #d2d2d7;
+      font: inherit;
+      font-size: 0.86rem;
+    }
+    .block-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .block-item {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 16px;
+    }
+    .block-item .return-box { flex-basis: 100%; }
+    .block-info { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+    .block-info .reason-visible { flex-basis: 100%; }
+    .status-badge[data-status='ACTIVA'] { background: #e8f8ee; color: #166534; }
+    .status-badge[data-status='BORRADOR'], .status-badge[data-status='PAUSADA'] { background: #f5f5f7; color: #3a3a3c; }
+    .status-badge[data-status='BLOQUEADA'] { background: #fef2f2; color: #991b1b; }
+    .btn-block { background: #ffffff; color: #b91c1c; border-color: #fecaca; }
     .notif-tag.returned { background: #fef2f2; color: #991b1b; }
   `],
 })
@@ -343,6 +438,12 @@ export class AdminModerationComponent implements OnInit {
   returnReasonInput = '';
   returnError = '';
   feedbackMessage = '';
+  /** HU-051: todas las publicaciones (cualquier estado) para bloquear las engañosas. */
+  allListings: ApiPendingListing[] = [];
+  blockFilter = '';
+  blockingListingId: string | null = null;
+  blockReasonInput = '';
+  blockError = '';
 
   ngOnInit(): void {
     void this.load();
@@ -370,6 +471,18 @@ export class AdminModerationComponent implements OnInit {
   /** CA3: publicaciones devueltas en esta visita, que pasaron a BORRADOR con motivo para el anfitrión. */
   get returnedDraftListings(): Listing[] {
     return this.listings.filter((item) => item.status === 'BORRADOR');
+  }
+
+  get filteredAllListings(): ApiPendingListing[] {
+    const term = this.blockFilter.trim().toLowerCase();
+    if (!term) return this.allListings;
+    return this.allListings.filter((item) =>
+      [item.title, item.city, item.hostName].some((value) => value?.toLowerCase().includes(term)),
+    );
+  }
+
+  statusLabel(status: ListingStatus): string {
+    return LISTING_STATUS_LABELS[status] ?? status;
   }
 
   toListing(item: ApiPendingListing): Listing {
@@ -417,10 +530,85 @@ export class AdminModerationComponent implements OnInit {
       }
       const reviewed = this.listings.filter((item) => item.status !== 'PENDIENTE_REVISION');
       this.listings = [...(body as ApiPendingListing[]).map((item) => this.toListing(item)), ...reviewed];
+      await this.loadAll();
     } catch {
       this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
     } finally {
       this.loading = false;
+    }
+  }
+
+  /** HU-051: carga todas las publicaciones, en cualquier estado. */
+  async loadAll(): Promise<void> {
+    const response = await fetch('/api/listings/admin/all', { headers: this.authHeaders() });
+    if (response.ok) {
+      this.allListings = (await response.json()) as ApiPendingListing[];
+    }
+  }
+
+  openBlockPrompt(id: string): void {
+    this.blockingListingId = id;
+    this.blockReasonInput = '';
+    this.blockError = '';
+  }
+
+  cancelBlock(): void {
+    this.blockingListingId = null;
+    this.blockReasonInput = '';
+    this.blockError = '';
+  }
+
+  /**
+   * HU-051 CA1, CA2, CA3: bloquea la publicación con el motivo; el API la saca de las búsquedas, pasa sus reservas
+   * futuras a EN_REVISION y notifica al anfitrión y a los huéspedes afectados.
+   */
+  async confirmBlock(id: string): Promise<void> {
+    const reason = this.blockReasonInput.trim();
+    if (reason.length < 5) {
+      this.blockError = 'Indica el motivo del bloqueo (al menos 5 caracteres).';
+      return;
+    }
+    const item = this.allListings.find((listing) => listing.id === id);
+    if (!item) return;
+
+    this.busyId = id;
+    this.blockError = '';
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(id)}/block`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify({ reason }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.blockError = this.apiError(response.status, body, 'No fue posible bloquear la publicación.');
+        return;
+      }
+      const result = body as ModerationResponse;
+      item.status = result.status;
+      item.blockReason = result.blockReason;
+      this.listings = this.listings.filter((listing) => listing.id !== id);
+      this.notifications.unshift({
+        id: result.notification.id,
+        listingId: id,
+        listingTitle: item.title,
+        hostName: item.hostName || 'Anfitrión',
+        type: result.notification.type,
+        message: result.notification.message,
+        reason: result.notification.reason,
+        createdAt: result.notification.createdAt,
+      });
+      const affected = result.bookingsUnderReview ?? [];
+      this.feedbackMessage =
+        `Publicación "${item.title}" BLOQUEADA: ya no aparece en las búsquedas y se notificó al anfitrión.` +
+        (affected.length > 0
+          ? ` ${affected.length} reserva(s) futura(s) pasaron a EN_REVISION (${affected.join(', ')}) y se avisó a sus huéspedes.`
+          : ' No tenía reservas futuras.');
+      this.cancelBlock();
+    } catch {
+      this.blockError = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.busyId = null;
     }
   }
 
