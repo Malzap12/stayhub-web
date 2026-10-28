@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BusinessDashboardComponent, Dashboard, fileNameFrom, toBars } from './business-dashboard.component';
 import { SESSION_STORAGE_KEY } from '../../core/guards/auth.guard';
 
-describe('BusinessDashboardComponent · HU-056', () => {
+describe('BusinessDashboardComponent · HU-056, HU-058 y HU-059', () => {
   let fixture: ComponentFixture<BusinessDashboardComponent>;
   let component: BusinessDashboardComponent;
 
@@ -137,6 +137,31 @@ describe('BusinessDashboardComponent · HU-056', () => {
     it('lee el nombre del archivo de Content-Disposition', () => {
       expect(fileNameFrom('attachment; filename="a.xlsx"', 'b.xlsx')).toBe('a.xlsx');
       expect(fileNameFrom(null, 'b.xlsx')).toBe('b.xlsx');
+    });
+  });
+
+  describe('HU-059 · Exportar reportes a PDF', () => {
+    it('CA1, CA2: descarga el reporte en PDF usando los mismos filtros que Excel', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.returnValue(json(dashboard));
+      await render();
+      const downloadSpy = spyOn(component, 'download');
+      fetchSpy.and.returnValue(
+        Promise.resolve(
+          new Response(new Blob(['%PDF-1.3']), {
+            status: 200,
+            headers: { 'Content-Disposition': 'attachment; filename="stayhub-ingresos-20261028T1530.pdf"' },
+          }),
+        ),
+      );
+      component.exportFilters = { report: 'ingresos', from: '2026-10-01', to: '2026-10-31', city: 'Medellín', status: '' };
+
+      await component.exportReportPdf();
+
+      const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+      expect(url).toBe('/api/reports/export/ingresos/pdf?from=2026-10-01&to=2026-10-31&city=Medell%C3%ADn');
+      expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer jwt-admin');
+      expect(downloadSpy).toHaveBeenCalledWith(jasmine.any(Blob), 'stayhub-ingresos-20261028T1530.pdf');
+      expect(component.exportMessage).toContain('stayhub-ingresos-20261028T1530.pdf');
     });
   });
 });
