@@ -99,6 +99,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/auditoria',
+    canActivate: [roleGuard(['ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/admin/audit-log.component').then(
+        (m) => m.AuditLogComponent,
+      ),
+  },
+  {
     path: 'acceso-denegado',
     loadComponent: () =>
       import('./features/auth/access-denied.component').then(
