@@ -83,12 +83,19 @@ describe('ListingDraftFormComponent (HU-010 · Crear publicación y HU-039 · Po
       { minHoursBeforeCheckIn: 48, refundPercentage: 100 },
       { minHoursBeforeCheckIn: 0, refundPercentage: 50 },
     ]);
-    expect(component.selectedCancellationPolicy.description).toContain('Por ejemplo, si tu llegada es el 15 de noviembre');
+    expect(component.selectedCancellationPolicy?.description).toContain('Por ejemplo, si tu llegada es el 15 de noviembre');
 
     component.form.title = 'Cabaña con política Flexible';
     component.selectCancellationPolicy('FLEXIBLE');
 
     expect(component.buildPayload()['cancellationPolicy']).toBe('FLEXIBLE');
+  });
+
+  it('HU-017 CA2: si no se elige política, el payload no incluye cancellationPolicy para que se asigne Flexible por defecto al activar', () => {
+    component.selectCancellationPolicy('');
+    expect(component.form.cancellationPolicy).toBe('');
+    expect(component.selectedCancellationPolicy).toBeNull();
+    expect(component.buildPayload()['cancellationPolicy']).toBeUndefined();
   });
 
   it('CA2: rechaza capacidad 0 y precio menor o igual a 0 con mensaje junto al campo', async () => {
