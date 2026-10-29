@@ -191,4 +191,84 @@ describe('MyListingsComponent · HU-012', () => {
       expect(component.listings[2].status).toBe('BORRADOR');
     });
   });
+
+  describe('HU-014 · Pausar y reactivar mi publicación', () => {
+    const active: MyListing = {
+      id: 'listing-4',
+      title: 'Casa en Jardín',
+      city: 'Jardín',
+      pricePerNight: 180000,
+      status: 'ACTIVA',
+      statusLabel: 'Activa',
+      isComplete: true,
+      missingFields: [],
+      createdAt: '2026-10-17T10:00:00.000Z',
+    };
+    const paused: MyListing = { ...active, id: 'listing-5', title: 'Loft pausado', status: 'PAUSADA', statusLabel: 'Pausada' };
+    const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+    it('las activas ofrecen pausar y las pausadas reactivar, con el aviso de que no reciben reservas', async () => {
+      respondWith(200, [active, paused]);
+      await render();
+
+      const cards = element.querySelectorAll('.listing-card');
+      expect(cards[0].querySelector('.pause-btn')).not.toBeNull();
+      expect(cards[0].querySelector('.reactivate-btn')).toBeNull();
+      expect(cards[1].querySelector('.reactivate-btn')).not.toBeNull();
+      expect(cards[1].querySelector('.paused-note')?.textContent).toContain('ni recibe reservas nuevas');
+    });
+
+    it('CA1 y CA3: pide confirmación, pausa y aclara que las reservas confirmadas se mantienen', async () => {
+      const fetchSpy = respondWith(200, [active, paused]);
+      await render();
+      (element.querySelector('.pause-btn') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(element.querySelector('.confirm-box')?.textContent).toContain('Tus reservas confirmadas se mantienen');
+      expect(fetchSpy.calls.count()).toBe(1);
+
+      fetchSpy.and.resolveTo(json({ ...active, status: 'PAUSADA', statusLabel: 'Pausada' }));
+      await component.pause(active);
+
+      expect(fetchSpy).toHaveBeenCalledWith('/api/listings/listing-4/pause', jasmine.objectContaining({ method: 'PATCH' }));
+      expect(component.listings[0].status).toBe('PAUSADA');
+      expect(component.confirmPauseId).toBeNull();
+      expect(component.successMessage).toContain('ya no aparece en las búsquedas');
+      expect(component.successMessage).toContain('reservas confirmadas se mantienen');
+    });
+
+    it('CA2: reactiva la publicación pausada sin nueva revisión', async () => {
+      const fetchSpy = respondWith(200, [active, paused]);
+      await render();
+      fetchSpy.and.resolveTo(json({ ...paused, status: 'ACTIVA', statusLabel: 'Activa' }));
+
+      await component.reactivate(paused);
+
+      expect(fetchSpy).toHaveBeenCalledWith('/api/listings/listing-5/reactivate', jasmine.objectContaining({ method: 'PATCH' }));
+      expect(component.listings[1].status).toBe('ACTIVA');
+      expect(component.successMessage).toContain('está activa de nuevo');
+    });
+
+    it('si el filtro queda vacío tras el cambio vuelve a «Todas»', async () => {
+      const fetchSpy = respondWith(200, [active]);
+      await render();
+      component.filter = 'ACTIVA';
+      fetchSpy.and.resolveTo(json({ ...active, status: 'PAUSADA', statusLabel: 'Pausada' }));
+
+      await component.pause(active);
+
+      expect(component.filter).toBe('TODAS');
+    });
+
+    it('muestra el error del API y no cambia la tarjeta', async () => {
+      const fetchSpy = respondWith(200, [active]);
+      await render();
+      fetchSpy.and.resolveTo(json({ message: 'Solo puedes pausar una publicación activa (estado actual: Pausada)' }, 400));
+
+      await component.pause(active);
+
+      expect(component.activationErrors['listing-4'].message).toContain('Solo puedes pausar una publicación activa');
+      expect(component.listings[0].status).toBe('ACTIVA');
+      expect(component.successMessage).toBe('');
+    });
+  });
 });
