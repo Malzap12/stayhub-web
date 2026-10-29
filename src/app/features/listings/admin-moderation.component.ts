@@ -56,15 +56,38 @@ export const USER_STATUS_LABELS: Record<ApiUser['status'], string> = {
   DESACTIVADA: 'Desactivada',
 };
 
-type ModerationTab = 'solicitudes' | 'publicaciones' | 'usuarios';
+/** Reserva EN_REVISION tal como la devuelve GET /api/bookings/under-review. */
+export interface ApiReviewBooking {
+  id: string;
+  code?: string;
+  listingId: string;
+  listingTitle?: string;
+  listingCity?: string;
+  listingImage?: string;
+  guestId: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  totalAmount: number;
+  currency: string;
+  reviewReason?: string;
+  underReviewAt?: string;
+  statusBeforeReview?: string;
+}
+
+export type ReviewDecision = 'MANTENER' | 'CANCELAR';
+
+type ModerationTab = 'solicitudes' | 'reservas' | 'publicaciones' | 'usuarios';
 
 interface ReasonDialog {
-  kind: 'return' | 'block' | 'restrict';
+  kind: 'return' | 'block' | 'restrict' | 'keep' | 'cancel';
   title: string;
   subject: string;
   help: string;
   placeholder: string;
   confirm: string;
+  /** La nota es opcional al resolver una reserva; el motivo es obligatorio en las demás acciones. */
+  optional?: boolean;
 }
 
 interface ModerationResponse {
@@ -90,6 +113,7 @@ interface ModerationResponse {
         </div>
         <div class="kpis">
           <div class="kpi"><strong>{{ pendingQueue.length }}</strong><span>Solicitudes</span></div>
+          <div class="kpi" [class.alert]="reviewBookings.length > 0"><strong>{{ reviewBookings.length }}</strong><span>Reservas en revisión</span></div>
           <div class="kpi"><strong>{{ countListings('ACTIVA') }}</strong><span>Activas</span></div>
           <div class="kpi"><strong>{{ countListings('BLOQUEADA') }}</strong><span>Bloqueadas</span></div>
           <div class="kpi"><strong>{{ restrictedUsersCount }}</strong><span>Usuarios restringidos</span></div>
@@ -109,6 +133,9 @@ interface ModerationResponse {
       <nav class="tabs" role="tablist" aria-label="Secciones de moderación">
         <button type="button" role="tab" [class.active]="activeTab === 'solicitudes'" [attr.aria-selected]="activeTab === 'solicitudes'" (click)="activeTab = 'solicitudes'">
           Solicitudes <span class="count">{{ pendingQueue.length }}</span>
+        </button>
+        <button type="button" role="tab" class="tab-reservas" [class.active]="activeTab === 'reservas'" [attr.aria-selected]="activeTab === 'reservas'" (click)="openReviewTab()">
+          Reservas en revisión <span class="count" [class.alert]="reviewBookings.length > 0">{{ reviewBookings.length }}</span>
         </button>
         <button type="button" role="tab" [class.active]="activeTab === 'publicaciones'" [attr.aria-selected]="activeTab === 'publicaciones'" (click)="activeTab = 'publicaciones'">
           Publicaciones <span class="count">{{ allListings.length }}</span>
@@ -160,6 +187,53 @@ interface ModerationResponse {
               <span><strong>{{ n.listingTitle }}</strong> · {{ n.hostName }}</span>
             </li>
           </ul>
+        </div>
+      </section>
+
+      <!-- Reservas en revisión: el administrador decide si se mantienen o se cancelan -->
+      <section class="panel" *ngIf="activeTab === 'reservas'" aria-label="Reservas en revisión">
+        <div class="panel-head">
+          <div>
+            <h2>Reservas en revisión</h2>
+            <p>
+              Quedaron en revisión porque se bloqueó su alojamiento o se restringió a su anfitrión. Mantén la reserva si el huésped
+              puede hospedarse con normalidad, o cancélala para devolverle el 100 % de lo pagado y liberar las fechas.
+            </p>
+          </div>
+        </div>
+
+        <p class="empty-state" *ngIf="reviewLoading && reviewBookings.length === 0" role="status">Cargando reservas…</p>
+        <div class="empty-state" *ngIf="!reviewLoading && reviewBookings.length === 0">
+          <strong>Ninguna reserva por resolver</strong>
+          <span>Cuando bloquees una publicación con reservas futuras, aparecerán aquí.</span>
+        </div>
+
+        <div class="review-list" *ngIf="reviewBookings.length > 0">
+          <article class="review-card" *ngFor="let b of reviewBookings" [attr.data-id]="b.id">
+            <div class="review-media">
+              <img *ngIf="b.listingImage; else noReviewPhoto" [src]="b.listingImage" [alt]="b.listingTitle || 'Alojamiento'" loading="lazy" />
+              <ng-template #noReviewPhoto><div class="no-photo">Sin foto</div></ng-template>
+            </div>
+            <div class="review-body">
+              <div class="review-top">
+                <span class="code">Reserva {{ b.code || b.id }}</span>
+                <span class="since" *ngIf="b.underReviewAt">En revisión desde el {{ b.underReviewAt | date: 'd MMM y, h:mm a' }}</span>
+              </div>
+              <h3>{{ b.listingTitle || 'Alojamiento' }}</h3>
+              <dl class="facts">
+                <div><dt>Huésped</dt><dd>{{ b.guestId }}</dd></div>
+                <div><dt>Fechas</dt><dd>{{ b.checkIn | date: 'd MMM' }} – {{ b.checkOut | date: 'd MMM y' }} · {{ nightsOf(b) }} {{ nightsOf(b) === 1 ? 'noche' : 'noches' }}</dd></div>
+                <div><dt>Total</dt><dd>{{ money(b.totalAmount, b.currency) }}<span class="unpaid" *ngIf="b.statusBeforeReview === 'PENDIENTE'"> · sin pagar</span></dd></div>
+              </dl>
+              <p class="review-reason" *ngIf="b.reviewReason">{{ b.reviewReason }}</p>
+              <div class="row-actions">
+                <button type="button" class="btn primary btn-keep" [disabled]="busyId === b.id" (click)="openResolvePrompt(b.id, 'MANTENER')">Mantener reserva</button>
+                <button type="button" class="btn danger btn-cancel-booking" [disabled]="busyId === b.id" (click)="openResolvePrompt(b.id, 'CANCELAR')">
+                  Cancelar y devolver 100 %
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -275,7 +349,7 @@ interface ModerationResponse {
           <h2>{{ d.title }}</h2>
           <p class="dialog-subject">{{ d.subject }}</p>
           <p class="dialog-help">{{ d.help }}</p>
-          <label for="dialog-reason">Motivo (obligatorio)</label>
+          <label for="dialog-reason">{{ d.optional ? 'Nota (opcional)' : 'Motivo (obligatorio)' }}</label>
           <textarea
             id="dialog-reason"
             rows="4"
@@ -286,7 +360,7 @@ interface ModerationResponse {
           <p class="error-msg" *ngIf="dialogError">{{ dialogError }}</p>
           <div class="dialog-actions">
             <button type="button" class="btn ghost" (click)="closeDialog()">Cancelar</button>
-            <button type="button" class="btn" [class.danger]="d.kind !== 'return'" [class.primary]="d.kind === 'return'" [disabled]="busyId !== null" (click)="confirmDialog()">
+            <button type="button" class="btn" [class.danger]="d.kind !== 'return' && d.kind !== 'keep'" [class.primary]="d.kind === 'return' || d.kind === 'keep'" [disabled]="busyId !== null" (click)="confirmDialog()">
               {{ busyId !== null ? 'Guardando…' : d.confirm }}
             </button>
           </div>
@@ -303,7 +377,24 @@ interface ModerationResponse {
     .eyebrow { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #86868b; }
     h1 { margin: 6px 0 6px; font-size: 2rem; letter-spacing: -0.03em; }
     .subtitle { margin: 0; color: #6e6e73; line-height: 1.5; max-width: 560px; }
-    .kpis { display: grid; grid-template-columns: repeat(4, minmax(96px, 1fr)); gap: 10px; }
+    .kpis { display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)); gap: 10px; }
+    .kpi.alert { border-color: #f5d0a9; background: #fffaf3; }
+    .tabs .count.alert { background: #fff4e5; color: #9a5b00; }
+    .tabs button.active .count.alert { background: #9a5b00; color: #fff; }
+    .review-list { display: flex; flex-direction: column; gap: 14px; }
+    .review-card { display: grid; grid-template-columns: 180px minmax(0, 1fr); border: 1px solid #e5e5ea; border-radius: 18px; overflow: hidden; }
+    .review-media { background: #f2f2f7; min-height: 150px; }
+    .review-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .review-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .review-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .code { font-size: 0.78rem; font-weight: 700; color: #3a3a3c; letter-spacing: 0.02em; }
+    .review-body h3 { margin: 0; font-size: 1.05rem; }
+    .facts { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .facts div { min-width: 0; }
+    .facts dt { font-size: 0.7rem; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .facts dd { margin: 2px 0 0; font-size: 0.86rem; overflow-wrap: anywhere; }
+    .unpaid { color: #9a5b00; font-weight: 600; }
+    .review-reason { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fff7ed; color: #9a3412; font-size: 0.82rem; line-height: 1.45; }
     .kpi {
       background: #fff; border: 1px solid #e5e5ea; border-radius: 16px; padding: 12px 14px;
       display: flex; flex-direction: column; gap: 2px; min-width: 0;
@@ -421,6 +512,9 @@ interface ModerationResponse {
     .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
     @media (max-width: 760px) {
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+      .review-card { grid-template-columns: 1fr; }
+      .review-media { min-height: 0; aspect-ratio: 16 / 7; }
+      .facts { grid-template-columns: 1fr; }
       .panel { padding: 16px; }
       .table-head { display: none; }
       .table-row { grid-template-columns: 1fr auto; row-gap: 8px; }
@@ -455,6 +549,13 @@ export class AdminModerationComponent implements OnInit {
   blockError = '';
 
   activeTab: ModerationTab = 'solicitudes';
+  /** HU-052: reservas EN_REVISION que esperan la decisión del administrador. */
+  reviewBookings: ApiReviewBooking[] = [];
+  reviewLoading = false;
+  resolvingBookingId: string | null = null;
+  resolveDecision: ReviewDecision = 'MANTENER';
+  resolveNoteInput = '';
+  resolveError = '';
   listingStatusFilter: ListingStatus | '' = '';
   userRoleFilter: 'HUESPED' | 'ANFITRION' | 'RESTRINGIDA' | '' = '';
   readonly pageSize = 10;
@@ -531,6 +632,31 @@ export class AdminModerationComponent implements OnInit {
 
   /** Diálogo del motivo para devolver, bloquear o restringir, según la acción abierta. */
   get dialog(): ReasonDialog | null {
+    if (this.resolvingBookingId) {
+      const booking = this.reviewBookings.find((item) => item.id === this.resolvingBookingId);
+      const subject = `Reserva ${booking?.code ?? ''} · ${booking?.listingTitle ?? 'Alojamiento'}`;
+      return this.resolveDecision === 'MANTENER'
+        ? {
+            kind: 'keep',
+            title: 'Mantener la reserva',
+            subject,
+            help: 'La reserva vuelve a estar confirmada con las mismas fechas. Se avisará al huésped y al anfitrión.',
+            placeholder: 'Ej. Se verificó que el alojamiento corresponde a lo publicado.',
+            confirm: 'Mantener reserva',
+            optional: true,
+          }
+        : {
+            kind: 'cancel',
+            title: 'Cancelar la reserva',
+            subject,
+            help:
+              `Se cancela con devolución simulada del 100 % (${booking ? this.refundOf(booking) : ''}) y sus noches vuelven a ` +
+              'estar disponibles. Se avisará al huésped y al anfitrión.',
+            placeholder: 'Ej. El alojamiento no corresponde a lo publicado.',
+            confirm: 'Cancelar y devolver',
+            optional: true,
+          };
+    }
     if (this.returningListingId) {
       return {
         kind: 'return',
@@ -565,18 +691,21 @@ export class AdminModerationComponent implements OnInit {
   }
 
   get dialogReason(): string {
+    if (this.resolvingBookingId) return this.resolveNoteInput;
     if (this.returningListingId) return this.returnReasonInput;
     if (this.blockingListingId) return this.blockReasonInput;
     return this.restrictReasonInput;
   }
 
   setDialogReason(value: string): void {
-    if (this.returningListingId) this.returnReasonInput = value;
+    if (this.resolvingBookingId) this.resolveNoteInput = value;
+    else if (this.returningListingId) this.returnReasonInput = value;
     else if (this.blockingListingId) this.blockReasonInput = value;
     else this.restrictReasonInput = value;
   }
 
   get dialogError(): string {
+    if (this.resolvingBookingId) return this.resolveError;
     if (this.returningListingId) return this.returnError;
     if (this.blockingListingId) return this.blockError;
     return this.restrictError;
@@ -584,13 +713,15 @@ export class AdminModerationComponent implements OnInit {
 
   closeDialog(): void {
     if (this.busyId) return;
+    this.cancelResolve();
     this.cancelReturn();
     this.cancelBlock();
     this.cancelRestrict();
   }
 
   async confirmDialog(): Promise<void> {
-    if (this.returningListingId) await this.confirmReturn(this.returningListingId);
+    if (this.resolvingBookingId) await this.confirmResolve(this.resolvingBookingId);
+    else if (this.returningListingId) await this.confirmReturn(this.returningListingId);
     else if (this.blockingListingId) await this.confirmBlock(this.blockingListingId);
     else if (this.restrictingUserId) await this.confirmRestrict(this.restrictingUserId);
   }
@@ -646,6 +777,7 @@ export class AdminModerationComponent implements OnInit {
       this.listings = [...(body as ApiPendingListing[]).map((item) => this.toListing(item)), ...reviewed];
       await this.loadAll();
       await this.loadUsers();
+      await this.loadUnderReview();
     } catch {
       this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
     } finally {
@@ -661,7 +793,100 @@ export class AdminModerationComponent implements OnInit {
     }
   }
 
-  
+    /** HU-052: carga las reservas en revisión, de la más antigua a la más reciente. */
+  async loadUnderReview(): Promise<void> {
+    this.reviewLoading = true;
+    try {
+      const response = await fetch('/api/bookings/under-review', { headers: this.authHeaders() });
+      if (response.ok) {
+        const body = await response.json();
+        this.reviewBookings = Array.isArray(body) ? (body as ApiReviewBooking[]) : [];
+      }
+    } catch {
+      this.errorMessage = 'No fue posible cargar las reservas en revisión.';
+    } finally {
+      this.reviewLoading = false;
+    }
+  }
+
+  /** Abre la pestaña y la actualiza: un bloqueo o una restricción reciente pudo dejar reservas nuevas en revisión. */
+  openReviewTab(): void {
+    this.activeTab = 'reservas';
+    void this.loadUnderReview();
+  }
+
+  nightsOf(booking: ApiReviewBooking): number {
+    return Math.max(0, Math.round((Date.parse(booking.checkOut) - Date.parse(booking.checkIn)) / 86_400_000));
+  }
+
+  money(amount: number, currency = 'COP'): string {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+  }
+
+  /** Devolución del 100 % de lo pagado: cero si la reserva aún no estaba pagada. */
+  refundOf(booking: ApiReviewBooking): string {
+    return this.money(booking.statusBeforeReview === 'PENDIENTE' ? 0 : booking.totalAmount, booking.currency);
+  }
+
+  openResolvePrompt(id: string, decision: ReviewDecision): void {
+    this.resolvingBookingId = id;
+    this.resolveDecision = decision;
+    this.resolveNoteInput = '';
+    this.resolveError = '';
+  }
+
+  cancelResolve(): void {
+    this.resolvingBookingId = null;
+    this.resolveNoteInput = '';
+    this.resolveError = '';
+  }
+
+  /**
+   * HU-052 CA1 y CA2: mantener devuelve la reserva a CONFIRMADA; cancelar la pasa a CANCELADA con devolución
+   * simulada del 100 % y libera sus noches. En ambos casos el API avisa al huésped y al anfitrión.
+   */
+  async confirmResolve(id: string): Promise<void> {
+    const booking = this.reviewBookings.find((item) => item.id === id);
+    if (!booking) return;
+    const decision = this.resolveDecision;
+    const note = this.resolveNoteInput.trim();
+
+    this.busyId = id;
+    this.resolveError = '';
+    try {
+      const response = await fetch(`/api/bookings/${encodeURIComponent(id)}/resolve-review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify(note ? { decision, note } : { decision }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.resolveError = this.apiError(response.status, body, 'No fue posible resolver la reserva.');
+        return;
+      }
+      const result = body as { status: string; cancellation?: { refundAmount: number; releasedNights: string[] } };
+      const code = booking.code ?? booking.id;
+      if (decision === 'MANTENER') {
+        this.feedbackMessage =
+          result.status === 'PENDIENTE'
+            ? `La reserva ${code} se mantuvo y sigue pendiente de pago. Se avisó al huésped y al anfitrión.`
+            : `La reserva ${code} se mantuvo y sigue confirmada. Se avisó al huésped y al anfitrión.`;
+      } else {
+        const nights = result.cancellation?.releasedNights?.length ?? 0;
+        this.feedbackMessage =
+          `La reserva ${code} quedó cancelada con devolución simulada de ${this.money(result.cancellation?.refundAmount ?? 0, booking.currency)} (100 %). ` +
+          (nights > 0 ? `${nights} noche(s) quedaron libres. ` : '') +
+          'Se avisó al huésped y al anfitrión.';
+      }
+      this.reviewBookings = this.reviewBookings.filter((item) => item.id !== id);
+      this.cancelResolve();
+    } catch {
+      this.resolveError = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.busyId = null;
+    }
+  }
+
   /** HU-053: carga todos los usuarios para la sección de restricciones. */
   async loadUsers(): Promise<void> {
     const response = await fetch('/api/users', { headers: this.authHeaders() });
