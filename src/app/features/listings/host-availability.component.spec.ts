@@ -209,4 +209,90 @@ describe('HostAvailabilityComponent · HU-019 y HU-023', () => {
       expect(check?.blockedDates).toEqual(['2027-06-11']);
     });
   });
+  describe('HU-020 · Modificar o eliminar periodos disponibles (CA1, CA2)', () => {
+    it('CA1: elimina un periodo sin reservas confirmadas y lo retira de la lista', async () => {
+      await load([existing]);
+      fetchSpy.and.callFake(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'DELETE' && String(url).includes('/availability-periods/period-1')) {
+          return reply(200, { success: true, message: 'Periodo disponible eliminado correctamente' });
+        }
+        return reply(200, {});
+      });
+
+      const deleted = await component.deletePeriod('period-1');
+
+      expect(deleted).toBeTrue();
+      expect(component.periods).toEqual([]);
+      expect(component.successMessage).toContain('eliminado correctamente');
+    });
+
+    it('CA1: modifica o reduce un periodo sin reservas y actualiza sus fechas', async () => {
+      await load([existing]);
+      const updatedPeriod = { ...existing, startDate: '2027-06-12', endDate: '2027-06-18' };
+      fetchSpy.and.callFake(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'PATCH' && String(url).includes('/availability-periods/period-1')) {
+          return reply(200, updatedPeriod);
+        }
+        return reply(200, {});
+      });
+
+      component.startEditing(existing);
+      expect(component.editingPeriodId).toBe('period-1');
+      expect(component.editStartDate).toBe('2027-06-10');
+      expect(component.editEndDate).toBe('2027-06-20');
+
+      component.editStartDate = '2027-06-12';
+      component.editEndDate = '2027-06-18';
+      const result = await component.savePeriod('period-1');
+
+      expect(result).toEqual(updatedPeriod);
+      expect(component.periods[0].startDate).toBe('2027-06-12');
+      expect(component.periods[0].endDate).toBe('2027-06-18');
+      expect(component.editingPeriodId).toBe('');
+      expect(component.successMessage).toContain('modificado correctamente');
+    });
+
+    it('CA2: impide eliminar un periodo con reservas confirmadas y muestra las reservas afectadas', async () => {
+      await load([existing]);
+      const affected = [{ bookingId: 'booking-1', code: 'STAY-001', checkIn: '2027-06-12', checkOut: '2027-06-15' }];
+      fetchSpy.and.callFake(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'DELETE') {
+          return reply(400, {
+            message: 'No es posible eliminar el periodo porque contiene reservas confirmadas: STAY-001.',
+            affectedBookings: affected,
+          });
+        }
+        return reply(200, {});
+      });
+
+      const deleted = await component.deletePeriod('period-1');
+
+      expect(deleted).toBeFalse();
+      expect(component.periods).toHaveSize(1);
+      expect(component.errorMessage).toContain('reservas confirmadas');
+      expect(component.affectedBookings).toEqual(affected);
+    });
+
+    it('CA2: impide reducir un periodo cuando las fechas retiradas afectan reservas confirmadas', async () => {
+      await load([existing]);
+      const affected = [{ bookingId: 'booking-2', code: 'STAY-002', checkIn: '2027-06-16', checkOut: '2027-06-19' }];
+      fetchSpy.and.callFake(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'PATCH') {
+          return reply(400, {
+            message: 'No es posible modificar el periodo porque contiene reservas confirmadas: STAY-002.',
+            affectedBookings: affected,
+          });
+        }
+        return reply(200, {});
+      });
+
+      component.startEditing(existing);
+      component.editEndDate = '2027-06-15';
+      const result = await component.savePeriod('period-1');
+
+      expect(result).toBeNull();
+      expect(component.errorMessage).toContain('reservas confirmadas');
+      expect(component.affectedBookings).toEqual(affected);
+    });
+  });
 });

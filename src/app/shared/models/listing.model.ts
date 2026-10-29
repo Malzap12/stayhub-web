@@ -5,6 +5,13 @@ export type ListingStatus =
   | 'PAUSADA'
   | 'BLOQUEADA';
 
+export interface AffectedBooking {
+  bookingId: string;
+  code?: string;
+  checkIn: string;
+  checkOut: string;
+}
+
 export interface AvailabilityPeriod {
   id: string;
   listingId: string;
