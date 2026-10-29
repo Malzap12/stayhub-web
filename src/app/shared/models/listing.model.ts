@@ -74,6 +74,7 @@ export interface MyListing {
   statusLabel: string;
   adminReasonType?: 'DEVUELTA' | 'BLOQUEADA';
   adminReason?: string;
+  cancellationPolicy?: string;
   isComplete: boolean;
   missingFields: string[];
   createdAt: string;

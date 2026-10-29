@@ -82,6 +82,10 @@ interface ActivationFailure {
                   <span [class.pending]="!item.city">{{ item.city || 'Ciudad pendiente' }}</span>
                   <span class="dot" aria-hidden="true">·</span>
                   <span [class.pending]="item.pricePerNight == null">{{ priceLabel(item) }}</span>
+                  <ng-container *ngIf="item.cancellationPolicy">
+                    <span class="dot" aria-hidden="true">·</span>
+                    <span>Política {{ item.cancellationPolicy === 'FLEXIBLE' ? 'Flexible' : item.cancellationPolicy }}</span>
+                  </ng-container>
                 </p>
                 <p class="incomplete" *ngIf="!item.isComplete && item.status === 'BORRADOR'">
                   Información pendiente: {{ item.missingFields.length }} campo(s) por completar.
@@ -150,6 +154,16 @@ interface ActivationFailure {
               >
                 Limpieza y descuento por estancia larga →
               </a>
+
+              <!-- HU-017 CA1: asociar política de cancelación Flexible -->
+              <button
+                *ngIf="item.status === 'BORRADOR' && !item.cancellationPolicy"
+                type="button"
+                class="policy-link-btn"
+                (click)="associateFlexiblePolicy(item)"
+              >
+                Asociar política Flexible →
+              </button>
             </li>
           </ul>
 
@@ -458,6 +472,25 @@ export class MyListingsComponent implements OnInit {
   private authHeaders(): Record<string, string> {
     const token = getActiveSession()?.token;
     return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  /** HU-017 CA1: asocia la política de cancelación Flexible a una publicación. */
+  async associateFlexiblePolicy(item: MyListing): Promise<void> {
+    const token = getActiveSession()?.token;
+    if (!token) return;
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(item.id)}/cancellation-policy`, {
+        method: 'PATCH',
+        headers: this.authHeaders(),
+        body: JSON.stringify({ code: 'FLEXIBLE' }),
+      });
+      if (response.ok) {
+        item.cancellationPolicy = 'FLEXIBLE';
+        this.successMessage = 'Política Flexible asociada a la publicación.';
+      }
+    } catch {
+      this.errorMessage = 'No fue posible asociar la política de cancelación.';
+    }
   }
 
   /** HU-013: envía el borrador a revisión; si faltan campos muestra cuáles (CA2). */

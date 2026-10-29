@@ -291,9 +291,10 @@ const emptyForm = (): ListingDraftForm => ({
             <select
               id="draft-cancellation-policy"
               name="cancellationPolicy"
-              [ngModel]="form.cancellationPolicy || 'FLEXIBLE'"
+              [ngModel]="form.cancellationPolicy"
               (ngModelChange)="selectCancellationPolicy($event)"
             >
+              <option value="">Por defecto (Flexible al solicitar activación)</option>
               <option *ngFor="let policy of cancellationPolicies" [value]="policy.code">
                 {{ policy.name }} (100 % hasta 48 h antes · 50 % después)
               </option>
@@ -919,7 +920,7 @@ export class ListingDraftFormComponent implements OnInit {
   readonly maxImages = MAX_IMAGES;
 
   cancellationPolicies: CancellationPolicyOption[] = CANCELLATION_POLICIES_CATALOG;
-  selectedCancellationPolicy: CancellationPolicyOption = CANCELLATION_POLICIES_CATALOG[0];
+  selectedCancellationPolicy: CancellationPolicyOption | null = null;
 
   form: ListingDraftForm = emptyForm();
   uploadedImages: string[] = [];
@@ -944,15 +945,16 @@ export class ListingDraftFormComponent implements OnInit {
       if (Array.isArray(policies) && policies.length > 0) {
         this.cancellationPolicies = policies;
         this.selectedCancellationPolicy =
-          policies.find((item) => item.code === (this.form.cancellationPolicy || 'FLEXIBLE')) ?? policies[0];
+          policies.find((item) => item.code === this.form.cancellationPolicy) ?? policies[0];
       }
     }
   }
 
-  selectCancellationPolicy(code: CancellationPolicyCode): void {
+  selectCancellationPolicy(code: CancellationPolicyCode | ''): void {
     this.form.cancellationPolicy = code;
-    this.selectedCancellationPolicy =
-      this.cancellationPolicies.find((item) => item.code === code) ?? CANCELLATION_POLICIES_CATALOG[0];
+    this.selectedCancellationPolicy = code
+      ? (this.cancellationPolicies.find((item) => item.code === code) ?? CANCELLATION_POLICIES_CATALOG[0])
+      : null;
   }
 
   private authHeaders(): Record<string, string> {
