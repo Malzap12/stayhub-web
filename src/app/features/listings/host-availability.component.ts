@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { AvailabilityCalendarComponent } from './availability-calendar.component';
 import {
+  AffectedBooking,
   AvailabilityCheckResult,
   AvailabilityPeriod,
   BlockedPeriod,
@@ -16,6 +17,8 @@ interface PeriodErrorBody {
   message?: string | string[];
   conflictingPeriod?: Pick<AvailabilityPeriod, 'id' | 'startDate' | 'endDate'>;
   blockedDates?: string[];
+  affectedBookings?: AffectedBooking[];
+  affectedReservations?: AffectedBooking[];
 }
 
 /** Fecha YYYY-MM-DD en la hora local del navegador (toISOString usaría UTC y en la noche ya sería mañana). */
@@ -399,6 +402,75 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       background: #fef2f2;
       color: #991b1b;
     }
+    
+    .period-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+    .period-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .period-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      border: none;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #d1d1d6;
+      color: #1d1d1f;
+    }
+    .btn-outline:hover {
+      background: #f5f5f7;
+    }
+    .btn-danger {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+    .edit-period-box {
+      width: 100%;
+      background: #f5f5f7;
+      padding: 12px;
+      border-radius: 10px;
+    }
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .affected-bookings-box {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(153, 27, 27, 0.2);
+    }
+    .affected-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .affected-list {
+      margin: 4px 0 0 16px;
+      padding: 0;
+      font-size: 0.85rem;
+    }
+    .error-text {
+      margin: 0;
+    }
     .empty-msg {
       color: #86868b;
       font-size: 0.86rem;
@@ -426,6 +498,10 @@ export class HostAvailabilityComponent implements OnInit {
   successMessage = '';
   /** HU-019 CA3: periodo existente con el que chocó el último intento, resaltado en la lista. */
   conflictingPeriodId = '';
+  editingPeriodId = '';
+  editStartDate = '';
+  editEndDate = '';
+  affectedBookings: AffectedBooking[] = [];
 
   loadingListings = false;
   loadingPeriods = false;
@@ -451,6 +527,100 @@ export class HostAvailabilityComponent implements OnInit {
     this.reservedPeriods = [];
     this.availabilityResult = null;
     await this.loadPeriods();
+  }
+
+
+  startEditing(period: AvailabilityPeriod): void {
+    this.clearFeedback();
+    this.editingPeriodId = period.id;
+    this.editStartDate = period.startDate;
+    this.editEndDate = period.endDate;
+  }
+
+  cancelEditing(): void {
+    this.editingPeriodId = '';
+    this.editStartDate = '';
+    this.editEndDate = '';
+  }
+
+  async savePeriod(periodId: string): Promise<AvailabilityPeriod | null> {
+    this.clearFeedback();
+    const startDate = this.editStartDate?.trim();
+    const endDate = this.editEndDate?.trim();
+
+    if (!startDate || !endDate) {
+      this.errorMessage = 'Debes indicar la fecha de inicio y la fecha de fin.';
+      return null;
+    }
+
+    if (endDate <= startDate) {
+      this.errorMessage = 'La fecha de fin debe ser posterior a la fecha de inicio.';
+      return null;
+    }
+
+    this.saving = true;
+    try {
+      const response = await fetch(`${this.periodsUrl()}/${encodeURIComponent(periodId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify({ startDate, endDate }),
+      });
+      const body = (await response.json().catch(() => ({}))) as AvailabilityPeriod & PeriodErrorBody;
+
+      if (!response.ok) {
+        if (body.affectedBookings?.length || body.affectedReservations?.length) {
+          this.affectedBookings = body.affectedBookings ?? body.affectedReservations ?? [];
+        }
+        this.showServerError(response.status, body);
+        return null;
+      }
+
+      const updated = body as AvailabilityPeriod;
+      this.periods = this.periods
+        .map((p) => (p.id === periodId ? updated : p))
+        .sort((a, b) => a.startDate.localeCompare(b.startDate));
+      this.editingPeriodId = '';
+      this.editStartDate = '';
+      this.editEndDate = '';
+      this.successMessage = `Periodo modificado correctamente (${updated.startDate} al ${updated.endDate}).`;
+      void this.calendar?.load();
+      return updated;
+    } catch {
+      this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      return null;
+    } finally {
+      this.saving = false;
+    }
+  }
+
+  async deletePeriod(periodId: string): Promise<boolean> {
+    this.clearFeedback();
+    this.saving = true;
+    try {
+      const response = await fetch(`${this.periodsUrl()}/${encodeURIComponent(periodId)}`, {
+        method: 'DELETE',
+        headers: this.authHeaders(),
+      });
+      const body = (await response.json().catch(() => ({}))) as PeriodErrorBody;
+
+      if (!response.ok) {
+        if (body.affectedBookings?.length || body.affectedReservations?.length) {
+          this.affectedBookings = body.affectedBookings ?? body.affectedReservations ?? [];
+        }
+        this.showServerError(response.status, body);
+        return false;
+      }
+
+      this.periods = this.periods.filter((p) => p.id !== periodId);
+      this.successMessage = 'Periodo disponible eliminado correctamente.';
+      void this.calendar?.load();
+      return true;
+    } catch {
+      this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      return false;
+    } finally {
+      this.saving = false;
+    }
   }
 
   nightsLabel(period: AvailabilityPeriod): string {
