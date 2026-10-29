@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 
 export type PropertyType = 'CASA' | 'APARTAMENTO' | 'CABANA' | 'FINCA' | 'HABITACION' | 'OTRO';
@@ -359,7 +359,7 @@ const emptyForm = (): ListingDraftForm => ({
           <div class="form-actions">
             <span class="muted">Solo el título es obligatorio. Puedes completar el resto después.</span>
             <button type="submit" class="btn-primary" [disabled]="loading || uploading">
-              {{ loading ? 'Guardando…' : 'Guardar borrador' }}
+              {{ loading ? 'Guardando…' : (isEditMode ? 'Guardar cambios' : 'Guardar borrador') }}
             </button>
           </div>
         </form>
@@ -922,6 +922,8 @@ export class ListingDraftFormComponent implements OnInit {
   cancellationPolicies: CancellationPolicyOption[] = CANCELLATION_POLICIES_CATALOG;
   selectedCancellationPolicy: CancellationPolicyOption | null = null;
 
+  listingId = '';
+  isEditMode = false;
   form: ListingDraftForm = emptyForm();
   uploadedImages: string[] = [];
   uploading = false;
@@ -932,9 +934,45 @@ export class ListingDraftFormComponent implements OnInit {
   myListings: SavedDraft[] = [];
   loading = false;
 
+  constructor(private readonly route?: ActivatedRoute) {}
+
   ngOnInit(): void {
+    this.listingId = this.route?.snapshot?.paramMap?.get('id') ?? '';
+    this.isEditMode = !!this.listingId;
+    if (this.isEditMode) {
+      void this.loadListingForEdit(this.listingId);
+    }
     void this.loadMyListings().catch(() => undefined);
     void this.loadCancellationPolicies().catch(() => undefined);
+  }
+
+  async loadListingForEdit(id: string): Promise<void> {
+    this.loading = true;
+    try {
+      const response = await fetch(`/api/listings/${id}`, { headers: this.authHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        this.form.title = data.title ?? '';
+        this.form.description = data.description ?? '';
+        this.form.city = data.city ?? '';
+        this.form.department = data.department ?? '';
+        this.form.address = data.address ?? '';
+        this.form.propertyType = data.propertyType ?? '';
+        this.form.maxGuests = data.maxGuests ?? null;
+        this.form.pricePerNight = data.pricePerNight ?? null;
+        this.form.amenities = Array.isArray(data.amenities) ? [...data.amenities] : [];
+        this.form.rulesText = Array.isArray(data.rules) ? data.rules.join('\n') : '';
+        this.uploadedImages = Array.isArray(data.images) ? [...data.images] : [];
+        if (data.cancellationPolicy?.code) {
+          this.form.cancellationPolicy = data.cancellationPolicy.code;
+          this.selectCancellationPolicy(data.cancellationPolicy.code);
+        }
+      }
+    } catch {
+      this.errors = { form: 'No fue posible cargar la información de la publicación.' };
+    } finally {
+      this.loading = false;
+    }
   }
 
   /** HU-039 CA1: consulta el catálogo de políticas de cancelación y permite asociar la Flexible a la publicación. */
@@ -1135,19 +1173,25 @@ export class ListingDraftFormComponent implements OnInit {
 
     this.loading = true;
     try {
-      const response = await fetch('/api/listings', {
-        method: 'POST',
+      const url = this.isEditMode ? `/api/listings/${this.listingId}` : '/api/listings';
+      const method = this.isEditMode ? 'PATCH' : 'POST';
+      const response = await fetch(url, {
+        method,
         headers: this.authHeaders(),
         body: JSON.stringify(this.buildPayload()),
       });
       const body = await response.json().catch(() => ({}));
 
       if (response.status === 403) {
-        this.errors = { form: 'Solo los anfitriones pueden crear publicaciones.' };
+        this.errors = { form: 'Solo los anfitriones pueden gestionar publicaciones.' };
         return;
       }
       if (response.status === 401) {
         this.errors = { form: 'Tu sesión expiró. Inicia sesión de nuevo.' };
+        return;
+      }
+      if (response.status === 404) {
+        this.errors = { form: 'Publicación no encontrada o no tienes permisos sobre ella.' };
         return;
       }
       if (!response.ok) {
