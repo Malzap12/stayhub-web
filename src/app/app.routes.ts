@@ -58,6 +58,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'anfitrion/publicaciones/:id/editar',
+    canActivate: [roleGuard(['ANFITRION'])],
+    loadComponent: () =>
+      import('./features/listings/listing-draft-form.component').then(
+        (m) => m.ListingDraftFormComponent,
+      ),
+  },
+  {
     path: 'anfitrion/publicaciones/nueva',
     canActivate: [roleGuard(['ANFITRION'])],
     loadComponent: () =>

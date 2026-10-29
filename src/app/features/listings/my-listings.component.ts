@@ -191,6 +191,13 @@ interface ActivationFailure {
                 Tarifas y servicios adicionales →
               </a>
 
+              <a
+                *ngIf="item.status !== 'BLOQUEADA'"
+                class="availability-link"
+                [routerLink]="['/anfitrion/publicaciones', item.id, 'editar']"
+              >
+                Editar información →
+              </a>
               <!-- HU-017 CA1: asociar política de cancelación Flexible -->
               <button
                 *ngIf="item.status === 'BORRADOR' && !item.cancellationPolicy"
