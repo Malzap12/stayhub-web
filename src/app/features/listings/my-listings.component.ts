@@ -26,6 +26,7 @@ interface ActivationFailure {
  * El anfitrión ve sus publicaciones con título, ciudad, precio y estado,
  * y el motivo del administrador cuando fueron devueltas o bloqueadas.
  * HU-013 · Desde un borrador puede solicitar la activación (RF-017).
+ * HU-014 · Pausa una publicación activa y la reactiva sin nueva revisión (RF-018).
  */
 @Component({
   selector: 'app-my-listings',
@@ -122,6 +123,41 @@ interface ActivationFailure {
                   {{ activatingId === item.id ? 'Enviando a revisión…' : 'Solicitar nueva revisión' }}
                 </button>
                 <span class="hint">Corrige lo indicado en el motivo; el administrador la revisará de nuevo.</span>
+              </div>
+
+              <!-- HU-014 CA1 y CA3: pausar una publicación activa; sus reservas confirmadas se mantienen -->
+              <div class="card-actions" *ngIf="item.status === 'ACTIVA'">
+                <ng-container *ngIf="confirmPauseId !== item.id; else confirmPause">
+                  <button type="button" class="secondary-btn pause-btn" [disabled]="togglingId === item.id" (click)="confirmPauseId = item.id">
+                    Pausar publicación
+                  </button>
+                  <span class="hint">Deja de recibir reservas por un tiempo.</span>
+                </ng-container>
+                <ng-template #confirmPause>
+                  <div class="confirm-box" role="alertdialog" aria-label="Confirmar pausa">
+                    <p>
+                      <strong>¿Pausar «{{ item.title }}»?</strong>
+                      Dejará de aparecer en las búsquedas y no recibirá reservas nuevas. Tus reservas confirmadas se mantienen.
+                    </p>
+                    <div class="confirm-actions">
+                      <button type="button" class="activate-btn confirm-pause-btn" [disabled]="togglingId === item.id" (click)="pause(item)">
+                        {{ togglingId === item.id ? 'Pausando…' : 'Sí, pausar' }}
+                      </button>
+                      <button type="button" class="secondary-btn" [disabled]="togglingId === item.id" (click)="confirmPauseId = null">Cancelar</button>
+                    </div>
+                  </div>
+                </ng-template>
+              </div>
+
+              <!-- HU-014 CA2: reactivar una publicación pausada sin nueva revisión -->
+              <div class="paused-note" *ngIf="item.status === 'PAUSADA'" role="note">
+                No aparece en las búsquedas ni recibe reservas nuevas. Tus reservas confirmadas siguen vigentes.
+              </div>
+              <div class="card-actions" *ngIf="item.status === 'PAUSADA'">
+                <button type="button" class="activate-btn reactivate-btn" [disabled]="togglingId === item.id" (click)="reactivate(item)">
+                  {{ togglingId === item.id ? 'Reactivando…' : 'Reactivar publicación' }}
+                </button>
+                <span class="hint">Vuelve a las búsquedas de inmediato, sin nueva revisión.</span>
               </div>
 
               <!-- HU-013 CA2: campos faltantes devueltos por el sistema -->
@@ -376,6 +412,49 @@ interface ActivationFailure {
       opacity: 0.6;
       cursor: progress;
     }
+    .secondary-btn {
+      padding: 8px 15px;
+      border-radius: 980px;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      color: #1d1d1f;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .secondary-btn:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
+    .confirm-box {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fffaf3;
+      border: 1px solid #f5d0a9;
+      font-size: 0.86rem;
+      color: #3a3a3c;
+    }
+    .confirm-box p {
+      margin: 0 0 10px;
+      line-height: 1.45;
+    }
+    .confirm-box strong {
+      display: block;
+      color: #1d1d1f;
+    }
+    .confirm-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .paused-note {
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: #f5f5f7;
+      color: #3a3a3c;
+      font-size: 0.84rem;
+    }
     .availability-link {
       align-self: flex-start;
       font-size: 0.84rem;
@@ -417,6 +496,9 @@ export class MyListingsComponent implements OnInit {
   successMessage = '';
   activatingId: string | null = null;
   activationErrors: Record<string, ActivationFailure> = {};
+  /** HU-014: publicación que se está pausando o reactivando, y la que espera confirmación para pausarse. */
+  togglingId: string | null = null;
+  confirmPauseId: string | null = null;
 
   private readonly priceFormatter = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -493,6 +575,61 @@ export class MyListingsComponent implements OnInit {
       };
     } finally {
       this.activatingId = null;
+    }
+  }
+
+  /** HU-014 CA1 y CA3: pausa la publicación activa; sus reservas confirmadas no cambian. */
+  async pause(item: MyListing): Promise<void> {
+    const done = await this.changeStatus(item, 'pause', 'No fue posible pausar la publicación.');
+    if (done) {
+      this.confirmPauseId = null;
+      this.successMessage = `«${item.title}» quedó pausada: ya no aparece en las búsquedas ni recibe reservas nuevas. Tus reservas confirmadas se mantienen.`;
+    }
+  }
+
+  /** HU-014 CA2: reactiva la publicación pausada; vuelve a las búsquedas sin nueva revisión. */
+  async reactivate(item: MyListing): Promise<void> {
+    const done = await this.changeStatus(item, 'reactivate', 'No fue posible reactivar la publicación.');
+    if (done) {
+      this.successMessage = `«${item.title}» está activa de nuevo y ya aparece en las búsquedas.`;
+    }
+  }
+
+  private async changeStatus(item: MyListing, action: 'pause' | 'reactivate', fallback: string): Promise<boolean> {
+    this.togglingId = item.id;
+    this.successMessage = '';
+    this.activationErrors = Object.fromEntries(Object.entries(this.activationErrors).filter(([id]) => id !== item.id));
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(item.id)}/${action}`, {
+        method: 'PATCH',
+        headers: this.authHeaders(),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const apiMessage = [(body as { message?: string | string[] })?.message].flat().filter(Boolean).join(' ');
+        const message =
+          response.status === 401
+            ? 'Tu sesión expiró. Inicia sesión de nuevo.'
+            : response.status === 404
+              ? 'La publicación no existe o no te pertenece.'
+              : apiMessage || fallback;
+        this.activationErrors = { ...this.activationErrors, [item.id]: { message, missing: [] } };
+        return false;
+      }
+      const updated = body as MyListing;
+      this.listings = this.listings.map((listing) => (listing.id === item.id ? updated : listing));
+      if (this.filter !== 'TODAS' && !this.listings.some((listing) => listing.status === this.filter)) {
+        this.filter = 'TODAS';
+      }
+      return true;
+    } catch {
+      this.activationErrors = {
+        ...this.activationErrors,
+        [item.id]: { message: 'No fue posible conectar con el servidor. Intenta de nuevo.', missing: [] },
+      };
+      return false;
+    } finally {
+      this.togglingId = null;
     }
   }
 
