@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { AdminModerationComponent, ApiPendingListing } from './admin-moderation.component';
+import { AdminModerationComponent, ApiPendingListing, ApiReviewBooking } from './admin-moderation.component';
 import { SESSION_STORAGE_KEY } from '../../core/guards/auth.guard';
 
 describe('AdminModerationComponent · HU-050', () => {
@@ -341,6 +341,122 @@ describe('AdminModerationComponent · HU-050', () => {
       expect(component.roleLabel('ANFITRION')).toBe('Anfitrión');
       expect(component.userStatusLabel('RESTRINGIDA')).toBe('Restringida');
       expect(component.initials('Laura Gómez')).toBe('LG');
+    });
+  });
+  describe('HU-052 · Resolver las reservas en revisión (CA1, CA2)', () => {
+    const inReview: ApiReviewBooking[] = [
+      {
+        id: 'b-1',
+        code: 'RES-AAA',
+        listingId: 'l-1',
+        listingTitle: 'Villa engañosa en Barú',
+        guestId: 'huesped@prueba.com',
+        checkIn: '2026-12-14',
+        checkOut: '2026-12-17',
+        guests: 2,
+        totalAmount: 900000,
+        currency: 'COP',
+        reviewReason: 'La publicación fue bloqueada por el administrador: fotos falsas',
+        underReviewAt: '2026-11-05T17:00:00.000Z',
+        statusBeforeReview: 'CONFIRMADA',
+      },
+      {
+        id: 'b-2',
+        code: 'RES-BBB',
+        listingId: 'l-1',
+        listingTitle: 'Villa engañosa en Barú',
+        guestId: 'otro@prueba.com',
+        checkIn: '2026-12-20',
+        checkOut: '2026-12-22',
+        guests: 1,
+        totalAmount: 500000,
+        currency: 'COP',
+        statusBeforeReview: 'PENDIENTE',
+      },
+    ];
+
+    const loadReview = async () => {
+      fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
+        json(String(input).endsWith('/under-review') ? inReview.map((item) => ({ ...item })) : String(input).endsWith('/pending') ? pending : []),
+      );
+      fixture.detectChanges();
+      await fixture.whenStable();
+      component.activeTab = 'reservas';
+      fixture.detectChanges();
+    };
+
+    it('carga las reservas en revisión y las muestra con su huésped, fechas, total y motivo', async () => {
+      await loadReview();
+
+      expect(fetchSpy.calls.allArgs().map(([url]) => url)).toContain('/api/bookings/under-review');
+      const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('.review-card');
+      expect(cards.length).toBe(2);
+      expect(cards[0].textContent).toContain('RES-AAA');
+      expect(cards[0].textContent).toContain('huesped@prueba.com');
+      expect(cards[0].textContent).toContain('3 noches');
+      expect(cards[0].textContent).toContain('fotos falsas');
+      expect(cards[1].textContent).toContain('sin pagar');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.tab-reservas')?.textContent).toContain('2');
+      expect((fixture.nativeElement as HTMLElement).textContent).not.toMatch(/EN_REVISION|CONFIRMADA|PENDIENTE/);
+    });
+
+    it('CA1: mantener envía la decisión con la nota, quita la reserva de la lista y avisa', async () => {
+      await loadReview();
+      fetchSpy.and.returnValue(json({ id: 'b-1', status: 'CONFIRMADA' }));
+      component.openResolvePrompt('b-1', 'MANTENER');
+      expect(component.dialog).toEqual(jasmine.objectContaining({ kind: 'keep', optional: true, confirm: 'Mantener reserva' }));
+      component.setDialogReason('  Alojamiento verificado  ');
+
+      await component.confirmDialog();
+
+      const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+      expect(url).toBe('/api/bookings/b-1/resolve-review');
+      expect(init.method).toBe('PATCH');
+      expect(JSON.parse(String(init.body))).toEqual({ decision: 'MANTENER', note: 'Alojamiento verificado' });
+      expect(component.reviewBookings.map((item) => item.id)).toEqual(['b-2']);
+      expect(component.feedbackMessage).toContain('RES-AAA se mantuvo y sigue confirmada');
+      expect(component.dialog).toBeNull();
+    });
+
+    it('CA2: cancelar informa la devolución del 100 % y las noches liberadas', async () => {
+      await loadReview();
+      fetchSpy.and.returnValue(json({ id: 'b-1', status: 'CANCELADA', cancellation: { refundAmount: 900000, releasedNights: ['2026-12-14', '2026-12-15', '2026-12-16'] } }));
+      component.openResolvePrompt('b-1', 'CANCELAR');
+      expect(component.dialog?.help).toContain('100 %');
+
+      await component.confirmResolve('b-1');
+
+      expect(JSON.parse(String((fetchSpy.calls.mostRecent().args[1] as RequestInit).body))).toEqual({ decision: 'CANCELAR' });
+      expect(component.feedbackMessage).toContain('RES-AAA quedó cancelada');
+      expect(component.feedbackMessage).toContain('(100 %)');
+      expect(component.feedbackMessage).toContain('3 noche(s) quedaron libres');
+      expect(component.reviewBookings.length).toBe(1);
+    });
+
+    it('si el API rechaza la decisión, la reserva sigue en la lista y se muestra el error en el diálogo', async () => {
+      await loadReview();
+      fetchSpy.and.returnValue(json({ message: 'Solo se resuelven reservas en revisión' }, 400));
+      component.openResolvePrompt('b-2', 'MANTENER');
+
+      await component.confirmResolve('b-2');
+
+      expect(component.dialogError).toBe('Solo se resuelven reservas en revisión');
+      expect(component.reviewBookings.length).toBe(2);
+    });
+
+    it('al abrir la pestaña vuelve a consultar las reservas en revisión', async () => {
+      await loadReview();
+      fetchSpy.calls.reset();
+
+      component.openReviewTab();
+      await fixture.whenStable();
+
+      expect(fetchSpy.calls.allArgs().map(([url]) => url)).toEqual(['/api/bookings/under-review']);
+    });
+
+    it('la devolución de una reserva sin pagar es de 0', () => {
+      expect(component.refundOf(inReview[1])).not.toContain('500');
+      expect(component.refundOf(inReview[0])).toContain('900.000');
     });
   });
 });
