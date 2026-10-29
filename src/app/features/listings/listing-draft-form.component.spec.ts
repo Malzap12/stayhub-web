@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router';
 import { CANCELLATION_POLICIES_CATALOG, formatCop, ListingDraftFormComponent, MAX_IMAGE_BYTES, parseCop } from './listing-draft-form.component';
 import { clearActiveSession, SESSION_STORAGE_KEY } from '../../core/guards/auth.guard';
 
@@ -269,6 +270,76 @@ describe('ListingDraftFormComponent (HU-010 · Crear publicación y HU-039 · Po
 
       component.startNew();
       expect(component.uploadedImages).toEqual([]);
+    });
+  });
+  describe('HU-011 · Editar mi publicación', () => {
+    it('CA1: carga datos en modo edición y envía PATCH /api/listings/:id al guardar', async () => {
+      const mockRoute = {
+        snapshot: {
+          paramMap: { get: (key: string) => (key === 'id' ? 'listing-123' : null) },
+        },
+      } as unknown as ActivatedRoute;
+      const editComponent = new ListingDraftFormComponent(mockRoute);
+
+      fetchSpy.and.returnValue(
+        jsonResponse({
+          id: 'listing-123',
+          title: 'Cabaña Original',
+          description: 'Descripción previa',
+          city: 'Guatapé',
+          department: 'Antioquia',
+          address: 'Vereda El Roble',
+          propertyType: 'CABANA',
+          maxGuests: 4,
+          pricePerNight: 300000,
+          amenities: ['WIFI'],
+          rules: ['No fumar'],
+          images: ['https://example.com/cabana.jpg'],
+          cancellationPolicy: { code: 'FLEXIBLE', name: 'Flexible' },
+        }),
+      );
+
+      editComponent.ngOnInit();
+      expect(editComponent.isEditMode).toBeTrue();
+      expect(editComponent.listingId).toBe('listing-123');
+
+      await editComponent.loadListingForEdit('listing-123');
+      expect(editComponent.form.title).toBe('Cabaña Original');
+      expect(editComponent.form.city).toBe('Guatapé');
+      expect(editComponent.form.cancellationPolicy).toBe('FLEXIBLE');
+
+      editComponent.form.title = 'Cabaña Renovada y Ampliada';
+      editComponent.form.pricePerNight = 350000;
+
+      fetchSpy.and.returnValue(
+        jsonResponse(
+          { id: 'listing-123', title: 'Cabaña Renovada y Ampliada', status: 'ACTIVA', isComplete: true, missingFields: [], createdAt: '' },
+          200,
+        ),
+      );
+
+      await editComponent.save();
+
+      const [url, init] = fetchSpy.calls.mostRecent().args;
+      expect(url).toBe('/api/listings/listing-123');
+      expect(init.method).toBe('PATCH');
+      expect(editComponent.saved?.title).toBe('Cabaña Renovada y Ampliada');
+    });
+
+    it('CA2: muestra error amigable si el servidor responde 404 o 403 al editar publicación ajena', async () => {
+      const mockRoute = {
+        snapshot: {
+          paramMap: { get: (key: string) => (key === 'id' ? 'listing-ajena' : null) },
+        },
+      } as unknown as ActivatedRoute;
+      const editComponent = new ListingDraftFormComponent(mockRoute);
+      editComponent.ngOnInit();
+      editComponent.form.title = 'Intento de edición';
+
+      fetchSpy.and.returnValue(jsonResponse({ message: 'Publicación no encontrada' }, 404));
+      await editComponent.save();
+
+      expect(editComponent.errors.form).toContain('Publicación no encontrada');
     });
   });
 });
