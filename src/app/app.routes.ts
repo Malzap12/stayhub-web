@@ -58,6 +58,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'anfitrion/reservas',
+    canActivate: [roleGuard(['ANFITRION'])],
+    loadComponent: () =>
+      import('./features/bookings/host-bookings.component').then(
+        (m) => m.HostBookingsComponent,
+      ),
+  },
+  {
+    path: 'anfitrion/reservas/:id',
+    canActivate: [roleGuard(['ANFITRION'])],
+    loadComponent: () =>
+      import('./features/bookings/host-booking-detail.component').then(
+        (m) => m.HostBookingDetailComponent,
+      ),
+  },
+  {
     path: 'anfitrion/publicaciones/nueva',
     canActivate: [roleGuard(['ANFITRION'])],
     loadComponent: () =>
