@@ -215,6 +215,7 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
               <ul *ngIf="activeSession.role === 'ANFITRION'">
                 <li><a routerLink="/anfitrion/mis-publicaciones">Crear y administrar mis publicaciones</a></li>
                 <li><a routerLink="/anfitrion/publicaciones">Gestionar la disponibilidad de mis alojamientos</a></li>
+                <li><a routerLink="/anfitrion/reservas">Consultar las reservas de mis alojamientos</a></li>
               </ul>
               <ul *ngIf="activeSession.role === 'ADMINISTRADOR'">
                 <li><a routerLink="/admin/moderacion">Moderar publicaciones y cuentas</a></li>
