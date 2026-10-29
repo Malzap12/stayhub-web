@@ -33,6 +33,7 @@ import { StatusLabelPipe } from '../../models/display.model';
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
           <a *ngIf="isAdmin" routerLink="/admin/indicadores" routerLinkActive="active">Indicadores</a>
           <a *ngIf="isAdmin" routerLink="/admin/moderacion" routerLinkActive="active">Moderación</a>
+          <a *ngIf="isAdmin" routerLink="/admin/auditoria" routerLinkActive="active">Auditoría</a>
           <a *ngIf="isAdmin" routerLink="/admin/configuracion" routerLinkActive="active">Configuración</a>
         </nav>
 
@@ -220,6 +221,12 @@ import { StatusLabelPipe } from '../../models/display.model';
     }
     @media (max-width: 900px) {
       .apple-dock {
+        display: none;
+      }
+    }
+    @media (max-width: 520px) {
+      .profile-meta,
+      .brand-subtitle {
         display: none;
       }
     }
