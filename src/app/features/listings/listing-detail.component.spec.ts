@@ -183,6 +183,71 @@ describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Po
 
       expect(text()).toContain('Sin reseñas todavía');
     });
+
+    it('HU-049 CA1: el administrador puede ocultar una reseña indicando el motivo', async () => {
+      saveActiveSession({
+        token: 'admin-token',
+        email: 'admin@stayhub.com',
+        name: 'Admin',
+        role: 'ADMINISTRADOR',
+        expiresAt: Date.now() + 60000,
+      });
+
+      const listingWithReviews: ListingDetail = { ...detail, reviewCount: 1 };
+      const mockReviews = [
+        {
+          id: 'review-1',
+          authorName: 'Carlos Mendoza',
+          rating: 4,
+          comment: 'Muy buena experiencia en general.',
+          createdAt: '2026-10-01T10:00:00.000Z',
+        },
+      ];
+
+      const fetchSpy = spyOn(window, 'fetch').and.returnValues(
+        json(listingWithReviews),
+        json({ reviews: mockReviews }),
+        json({ success: true }),
+        json(listingWithReviews),
+        json({ reviews: [] }),
+      );
+      spyOn(window, 'prompt').and.returnValue('Incumple normas de respeto');
+
+      await render();
+
+      const hideBtn = element.querySelector('.hide-review-btn') as HTMLButtonElement;
+      expect(hideBtn).toBeTruthy();
+      expect(hideBtn.textContent?.trim()).toBe('Ocultar reseña');
+
+      hideBtn.click();
+      await fixture.whenStable();
+
+      expect(window.prompt).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalledWith('/api/reviews/review-1/hide', jasmine.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ reason: 'Incumple normas de respeto' }),
+      }));
+    });
+
+    it('HU-049: un usuario sin rol de administrador no ve el botón de ocultar reseña', async () => {
+      clearActiveSession();
+      const listingWithReviews: ListingDetail = { ...detail, reviewCount: 1 };
+      const mockReviews = [
+        {
+          id: 'review-1',
+          authorName: 'Carlos Mendoza',
+          rating: 4,
+          comment: 'Muy buena experiencia.',
+          createdAt: '2026-10-01T10:00:00.000Z',
+        },
+      ];
+
+      spyOn(window, 'fetch').and.returnValues(json(listingWithReviews), json({ reviews: mockReviews }));
+      await render();
+
+      const hideBtn = element.querySelector('.hide-review-btn');
+      expect(hideBtn).toBeNull();
+    });
   });
 
   it('muestra el resumen del alojamiento: tipo y ciudad, capacidad, habitaciones y baños', async () => {

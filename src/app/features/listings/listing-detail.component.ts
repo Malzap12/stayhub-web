@@ -173,6 +173,14 @@ export function formatCop(value?: number | null): string {
                       <strong>{{ review.authorName }}</strong>
                       <span>{{ review.date }}</span>
                     </div>
+                    <button
+                      *ngIf="isAdmin"
+                      type="button"
+                      class="hide-review-btn"
+                      (click)="hideReview(review)"
+                    >
+                      Ocultar reseña
+                    </button>
                   </div>
                   <span class="stars" [attr.aria-label]="review.rating + ' de 5 estrellas'">{{ stars(review.rating) }}</span>
                   <p>{{ review.comment }}</p>
@@ -299,6 +307,8 @@ export function formatCop(value?: number | null): string {
     .review-author div { display: flex; flex-direction: column; }
     .review-author span { color: #6a6a6a; font-size: 0.84rem; }
     .avatar { width: 42px; height: 42px; font-size: 0.86rem; }
+    .hide-review-btn { margin-left: auto; padding: 4px 10px; font-size: 0.78rem; font-weight: 600; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; }
+    .hide-review-btn:hover { background: #fee2e2; }
     .stars { font-size: 0.8rem; letter-spacing: 1px; }
     .review p { margin: 0; line-height: 1.55; }
     .know { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
@@ -399,6 +409,40 @@ export class ListingDetailComponent implements OnInit {
 
   cop(value?: number | null): string {
     return formatCop(value);
+  }
+
+  get isAdmin(): boolean {
+    return getActiveSession()?.role === 'ADMINISTRADOR';
+  }
+
+  async hideReview(review: DetailReview): Promise<void> {
+    const reason = window.prompt('Indica el motivo por el cual se oculta la reseña:');
+    if (!reason || !reason.trim()) {
+      return;
+    }
+    const token = getActiveSession()?.token;
+    if (!token) return;
+
+    try {
+      const response = await fetch(`/api/reviews/${encodeURIComponent(review.id)}/hide`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        alert(error.message || 'No fue posible ocultar la reseña.');
+        return;
+      }
+
+      await this.load();
+    } catch {
+      alert('Error de conexión al ocultar la reseña.');
+    }
   }
 
   /** Envía el token si hay sesión: el anfitrión dueño, el admin y quien tiene reservas pueden ver publicaciones no activas. */
