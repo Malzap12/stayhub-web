@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { ListingPricing } from '../../shared/models/listing.model';
+import { AdditionalServicesManagerComponent } from './additional-services-manager.component';
 
 /** HU-015 CA2 (RN-013): rango permitido del descuento por estancia larga. */
 export const MAX_LONG_STAY_DISCOUNT = 50;
@@ -44,13 +45,13 @@ export function validatePricingForm(
 @Component({
   selector: 'app-listing-pricing',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AdditionalServicesManagerComponent],
   template: `
     <section class="pricing-shell">
       <a routerLink="/anfitrion/mis-publicaciones" class="back-link">← Mis publicaciones</a>
       <header>
         <span class="eyebrow">Panel de Anfitrión</span>
-        <h1>Limpieza y descuento por estancia larga</h1>
+        <h1>Tarifas y servicios adicionales</h1>
         <p class="subtitle">Los cambios se aplican a las cotizaciones nuevas.</p>
       </header>
 
@@ -59,6 +60,7 @@ export function validatePricingForm(
       <div class="alert-success" *ngIf="successMessage" role="status">{{ successMessage }}</div>
 
       <form *ngIf="!loading && loaded" (ngSubmit)="save()" novalidate>
+        <h2 class="form-title">Limpieza y descuento por estancia larga</h2>
         <label for="cleaningFee">Tarifa de limpieza (COP)</label>
         <input id="cleaningFee" name="cleaningFee" type="number" min="0" step="1000" [(ngModel)]="cleaningFee" />
         <small class="hint">Valor fijo por estancia. Usa 0 si no cobras limpieza.</small>
@@ -83,6 +85,8 @@ export function validatePricingForm(
 
         <button type="submit" class="save-btn" [disabled]="saving">{{ saving ? 'Guardando…' : 'Guardar tarifas' }}</button>
       </form>
+
+      <app-additional-services-manager *ngIf="!loading && loaded" [listingId]="listingId"></app-additional-services-manager>
     </section>
   `,
   styles: [`
@@ -92,6 +96,7 @@ export function validatePricingForm(
     h1 { margin: 6px 0 8px; font-size: 1.6rem; letter-spacing: -0.03em; }
     .subtitle { margin: 0 0 24px; color: #6e6e73; font-size: 0.92rem; }
     form { display: flex; flex-direction: column; gap: 8px; background: #fff; border: 1px solid #e5e5ea; border-radius: 18px; padding: 22px; }
+    .form-title { margin: 0 0 6px; font-size: 1.15rem; letter-spacing: -0.02em; }
     label { font-size: 0.86rem; font-weight: 600; }
     input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 0.95rem; }
     fieldset { margin: 14px 0 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 8px; }
