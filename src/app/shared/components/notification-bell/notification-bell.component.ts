@@ -20,6 +20,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   RESERVA_CONFIRMADA: 'Reserva confirmada',
   RESERVA_CANCELADA: 'Reserva cancelada',
   RESERVA_EN_REVISION: 'Reserva en revisión',
+  RESERVA_MANTENIDA: 'Reserva mantenida',
   RESERVA_COMPLETADA: 'Estancia completada',
   PUBLICACION_APROBADA: 'Publicación aprobada',
   PUBLICACION_DEVUELTA: 'Publicación devuelta',
