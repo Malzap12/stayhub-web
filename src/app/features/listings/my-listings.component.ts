@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { ListingStatus, MyListing } from '../../shared/models/listing.model';
+import { ACCOUNT_REACTIVATED_STATE, arrivedWith, REACTIVATED_HOST_MESSAGE } from '../../shared/models/account-deactivation.model';
 
 type StatusFilter = ListingStatus | 'TODAS';
 
@@ -528,6 +529,9 @@ export class MyListingsComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (arrivedWith(ACCOUNT_REACTIVATED_STATE)) {
+      this.successMessage = REACTIVATED_HOST_MESSAGE;
+    }
     void this.load();
   }
 
