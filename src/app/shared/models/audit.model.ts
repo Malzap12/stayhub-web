@@ -42,6 +42,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   PASSWORD_RECOVERY_REQUEST: 'Solicitud de recuperación de contraseña',
   PASSWORD_RESET: 'Restablecimiento de contraseña',
   PASSWORD_CHANGE: 'Cambio de contraseña',
+  ACCOUNT_DEACTIVATION: 'Desactivación de cuenta',
+  ACCOUNT_REACTIVATION: 'Reactivación de cuenta',
   PROFILE_UPDATE: 'Actualización del perfil',
   ACCESS_DENIED: 'Acceso denegado',
   LISTING_STATUS_CHANGE: 'Cambio de estado de una publicación',

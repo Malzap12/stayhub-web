@@ -9,6 +9,7 @@ import {
   StoredSession,
 } from '../../core/guards/auth.guard';
 import { StatusLabelPipe } from '../../shared/models/display.model';
+import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } from '../../shared/models/account-deactivation.model';
 
 @Component({
   selector: 'app-login',
@@ -155,6 +156,19 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
               <!-- CA2: Error genérico sin revelar qué dato falló -->
               <div *ngIf="authError" class="banner-error" role="alert">
                 {{ authError }}
+              </div>
+
+              <!-- Cuenta desactivada por el propio usuario -->
+              <div *ngIf="deactivatedNotice" class="banner-deactivated" role="status">
+                <strong>Cuenta desactivada</strong>
+                <span>{{ deactivatedNotice }}</span>
+                <!-- Se ofrece reactivar la cuenta tras validar las credenciales -->
+                <div class="reactivate-actions" *ngIf="reactivationToken">
+                  <button type="button" class="reactivate-btn" [disabled]="reactivating" (click)="reactivateAccount()">
+                    {{ reactivating ? 'Reactivando…' : 'Sí, reactivar mi cuenta' }}
+                  </button>
+                  <button type="button" class="decline-btn" [disabled]="reactivating" (click)="declineReactivation()">Ahora no</button>
+                </div>
               </div>
 
               <!-- CA3: Error de cuenta restringida -->
@@ -600,6 +614,47 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
       color: #86868b;
     }
     .banner-error,
+    .banner-deactivated {
+      background: #f5f5f7;
+      border: 1px solid #d2d2d7;
+      color: #3a3a3c;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.84rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .banner-deactivated strong {
+      color: #1d1d1f;
+    }
+    .reactivate-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .reactivate-btn, .decline-btn {
+      padding: 8px 16px;
+      border-radius: 980px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .reactivate-btn {
+      border: none;
+      background: #1d1d1f;
+      color: #ffffff;
+    }
+    .decline-btn {
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      color: #1d1d1f;
+    }
+    .reactivate-btn:disabled, .decline-btn:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
     .banner-restricted {
       background: #fff2f4;
       border: 1px solid rgba(215, 0, 21, 0.25);
@@ -944,9 +999,17 @@ export class LoginComponent {
   loading = false;
   authError = '';
   restrictedError = '';
+  /** Aviso al llegar tras desactivar la cuenta, o al intentar entrar con una cuenta desactivada. */
+  deactivatedNotice = '';
+  /** Token de un solo uso con el que se confirma la reactivación de una cuenta desactivada. */
+  reactivationToken = '';
+  reactivating = false;
   activeSession: StoredSession | null = getActiveSession();
 
   constructor(private readonly router?: Router) {
+    if (arrivedWith(ACCOUNT_DEACTIVATED_STATE)) {
+      this.deactivatedNotice = 'Tu cuenta quedó desactivada y tu sesión se cerró. Tu historial se conserva.';
+    }
     if (this.activeSession) {
       this.navigateByRole(this.activeSession.role);
     }
@@ -1024,6 +1087,61 @@ export class LoginComponent {
   clearErrors(): void {
     this.authError = '';
     this.restrictedError = '';
+    this.deactivatedNotice = '';
+    this.reactivationToken = '';
+  }
+
+  /** Confirma la reactivación: la cuenta vuelve a ACTIVA y se abre la sesión. */
+  async reactivateAccount(): Promise<void> {
+    if (!this.reactivationToken) {
+      return;
+    }
+    this.reactivating = true;
+    try {
+      const response = await fetch('/api/auth/reactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reactivationToken: this.reactivationToken }),
+      });
+      const body = await response.json().catch(() => ({}));
+      this.reactivationToken = '';
+      if (!response.ok) {
+        this.deactivatedNotice =
+          [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible reactivar tu cuenta. Inicia sesión de nuevo.';
+        return;
+      }
+      const session = this.startSession(body, this.email.trim().toLowerCase());
+      this.deactivatedNotice = '';
+      await this.router?.navigate([session.role === 'ANFITRION' ? '/anfitrion/mis-publicaciones' : '/mi-perfil'], {
+        state: { [ACCOUNT_REACTIVATED_STATE]: true },
+      });
+    } catch {
+      this.deactivatedNotice = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.reactivating = false;
+    }
+  }
+
+  declineReactivation(): void {
+    this.reactivationToken = '';
+    this.deactivatedNotice = 'Tu cuenta sigue desactivada. Puedes reactivarla cuando vuelvas a iniciar sesión.';
+  }
+
+  private startSession(
+    data: { token: string; expiresInMinutes?: number; user?: { email?: string; name?: string; role?: StoredSession['role'] } },
+    fallbackEmail: string,
+  ): StoredSession {
+    const timeoutMinutes = data.expiresInMinutes || 60;
+    const session: StoredSession = {
+      token: data.token,
+      email: data.user?.email || fallbackEmail,
+      name: data.user?.name || fallbackEmail,
+      role: data.user?.role || this.selectedRole,
+      expiresAt: Date.now() + timeoutMinutes * 60 * 1000,
+    };
+    saveActiveSession(session);
+    this.activeSession = session;
+    return session;
   }
 
   async onSubmit(): Promise<void> {
@@ -1048,6 +1166,11 @@ export class LoginComponent {
 
       if (response.status === 403) {
         const body = await response.json().catch(() => ({}));
+        if (body?.reason === 'CUENTA_DESACTIVADA') {
+          this.deactivatedNotice = body.message || 'Tu cuenta está desactivada.';
+          this.reactivationToken = body.reactivationToken ?? '';
+          return;
+        }
         this.restrictedError =
           body?.message ||
           'Acceso denegado: tu cuenta se encuentra restringida.';
@@ -1059,18 +1182,7 @@ export class LoginComponent {
         return;
       }
 
-      const data = await response.json();
-      const timeoutMinutes = data.expiresInMinutes || 60;
-      const session: StoredSession = {
-        token: data.token,
-        email: data.user?.email || cleanEmail,
-        name: data.user?.name || cleanEmail,
-        role: data.user?.role || this.selectedRole,
-        expiresAt: Date.now() + timeoutMinutes * 60 * 1000,
-      };
-
-      saveActiveSession(session);
-      this.activeSession = session;
+      const session = this.startSession(await response.json(), cleanEmail);
       this.navigateByRole(session.role);
     } catch {
       if (
