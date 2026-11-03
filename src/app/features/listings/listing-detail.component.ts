@@ -6,6 +6,7 @@ import { AvailabilityCalendarComponent } from './availability-calendar.component
 import { StayQuoteComponent } from './stay-quote.component';
 import { amenityIconPaths, amenityLabel } from '../../shared/models/amenities.model';
 import { initialsOf } from '../../shared/models/display.model';
+import { BookingMode, bookingModeOption, BookingModeOption } from '../../shared/models/booking-mode.model';
 
 export { AMENITY_LABELS, amenityLabel } from '../../shared/models/amenities.model';
 
@@ -31,6 +32,8 @@ export interface ListingDetail {
     rules: Array<{ minHoursBeforeCheckIn: number; refundPercentage: number }>;
   };
   additionalServices: Array<{ name: string; cost: number }>;
+  /** HU-018: modalidad de reserva (inmediata si no viene). */
+  bookingMode?: BookingMode;
   averageRating: number;
   reviewCount: number;
   hostName?: string;
@@ -137,6 +140,10 @@ export function formatCop(value?: number | null): string {
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4z" /><path d="M4 9h16" /><path d="M9 3v4" /><path d="M15 3v4" /></svg>
                 <div><strong>Cancelación {{ item.cancellationPolicy.name }}</strong><span>{{ cancellationHighlight(item) }}</span></div>
               </div>
+              <div class="highlight booking-mode-highlight">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10" /></svg>
+                <div><strong>{{ modeOf(item).label }}</strong><span>{{ modeOf(item).guestDescription }}</span></div>
+              </div>
               <div class="highlight" *ngIf="item.reviewCount > 0">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" /></svg>
                 <div><strong>Muy bien calificado</strong><span>Los huéspedes le dan {{ item.averageRating.toFixed(1) }} de 5 estrellas.</span></div>
@@ -230,6 +237,7 @@ export function formatCop(value?: number | null): string {
               [listingId]="item.id"
               [maxGuests]="item.maxGuests"
               [additionalServices]="item.additionalServices"
+              [bookingMode]="item.bookingMode ?? 'INMEDIATA'"
             ></app-stay-quote>
             <ng-template #notBookable>
               <p class="muted not-bookable">Este alojamiento no recibe reservas por ahora.</p>
@@ -391,6 +399,10 @@ export class ListingDetailComponent implements OnInit {
   }
 
   /** Resumen corto de la política: "Reembolso total si cancelas hasta 48 h antes de la llegada." */
+  modeOf(item: ListingDetail): BookingModeOption {
+    return bookingModeOption(item.bookingMode);
+  }
+
   cancellationHighlight(item: ListingDetail): string {
     const full = item.cancellationPolicy.rules.find((rule) => rule.refundPercentage === 100 && rule.minHoursBeforeCheckIn > 0);
     return full

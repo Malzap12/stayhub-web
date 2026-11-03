@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { ListingStatus, MyListing } from '../../shared/models/listing.model';
+import { bookingModeOption, otherBookingMode } from '../../shared/models/booking-mode.model';
 
 type StatusFilter = ListingStatus | 'TODAS';
 
@@ -87,6 +88,8 @@ interface ActivationFailure {
                     <span class="dot" aria-hidden="true">·</span>
                     <span>Política {{ item.cancellationPolicy === 'FLEXIBLE' ? 'Flexible' : item.cancellationPolicy }}</span>
                   </ng-container>
+                  <span class="dot" aria-hidden="true">·</span>
+                  <span class="booking-mode">{{ modeLabel(item) }}</span>
                 </p>
                 <p class="incomplete" *ngIf="!item.isComplete && item.status === 'BORRADOR'">
                   Información pendiente: {{ item.missingFields.length }} campo(s) por completar.
@@ -198,6 +201,16 @@ interface ActivationFailure {
               >
                 Editar información →
               </a>
+              <!-- HU-018 CA2: elegir si las reservas son inmediatas o requieren aprobación -->
+              <button
+                *ngIf="item.status !== 'BLOQUEADA'"
+                type="button"
+                class="policy-link-btn booking-mode-btn"
+                [disabled]="changingModeId === item.id"
+                (click)="switchBookingMode(item)"
+              >
+                {{ changingModeId === item.id ? 'Guardando…' : 'Cambiar a ' + nextModeLabel(item) + ' →' }}
+              </button>
               <!-- HU-017 CA1: asociar política de cancelación Flexible -->
               <button
                 *ngIf="item.status === 'BORRADOR' && !item.cancellationPolicy"
@@ -520,6 +533,8 @@ export class MyListingsComponent implements OnInit {
   /** HU-014: publicación que se está pausando o reactivando, y la que espera confirmación para pausarse. */
   togglingId: string | null = null;
   confirmPauseId: string | null = null;
+  /** HU-018: publicación cuya modalidad de reserva se está guardando. */
+  changingModeId: string | null = null;
 
   private readonly priceFormatter = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -579,6 +594,49 @@ export class MyListingsComponent implements OnInit {
       }
     } catch {
       this.errorMessage = 'No fue posible asociar la política de cancelación.';
+    }
+  }
+
+  modeLabel(item: MyListing): string {
+    return bookingModeOption(item.bookingMode).label;
+  }
+
+  nextModeLabel(item: MyListing): string {
+    return otherBookingMode(item.bookingMode).label.toLowerCase();
+  }
+
+  /** HU-018 CA2: alterna entre reserva inmediata y con aprobación; aplica a las solicitudes nuevas. */
+  async switchBookingMode(item: MyListing): Promise<void> {
+    const next = otherBookingMode(item.bookingMode).value;
+    this.changingModeId = item.id;
+    this.successMessage = '';
+    this.activationErrors = Object.fromEntries(Object.entries(this.activationErrors).filter(([id]) => id !== item.id));
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(item.id)}/booking-mode`, {
+        method: 'PATCH',
+        headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: next }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message =
+          response.status === 401
+            ? 'Tu sesión expiró. Inicia sesión de nuevo.'
+            : response.status === 404
+              ? 'La publicación no existe o no te pertenece.'
+              : 'No fue posible cambiar la modalidad de reserva.';
+        this.activationErrors = { ...this.activationErrors, [item.id]: { message, missing: [] } };
+        return;
+      }
+      item.bookingMode = next;
+      this.successMessage = `«${item.title}» ahora es ${this.modeLabel(item).toLowerCase()}. ${(body as { message?: string }).message ?? ''}`.trim();
+    } catch {
+      this.activationErrors = {
+        ...this.activationErrors,
+        [item.id]: { message: 'No fue posible conectar con el servidor. Intenta de nuevo.', missing: [] },
+      };
+    } finally {
+      this.changingModeId = null;
     }
   }
 
