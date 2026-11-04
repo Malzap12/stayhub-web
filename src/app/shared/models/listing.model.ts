@@ -33,6 +33,8 @@ export interface BlockedPeriod {
   checkIn: string;
   checkOut: string;
   blockedNights: string[];
+  /** HU-021: nota privada del anfitrión sobre el bloqueo. */
+  note?: string;
   createdAt?: string;
 }
 
