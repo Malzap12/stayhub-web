@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { getActiveSession, updateActiveSessionName } from '../../core/guards/auth.guard';
 import { AccountStatus, UserProfile, UserRole } from '../../shared/models/user.model';
 import { AccountDeactivationComponent } from './account-deactivation.component';
+import { ACCOUNT_REACTIVATED_STATE, arrivedWith, REACTIVATED_GUEST_MESSAGE } from '../../shared/models/account-deactivation.model';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   HUESPED: 'Huésped',
@@ -45,6 +46,8 @@ type ApiError = { message?: string | string[] };
         <h1>Mi perfil</h1>
         <p class="subtitle">Verifica que tu información sea correcta y mantenla al día.</p>
       </header>
+
+      <div class="alert-success welcome-back" *ngIf="welcomeBack" role="status">{{ welcomeBack }}</div>
 
       <p class="loading" *ngIf="loading" role="status">Cargando tu perfil…</p>
 
@@ -325,6 +328,9 @@ type ApiError = { message?: string | string[] };
       font-weight: 500;
       color: #d70015;
     }
+    .welcome-back {
+      margin-bottom: 18px;
+    }
     .alert-success, .alert-inline-error {
       padding: 11px 14px;
       border-radius: 12px;
@@ -360,6 +366,8 @@ type ApiError = { message?: string | string[] };
 })
 export class MyProfileComponent implements OnInit {
   profile: UserProfile | null = null;
+  /** Aviso al llegar después de reactivar la cuenta. */
+  welcomeBack = arrivedWith(ACCOUNT_REACTIVATED_STATE) ? REACTIVATED_GUEST_MESSAGE : '';
   loading = false;
   errorMessage = '';
 

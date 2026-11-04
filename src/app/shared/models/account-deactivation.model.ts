@@ -26,6 +26,18 @@ export interface DeactivationCheck {
 /** Estado que se pasa al inicio de sesión tras desactivar la cuenta. */
 export const ACCOUNT_DEACTIVATED_STATE = 'accountDeactivated';
 
+/** Estado que se pasa a la primera pantalla tras reactivar la cuenta (HU-009). */
+export const ACCOUNT_REACTIVATED_STATE = 'accountReactivated';
+
+export const REACTIVATED_GUEST_MESSAGE = 'Tu cuenta se reactivó. ¡Qué bueno tenerte de vuelta! Tu historial sigue aquí.';
+export const REACTIVATED_HOST_MESSAGE =
+  'Tu cuenta se reactivó. Tus publicaciones siguen pausadas: reactiva cada una cuando quieras volver a recibir reservas.';
+
+/** true si la navegación actual llega con el estado indicado (history.state de Angular). */
+export function arrivedWith(stateKey: string): boolean {
+  return Boolean((globalThis.history?.state as Record<string, unknown> | null)?.[stateKey]);
+}
+
 /** "Tienes 1 reserva futura confirmada" / "Tienes 2 reservas futuras confirmadas". */
 export function upcomingStaysText(count: number): string {
   return count === 1 ? 'Tienes 1 reserva futura confirmada' : `Tienes ${count} reservas futuras confirmadas`;
