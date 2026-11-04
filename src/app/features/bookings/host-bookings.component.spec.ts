@@ -124,4 +124,32 @@ describe('HostBookingsComponent · HU-035 Reservas recibidas', () => {
     expect(component.errorMessage).toBe('Acceso denegado');
     expect(component.groups).toEqual([]);
   });
+
+  it('HU-042: permite cancelar una reserva confirmada desde el listado indicando el motivo', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'PATCH') {
+        return json({ ...groups[0].bookings[0], status: 'CANCELADA' }, 200);
+      }
+      return json(groups, 200);
+    });
+
+    await component.load();
+    fixture.detectChanges();
+
+    component.openCancelModal('Casa en Jardín', groups[0].bookings[0]);
+    component.cancelReason = 'Daño imprevisto en tubería';
+    await component.confirmCancel();
+    fixture.detectChanges();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/bookings/host/booking-1/cancel',
+      jasmine.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ reason: 'Daño imprevisto en tubería' }),
+      }),
+    );
+    expect(component.cancellingItem).toBeNull();
+    expect(text()).toContain('devolución simulada del 100 % del total');
+    expect(text()).not.toMatch(/PENDIENTE|CONFIRMADA|CANCELADA|EN_REVISION|\b(HU|RF|RN|RNF)-\d/);
+  });
 });

@@ -1,26 +1,29 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
+import { formatQuoteAmount } from '../listings/stay-quote.component';
 import { StatusLabelPipe } from '../../shared/models/display.model';
 import {
+  cancelHostBookingRequest,
+  canHostCancelBooking,
   countHostBookings,
   formatStayDate,
   guestsText,
   HOST_BOOKING_FILTERS,
+  HostBookingSummary,
   HostListingBookings,
   nightsText,
 } from '../../shared/models/host-booking.model';
 
 /**
- * HU-035 · Consultar las reservas de mis alojamientos (CA1 · RF-049).
- * El anfitrión ve, por alojamiento, las fechas, el huésped, el número de huéspedes y el estado de cada reserva,
- * y abre el detalle para ver el contacto del huésped cuando la reserva está confirmada (CA2).
+ * Reservas recibidas en los alojamientos del anfitrión, agrupadas por publicación, con acceso al detalle y cancelación.
  */
 @Component({
   selector: 'app-host-bookings',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusLabelPipe],
+  imports: [CommonModule, FormsModule, RouterLink, StatusLabelPipe],
   template: `
     <section class="host-bookings-shell">
       <header class="page-header">
@@ -42,6 +45,7 @@ import {
 
       <p *ngIf="loading" class="note">Cargando tus reservas…</p>
       <div *ngIf="errorMessage" class="error" role="alert">{{ errorMessage }}</div>
+      <div *ngIf="successMessage" class="success" role="status">{{ successMessage }}</div>
 
       <div *ngIf="!loading && !errorMessage && groups.length === 0" class="empty">
         <strong>{{ filter === 'TODAS' ? 'Aún no tienes reservas.' : 'No hay reservas con este estado.' }}</strong>
@@ -75,10 +79,52 @@ import {
               <span class="guest-meta">{{ guests(booking.guests) }} · {{ nights(booking.nights) }}</span>
             </div>
             <span class="status-badge" [ngClass]="booking.status.toLowerCase()">{{ booking.status | statusLabel }}</span>
-            <a class="detail-link" [routerLink]="['/anfitrion/reservas', booking.id]">Ver detalle</a>
+            <div class="row-actions">
+              <a class="detail-link" [routerLink]="['/anfitrion/reservas', booking.id]">Ver detalle</a>
+              <button
+                *ngIf="canCancel(booking)"
+                type="button"
+                class="cancel-btn"
+                (click)="openCancelModal(group.listingTitle, booking)"
+              >
+                Cancelar
+              </button>
+            </div>
           </li>
         </ul>
       </article>
+
+      <div class="modal-backdrop" *ngIf="cancellingItem as target">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="host-cancel-modal-title">
+          <h3 id="host-cancel-modal-title">Cancelar reserva {{ target.booking.code || target.booking.id }}</h3>
+          <p class="modal-copy">
+            Vas a cancelar la estancia de <strong>{{ target.booking.guestName }}</strong> en
+            <strong>{{ target.listingTitle }}</strong> ({{ date(target.booking.checkIn) }} – {{ date(target.booking.checkOut) }}).
+            Se notificará al huésped, se registrará la devolución simulada del 100 % del total
+            (<strong>{{ money(target.booking.totalAmount) }} {{ target.booking.currency }}</strong>) y las noches volverán a quedar disponibles.
+          </p>
+
+          <label for="host-list-cancel-reason" class="field-label">Motivo de la cancelación</label>
+          <textarea
+            id="host-list-cancel-reason"
+            class="reason-input"
+            rows="3"
+            maxlength="500"
+            [(ngModel)]="cancelReason"
+            placeholder="Indica el motivo por el cual no podrás recibir al huésped…"
+          ></textarea>
+          <p *ngIf="cancelError" class="inline-error" role="alert">{{ cancelError }}</p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" [disabled]="submittingCancel" (click)="closeCancelModal()">
+              Volver
+            </button>
+            <button type="button" class="btn danger" [disabled]="submittingCancel" (click)="confirmCancel()">
+              {{ submittingCancel ? 'Cancelando…' : 'Confirmar cancelación' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   `,
   styles: [
@@ -94,7 +140,8 @@ import {
       .filters button.active { background: #1d1d1f; border-color: #1d1d1f; color: #fff; }
       .note, .summary { color: #6e6e73; }
       .summary { margin: 0 0 1rem; font-size: 0.9rem; }
-      .error { padding: 1rem 1.25rem; border-radius: 12px; background: #fdecec; color: #b42318; font-weight: 600; }
+      .error { padding: 1rem 1.25rem; border-radius: 12px; background: #fdecec; color: #b42318; font-weight: 600; margin-bottom: 1rem; }
+      .success { padding: 1rem 1.25rem; border-radius: 12px; background: #e8f7ee; color: #1a7f37; font-weight: 600; margin-bottom: 1rem; }
       .empty {
         display: flex; flex-direction: column; gap: 0.35rem; padding: 2rem; border-radius: 18px;
         background: #f5f5f7; color: #3a3a3c; text-align: center;
@@ -121,7 +168,36 @@ import {
       .status-badge.cancelada { background: #fdecec; color: #b42318; }
       .status-badge.en_revision { background: #eef2ff; color: #3730a3; }
       .status-badge.pendiente_aprobacion { background: #fff7e6; color: #9a5b00; }
+      .row-actions { display: flex; align-items: center; gap: 0.75rem; }
       .detail-link { color: #0071e3; font-weight: 600; font-size: 0.88rem; text-decoration: none; white-space: nowrap; }
+      .cancel-btn {
+        padding: 4px 10px; border-radius: 980px; border: 1px solid #fecdca; background: #fef3f2;
+        color: #b42318; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+      }
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex;
+        align-items: center; justify-content: center; padding: 1rem; z-index: 50;
+      }
+      .modal-card {
+        background: #fff; border-radius: 18px; max-width: 520px; width: 100%; padding: 1.5rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+      }
+      .modal-card h3 { margin: 0 0 0.75rem; font-size: 1.2rem; color: #1d1d1f; }
+      .modal-copy { margin: 0 0 1rem; color: #3a3a3c; font-size: 0.92rem; line-height: 1.45; }
+      .field-label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.4rem; color: #1d1d1f; }
+      .reason-input {
+        width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; border: 1px solid #d2d2d7;
+        border-radius: 10px; font-family: inherit; font-size: 0.92rem; resize: vertical;
+      }
+      .inline-error { color: #b42318; font-size: 0.85rem; font-weight: 600; margin: 0.5rem 0 0; }
+      .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+      .btn {
+        padding: 0.55rem 1.1rem; border-radius: 980px; border: none; font-size: 0.88rem;
+        font-weight: 600; cursor: pointer;
+      }
+      .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+      .btn.danger { background: #b42318; color: #fff; }
+      .btn.secondary { background: #f5f5f7; color: #1d1d1f; }
       @media (max-width: 640px) {
         .booking-row { grid-template-columns: 1fr auto; }
         .dates, .guest { grid-column: 1 / -1; }
@@ -135,6 +211,11 @@ export class HostBookingsComponent implements OnInit {
   groups: HostListingBookings[] = [];
   loading = false;
   errorMessage = '';
+  successMessage = '';
+  cancellingItem: { listingTitle: string; booking: HostBookingSummary } | null = null;
+  cancelReason = '';
+  cancelError = '';
+  submittingCancel = false;
 
   get total(): number {
     return countHostBookings(this.groups);
@@ -147,6 +228,7 @@ export class HostBookingsComponent implements OnInit {
   async setFilter(value: string): Promise<void> {
     if (value === this.filter) return;
     this.filter = value;
+    this.successMessage = '';
     await this.load();
   }
 
@@ -176,6 +258,55 @@ export class HostBookingsComponent implements OnInit {
     }
   }
 
+  canCancel(booking: HostBookingSummary): boolean {
+    return canHostCancelBooking(booking);
+  }
+
+  openCancelModal(listingTitle: string, booking: HostBookingSummary): void {
+    this.cancellingItem = { listingTitle, booking };
+    this.cancelReason = '';
+    this.cancelError = '';
+    this.successMessage = '';
+  }
+
+  closeCancelModal(): void {
+    this.cancellingItem = null;
+    this.cancelReason = '';
+    this.cancelError = '';
+  }
+
+  async confirmCancel(): Promise<void> {
+    if (!this.cancellingItem) return;
+    const reason = this.cancelReason.trim();
+    if (reason.length < 3) {
+      this.cancelError = 'Indica el motivo de la cancelación (mínimo 3 caracteres).';
+      return;
+    }
+    const session = getActiveSession();
+    if (!session) {
+      this.cancelError = 'Tu sesión expiró. Inicia sesión nuevamente como anfitrión.';
+      return;
+    }
+    this.submittingCancel = true;
+    this.cancelError = '';
+    try {
+      const { booking } = this.cancellingItem;
+      const result = await cancelHostBookingRequest(booking.id, reason, session.token);
+      if (!result.ok) {
+        this.cancelError = [result.body['message']].flat().filter(Boolean).join(' ') || 'No fue posible cancelar la reserva.';
+        return;
+      }
+      this.closeCancelModal();
+      this.successMessage =
+        'Reserva cancelada con devolución simulada del 100 % del total. Se notificó al huésped y las fechas volvieron a estar disponibles.';
+      await this.load();
+    } catch {
+      this.cancelError = 'Error de conexión al cancelar la reserva.';
+    } finally {
+      this.submittingCancel = false;
+    }
+  }
+
   date(iso: string): string {
     return formatStayDate(iso);
   }
@@ -186,5 +317,9 @@ export class HostBookingsComponent implements OnInit {
 
   nights(count: number): string {
     return nightsText(count);
+  }
+
+  money(value: number): string {
+    return formatQuoteAmount(value);
   }
 }
