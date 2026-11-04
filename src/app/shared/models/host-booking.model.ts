@@ -41,6 +41,7 @@ export interface HostBookingDetail extends HostBookingSummary {
 
 export const HOST_BOOKING_FILTERS: { value: string; label: string }[] = [
   { value: 'TODAS', label: 'Todas' },
+  { value: 'PENDIENTE_APROBACION', label: 'Por aprobar' },
   { value: 'CONFIRMADA', label: 'Confirmadas' },
   { value: 'PENDIENTE', label: 'Pendientes de pago' },
   { value: 'EN_REVISION', label: 'En revisión' },
@@ -51,6 +52,7 @@ export const HOST_BOOKING_FILTERS: { value: string; label: string }[] = [
 /** Qué significa cada estado para el anfitrión. */
 export const HOST_STATUS_NOTES: Record<string, string> = {
   PENDIENTE: 'El huésped aún no ha pagado. Las fechas se bloquean cuando la reserva se confirma.',
+  PENDIENTE_APROBACION: 'Esta solicitud espera tu decisión. Aún no se ha cobrado nada ni se bloquearon las fechas.',
   CONFIRMADA: 'La reserva está pagada. Prepara la llegada del huésped.',
   CANCELADA: 'La reserva se canceló y las fechas volvieron a estar disponibles.',
   COMPLETADA: 'La estancia ya terminó.',
