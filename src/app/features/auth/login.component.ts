@@ -9,6 +9,7 @@ import {
   StoredSession,
 } from '../../core/guards/auth.guard';
 import { StatusLabelPipe } from '../../shared/models/display.model';
+import { ACCOUNT_DEACTIVATED_STATE } from '../../shared/models/account-deactivation.model';
 
 @Component({
   selector: 'app-login',
@@ -155,6 +156,12 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
               <!-- CA2: Error genérico sin revelar qué dato falló -->
               <div *ngIf="authError" class="banner-error" role="alert">
                 {{ authError }}
+              </div>
+
+              <!-- Cuenta desactivada por el propio usuario -->
+              <div *ngIf="deactivatedNotice" class="banner-deactivated" role="status">
+                <strong>Cuenta desactivada</strong>
+                <span>{{ deactivatedNotice }}</span>
               </div>
 
               <!-- CA3: Error de cuenta restringida -->
@@ -600,6 +607,20 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
       color: #86868b;
     }
     .banner-error,
+    .banner-deactivated {
+      background: #f5f5f7;
+      border: 1px solid #d2d2d7;
+      color: #3a3a3c;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.84rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .banner-deactivated strong {
+      color: #1d1d1f;
+    }
     .banner-restricted {
       background: #fff2f4;
       border: 1px solid rgba(215, 0, 21, 0.25);
@@ -944,9 +965,14 @@ export class LoginComponent {
   loading = false;
   authError = '';
   restrictedError = '';
+  /** Aviso al llegar tras desactivar la cuenta, o al intentar entrar con una cuenta desactivada. */
+  deactivatedNotice = '';
   activeSession: StoredSession | null = getActiveSession();
 
   constructor(private readonly router?: Router) {
+    if ((globalThis.history?.state as Record<string, unknown> | null)?.[ACCOUNT_DEACTIVATED_STATE]) {
+      this.deactivatedNotice = 'Tu cuenta quedó desactivada y tu sesión se cerró. Tu historial se conserva.';
+    }
     if (this.activeSession) {
       this.navigateByRole(this.activeSession.role);
     }
@@ -1024,6 +1050,7 @@ export class LoginComponent {
   clearErrors(): void {
     this.authError = '';
     this.restrictedError = '';
+    this.deactivatedNotice = '';
   }
 
   async onSubmit(): Promise<void> {
@@ -1048,6 +1075,10 @@ export class LoginComponent {
 
       if (response.status === 403) {
         const body = await response.json().catch(() => ({}));
+        if (body?.reason === 'CUENTA_DESACTIVADA') {
+          this.deactivatedNotice = body.message || 'Tu cuenta está desactivada.';
+          return;
+        }
         this.restrictedError =
           body?.message ||
           'Acceso denegado: tu cuenta se encuentra restringida.';

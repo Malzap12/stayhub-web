@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { getActiveSession, updateActiveSessionName } from '../../core/guards/auth.guard';
 import { AccountStatus, UserProfile, UserRole } from '../../shared/models/user.model';
+import { AccountDeactivationComponent } from './account-deactivation.component';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   HUESPED: 'Huésped',
@@ -30,11 +31,13 @@ type ApiError = { message?: string | string[] };
  * HU-007 · Actualizar mi perfil (CA1, CA2, CA3, RF-010).
  * Edita nombre y teléfono, cambia la contraseña con la actual, y muestra el correo
  * y el rol como campos que no se pueden editar.
+ *
+ * HU-008 · Desactivar mi cuenta (CA1, CA2, CA3, RF-011): huéspedes y anfitriones la desactivan desde aquí.
  */
 @Component({
   selector: 'app-my-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AccountDeactivationComponent],
   template: `
     <section class="profile-shell">
       <header class="page-header">
@@ -161,6 +164,8 @@ type ApiError = { message?: string | string[] };
             </button>
           </form>
         </article>
+
+        <app-account-deactivation *ngIf="user.role !== 'ADMINISTRADOR'"></app-account-deactivation>
       </ng-container>
     </section>
   `,
