@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
-import { BookingPaymentResult, TestCardPaymentComponent } from '../bookings/test-card-payment.component';
+import { BookingPaymentResult, PaymentCard, TestCardPaymentComponent } from '../bookings/test-card-payment.component';
 import { BookingMode } from '../../shared/models/booking-mode.model';
 
 /** Cotización tal como la devuelve POST /api/bookings/quote (HU-027). */
@@ -70,7 +70,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
         </label>
       </fieldset>
 
-      <div class="error" *ngIf="errorMessage" role="alert">
+      <div class="error" *ngIf="errorMessage && !requestStep" role="alert">
         <p>{{ errorMessage }}</p>
         <p class="nights" *ngIf="unavailableNights.length > 0">
           Noches no disponibles: {{ nightsLabel }}. Revisa el calendario de disponibilidad.
@@ -105,12 +105,24 @@ export function formatQuoteAmount(value: number, negative = false): string {
         <button
           type="button"
           class="book-button"
-          *ngIf="!createdBooking"
+          *ngIf="!createdBooking && !requestStep"
           (click)="startInstantBooking()"
           [disabled]="bookingLoading"
         >
           {{ bookingLoading ? (needsApproval ? 'Enviando solicitud…' : 'Preparando reserva…') : needsApproval ? 'Solicitar reserva' : 'Reservar' }}
         </button>
+
+        <!-- HU-036: la solicitud lleva la tarjeta de prueba; solo se cobra si el anfitrión la acepta -->
+        <div class="payment-step" *ngIf="requestStep">
+          <h4>Agrega una tarjeta de prueba para enviar la solicitud</h4>
+          <div class="error" *ngIf="errorMessage" role="alert"><p>{{ errorMessage }}</p></div>
+          <app-test-card-payment
+            mode="guardar"
+            payLabel="Enviar solicitud"
+            [busy]="bookingLoading"
+            (cardReady)="startInstantBooking($event)"
+          ></app-test-card-payment>
+        </div>
 
         <div class="payment-step" *ngIf="createdBooking">
           <h4>Paga con tarjeta de prueba para confirmar</h4>
@@ -127,7 +139,10 @@ export function formatQuoteAmount(value: number, negative = false): string {
         <span class="badge">Esperando aprobación</span>
         <h3>Enviaste tu solicitud</h3>
         <p class="code">Código: <strong>{{ requestedBooking.code || requestedBooking.id }}</strong></p>
-        <p>El anfitrión revisará tu solicitud. No se te cobra nada hasta que la acepte.</p>
+        <p>
+          El anfitrión revisará tu solicitud. No se te cobra nada hasta que la acepte<span *ngIf="requestedBooking.savedPaymentMethod as card">;
+            entonces se cobrará a tu tarjeta {{ card.cardBrand }} ···· {{ card.cardLast4 }}</span>.
+        </p>
         <a routerLink="/mis-reservas">Ver mis reservas</a>
       </div>
 
@@ -484,6 +499,8 @@ export class StayQuoteComponent implements OnInit {
   confirmedBooking: any = null;
   /** HU-018 CA2: solicitud creada en PENDIENTE_APROBACION. */
   requestedBooking: any = null;
+  /** HU-036: el huésped está agregando la tarjeta con que se cobrará si el anfitrión acepta. */
+  requestStep = false;
   paymentReference = '';
   idempotencyKey = '';
 
@@ -521,6 +538,7 @@ export class StayQuoteComponent implements OnInit {
     this.unavailableNights = [];
     this.createdBooking = null;
     this.confirmedBooking = null;
+    this.requestStep = false;
     // HU-032 CA2: otra estancia es otra solicitud y lleva una clave nueva; los reintentos de la misma conservan la suya.
     this.idempotencyKey = '';
   }
@@ -553,6 +571,7 @@ export class StayQuoteComponent implements OnInit {
     this.unavailableNights = [];
     this.createdBooking = null;
     this.confirmedBooking = null;
+    this.requestStep = false;
     this.idempotencyKey = '';
     this.errorMessage = this.validate();
     if (this.errorMessage) {
@@ -607,7 +626,7 @@ export class StayQuoteComponent implements OnInit {
     return '';
   }
 
-  async startInstantBooking(): Promise<void> {
+  async startInstantBooking(card?: PaymentCard): Promise<void> {
     if (this.bookingRoleNotice) {
       this.errorMessage = this.bookingRoleNotice;
       return;
@@ -631,6 +650,13 @@ export class StayQuoteComponent implements OnInit {
       return;
     }
 
+    // HU-036: en modalidad con aprobación primero se pide la tarjeta que se cobrará si el anfitrión acepta.
+    if (this.needsApproval && !card) {
+      this.requestStep = true;
+      this.errorMessage = '';
+      return;
+    }
+
     this.bookingLoading = true;
     this.errorMessage = '';
     this.idempotencyKey ||= (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('idemp-' + Date.now());
@@ -649,6 +675,7 @@ export class StayQuoteComponent implements OnInit {
           guests: Number(this.guests),
           additionalServices: Array.from(this.selected),
           idempotencyKey: this.idempotencyKey,
+          ...(card ? { card } : {}),
         }),
       });
 
@@ -661,6 +688,7 @@ export class StayQuoteComponent implements OnInit {
 
       if (body?.status === 'PENDIENTE_APROBACION') {
         this.requestedBooking = body;
+        this.requestStep = false;
         return;
       }
       this.createdBooking = body;

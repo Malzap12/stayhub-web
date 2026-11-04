@@ -1,10 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { formatQuoteAmount } from '../listings/stay-quote.component';
 import { StatusLabelPipe } from '../../shared/models/display.model';
 import {
+  decisionErrorMessage,
   formatStayDate,
   guestsText,
   HostBookingDetail,
@@ -16,11 +18,12 @@ import {
 /**
  * HU-035 · Detalle de una reserva recibida (CA2 · RF-049).
  * Con la reserva confirmada muestra el contacto del huésped; en otro estado lo oculta y explica por qué.
+ * HU-036 · Si es una solicitud por aprobar, el anfitrión la acepta (se cobra y queda confirmada) o la rechaza.
  */
 @Component({
   selector: 'app-host-booking-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusLabelPipe],
+  imports: [CommonModule, FormsModule, RouterLink, StatusLabelPipe],
   template: `
     <section class="detail-shell">
       <a routerLink="/anfitrion/reservas" class="back">← Reservas recibidas</a>
@@ -39,6 +42,40 @@ import {
           <span class="status-tag">{{ b.status | statusLabel }}</span>
           <p>{{ statusNote(b.status) }}</p>
         </div>
+
+        <div class="decision-result success" *ngIf="successMessage" role="status">{{ successMessage }}</div>
+        <div class="decision-result failure" *ngIf="decisionError" role="alert">{{ decisionError }}</div>
+
+        <!-- HU-036: el anfitrión acepta o rechaza la solicitud -->
+        <article class="decision" *ngIf="b.status === 'PENDIENTE_APROBACION'" aria-label="Decidir la solicitud">
+          <h2>¿Aceptas esta solicitud?</h2>
+          <p>
+            Si la aceptas, revisamos que las fechas sigan libres y cobramos {{ money(b.totalAmount) }} {{ b.currency }} a la tarjeta del huésped<span
+              *ngIf="b.paymentCard"> ({{ b.paymentCard }})</span>. Si la rechazas, no se cobra nada y le avisamos al huésped.
+          </p>
+          <div class="decision-actions" *ngIf="!rejecting">
+            <button type="button" class="accept-btn" (click)="accept()" [disabled]="deciding">
+              {{ deciding ? 'Procesando…' : 'Aceptar y cobrar' }}
+            </button>
+            <button type="button" class="reject-btn" (click)="startRejecting()" [disabled]="deciding">Rechazar</button>
+          </div>
+          <div class="reject-form" *ngIf="rejecting">
+            <label for="reject-reason">Motivo para el huésped (opcional)</label>
+            <textarea id="reject-reason" rows="3" maxlength="300" [(ngModel)]="rejectReason"
+              placeholder="Por ejemplo: esas fechas no recibo huéspedes."></textarea>
+            <small class="counter">{{ rejectReason.length }}/300</small>
+            <div class="decision-actions">
+              <button type="button" class="reject-btn solid" (click)="reject()" [disabled]="deciding">
+                {{ deciding ? 'Rechazando…' : 'Rechazar solicitud' }}
+              </button>
+              <button type="button" class="link-btn" (click)="rejecting = false" [disabled]="deciding">Volver</button>
+            </div>
+          </div>
+        </article>
+
+        <p class="rejection" *ngIf="b.status === 'RECHAZADA' && b.rejectionReason">
+          Motivo que le diste al huésped: «{{ b.rejectionReason }}»
+        </p>
 
         <div class="grid">
           <article class="card contact-card">
@@ -94,6 +131,26 @@ import {
       .status.pendiente { background: #fff7e6; }
       .status.cancelada { background: #fdecec; }
       .status.en_revision { background: #eef2ff; }
+      .status.pendiente_aprobacion { background: #fff7e6; }
+      .status.rechazada { background: #f5f5f7; }
+      .decision { background: #fff; border: 1px solid #e5e5ea; border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem; }
+      .decision h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
+      .decision p { margin: 0 0 1rem; color: #3a3a3c; }
+      .decision-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+      .accept-btn, .reject-btn { min-height: 42px; padding: 0 1.25rem; border-radius: 980px; font: inherit; font-weight: 600; cursor: pointer; }
+      .accept-btn { border: none; background: #1d1d1f; color: #fff; }
+      .reject-btn { border: 1px solid #b42318; background: #fff; color: #b42318; }
+      .reject-btn.solid { background: #b42318; color: #fff; }
+      .accept-btn:disabled, .reject-btn:disabled, .link-btn:disabled { opacity: 0.6; cursor: progress; }
+      .link-btn { border: none; background: none; color: #0071e3; font: inherit; font-weight: 600; cursor: pointer; }
+      .reject-form { display: flex; flex-direction: column; gap: 0.5rem; }
+      .reject-form label { font-weight: 600; }
+      .reject-form textarea { width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem; border: 1px solid #d2d2d7; border-radius: 12px; font: inherit; resize: vertical; }
+      .counter { color: #6e6e73; align-self: flex-end; }
+      .decision-result { padding: 0.9rem 1.1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600; }
+      .decision-result.success { background: #e8f7ee; color: #1a7f37; }
+      .decision-result.failure { background: #fdecec; color: #b42318; }
+      .rejection { margin: 0 0 1.5rem; color: #3a3a3c; font-style: italic; overflow-wrap: anywhere; }
       .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
       .card { background: #fff; border: 1px solid #e5e5ea; border-radius: 16px; padding: 1.25rem; min-width: 0; }
       .card h2 { font-size: 1.05rem; margin: 0 0 1rem; }
@@ -114,6 +171,12 @@ export class HostBookingDetailComponent implements OnInit {
   booking: HostBookingDetail | null = null;
   loading = false;
   errorMessage = '';
+  /** HU-036: estado de la decisión sobre la solicitud. */
+  deciding = false;
+  rejecting = false;
+  rejectReason = '';
+  successMessage = '';
+  decisionError = '';
 
   constructor(private readonly route: ActivatedRoute) {}
 
@@ -146,6 +209,66 @@ export class HostBookingDetailComponent implements OnInit {
       this.errorMessage = 'Error de conexión al cargar la reserva.';
     } finally {
       this.loading = false;
+    }
+  }
+
+  startRejecting(): void {
+    this.rejecting = true;
+    this.decisionError = '';
+  }
+
+  /** HU-036 CA1: se verifica la disponibilidad, se cobra el pago simulado y la reserva queda confirmada. */
+  async accept(): Promise<void> {
+    await this.decide('accept');
+  }
+
+  /** HU-036 CA2: la solicitud queda rechazada, sin cobro, y se avisa al huésped. */
+  async reject(): Promise<void> {
+    await this.decide('reject');
+  }
+
+  private async decide(action: 'accept' | 'reject'): Promise<void> {
+    const booking = this.booking;
+    const session = getActiveSession();
+    if (!booking || !session) {
+      this.decisionError = 'Inicia sesión como anfitrión para decidir esta solicitud.';
+      return;
+    }
+    this.deciding = true;
+    this.successMessage = '';
+    this.decisionError = '';
+    const reason = this.rejectReason.trim();
+    try {
+      const response = await fetch(`/api/bookings/host/${encodeURIComponent(booking.id)}/${action}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(action === 'reject' && reason ? { reason } : {}),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.decisionError = decisionErrorMessage(response.status, body);
+        if (body?.reason === 'SOLICITUD_NO_PENDIENTE') {
+          await this.load(booking.id);
+        }
+        return;
+      }
+      if (action === 'accept' && body?.payment?.status !== 'APROBADO') {
+        this.decisionError =
+          `El pago con la tarjeta del huésped fue rechazado${body?.payment?.message ? ` (${body.payment.message})` : ''}. ` +
+          'La solicitud sigue pendiente y las fechas siguen libres; puedes rechazarla.';
+        return;
+      }
+      this.successMessage =
+        action === 'accept'
+          ? 'Aceptaste la solicitud: el pago se aprobó y la reserva quedó confirmada.'
+          : 'Rechazaste la solicitud. No se cobró nada y le avisamos al huésped.';
+      this.rejecting = false;
+      this.rejectReason = '';
+      await this.load(booking.id);
+    } catch {
+      this.decisionError = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      this.deciding = false;
     }
   }
 

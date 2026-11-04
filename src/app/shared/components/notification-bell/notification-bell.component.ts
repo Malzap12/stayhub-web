@@ -19,6 +19,8 @@ export interface AppNotification {
 export const NOTIFICATION_LABELS: Record<string, string> = {
   RESERVA_CONFIRMADA: 'Reserva confirmada',
   SOLICITUD_RESERVA: 'Solicitud de reserva',
+  SOLICITUD_RECHAZADA: 'Solicitud rechazada',
+  PAGO_RECHAZADO: 'Pago rechazado',
   RESERVA_CANCELADA: 'Reserva cancelada',
   RESERVA_EN_REVISION: 'Reserva en revisión',
   RESERVA_MANTENIDA: 'Reserva mantenida',

@@ -32,6 +32,8 @@ export interface BookingDetail {
   cancellationPolicyDescription?: string;
   payment?: { status: string; reference: string; cardBrand?: string; cardLast4?: string };
   cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number };
+  savedPaymentMethod?: { cardBrand: string; cardLast4: string };
+  hostDecision?: { decision: string; reason?: string };
   createdAt?: string;
 }
 
@@ -39,6 +41,7 @@ export interface BookingDetail {
 export const STATUS_EXPLANATIONS: Record<string, string> = {
   PENDIENTE: 'Creaste la reserva pero falta el pago. Paga con una tarjeta de prueba desde el detalle de la publicación para confirmarla.',
   PENDIENTE_APROBACION: 'Enviaste una solicitud y el anfitrión debe aprobarla. No se te cobra nada hasta que la acepte.',
+  RECHAZADA: 'El anfitrión rechazó tu solicitud. No se te cobró nada y puedes buscar otras fechas u otro alojamiento.',
   CONFIRMADA: 'Tu reserva está pagada y las fechas quedaron bloqueadas para ti.',
   CANCELADA: 'La reserva se canceló y las fechas volvieron a estar disponibles.',
   COMPLETADA: 'La estancia ya terminó. Ya puedes reseñar el alojamiento desde Mis reservas.',
@@ -106,6 +109,12 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
               <span>Tarifa de servicio<span *ngIf="b.serviceFeePercentage !== undefined"> ({{ b.serviceFeePercentage }} %)</span></span><span>{{ money(b.serviceFee) }}</span>
             </div>
             <div class="row total"><span>Total</span><span>{{ money(b.totalAmount) }} {{ b.currency }}</span></div>
+            <p class="payment" *ngIf="b.status === 'PENDIENTE_APROBACION' && b.savedPaymentMethod as card">
+              Si el anfitrión acepta, se cobrará a tu tarjeta {{ card.cardBrand }} ···· {{ card.cardLast4 }}.
+            </p>
+            <p class="payment" *ngIf="b.status === 'RECHAZADA' && b.hostDecision?.reason">
+              Motivo del anfitrión: «{{ b.hostDecision?.reason }}»
+            </p>
             <p class="payment" *ngIf="b.payment">
               Pago {{ b.payment.status | statusLabel }} · {{ b.payment.cardBrand }} ···· {{ b.payment.cardLast4 }} · Ref. {{ b.payment.reference }}
             </p>

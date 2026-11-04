@@ -37,6 +37,10 @@ export interface HostBookingDetail extends HostBookingSummary {
   specialRequests?: string;
   additionalServices?: { name: string; cost: number }[];
   guestContact?: GuestContact;
+  /** HU-036: tarjeta que el huésped guardó con la solicitud, por ejemplo «VISA ···· 4242». */
+  paymentCard?: string;
+  /** HU-036: motivo con que se rechazó la solicitud. */
+  rejectionReason?: string;
 }
 
 export const HOST_BOOKING_FILTERS: { value: string; label: string }[] = [
@@ -47,6 +51,7 @@ export const HOST_BOOKING_FILTERS: { value: string; label: string }[] = [
   { value: 'EN_REVISION', label: 'En revisión' },
   { value: 'COMPLETADA', label: 'Completadas' },
   { value: 'CANCELADA', label: 'Canceladas' },
+  { value: 'RECHAZADA', label: 'Rechazadas' },
 ];
 
 /** Qué significa cada estado para el anfitrión. */
@@ -57,10 +62,27 @@ export const HOST_STATUS_NOTES: Record<string, string> = {
   CANCELADA: 'La reserva se canceló y las fechas volvieron a estar disponibles.',
   COMPLETADA: 'La estancia ya terminó.',
   EN_REVISION: 'El administrador está revisando esta reserva; te avisaremos cuando la resuelva.',
+  RECHAZADA: 'Rechazaste esta solicitud. No se cobró nada y las fechas siguen disponibles.',
 };
 
 export function hostStatusNote(status: string): string {
   return HOST_STATUS_NOTES[status] ?? '';
+}
+
+/** HU-036 · Explicación para el anfitrión cuando no se pudo aceptar o rechazar la solicitud. */
+export function decisionErrorMessage(status: number, body: { reason?: string; message?: string | string[] } | null): string {
+  switch (body?.reason) {
+    case 'PERIODO_NO_DISPONIBLE':
+      return 'Las fechas de esta solicitud ya no están disponibles, así que no se cobró nada. Puedes rechazarla.';
+    case 'SOLICITUD_NO_PENDIENTE':
+      return 'Esta solicitud ya no espera tu decisión.';
+    case 'SIN_MEDIO_DE_PAGO':
+      return 'La solicitud no tiene una tarjeta para cobrar. Recházala para que el huésped la envíe de nuevo.';
+  }
+  if (status === 404) {
+    return 'No encontramos esta solicitud entre las de tus alojamientos.';
+  }
+  return [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible guardar tu decisión. Intenta de nuevo.';
 }
 
 /** "2 huéspedes" / "1 huésped". */

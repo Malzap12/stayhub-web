@@ -37,6 +37,15 @@ export interface BookingPaymentResult {
   payment: BookingPayment;
 }
 
+/** Tarjeta de prueba que se envía al API (HU-037, HU-036). */
+export interface PaymentCard {
+  cardNumber: string;
+  cardHolder: string;
+  expMonth: number;
+  expYear: number;
+  cvc: string;
+}
+
 /** "4242424242424242" -> "4242 4242 4242 4242" */
 export function formatCardNumber(value: string): string {
   return String(value ?? '')
@@ -49,6 +58,7 @@ export function formatCardNumber(value: string): string {
  * HU-037 · Pagar la reserva en modo de pruebas (CA1, CA2, CA3 · RF-051, RF-052).
  * Formulario de tarjeta de prueba: si el proveedor aprueba, emite `paid` con la referencia y la reserva confirmada;
  * si rechaza, informa que la reserva no se confirmó y que las fechas siguen libres.
+ * HU-036 · En modo «guardar» (solicitudes con aprobación) solo valida la tarjeta y la entrega con `cardReady`, sin cobrar.
  */
 @Component({
   selector: 'app-test-card-payment',
@@ -58,7 +68,7 @@ export function formatCardNumber(value: string): string {
     <form class="payment" (ngSubmit)="pay()" novalidate aria-label="Pagar con tarjeta de prueba">
       <div class="sandbox" role="note">
         <strong>Modo de pruebas</strong>
-        <span>No se cobra dinero real. Usa una de las tarjetas de prueba.</span>
+        <span>{{ mode === 'guardar' ? 'No se cobra ahora: solo si el anfitrión acepta tu solicitud. Usa una de las tarjetas de prueba.' : 'No se cobra dinero real. Usa una de las tarjetas de prueba.' }}</span>
       </div>
 
       <div class="cards" *ngIf="testCards.length > 0">
@@ -112,8 +122,8 @@ export function formatCardNumber(value: string): string {
         <p class="ref">Referencia: {{ result?.payment?.reference }}</p>
       </div>
 
-      <button type="submit" class="pay" [disabled]="loading || result?.payment?.status === 'APROBADO'">
-        {{ loading ? 'Procesando pago…' : payLabel }}
+      <button type="submit" class="pay" [disabled]="loading || busy || result?.payment?.status === 'APROBADO'">
+        {{ loading || busy ? (mode === 'guardar' ? 'Enviando solicitud…' : 'Procesando pago…') : payLabel }}
       </button>
     </form>
   `,
@@ -158,6 +168,12 @@ export function formatCardNumber(value: string): string {
 export class TestCardPaymentComponent implements OnInit {
   @Input() bookingId = '';
   @Input() payLabel = 'Pagar y confirmar';
+  /** HU-036: «guardar» entrega la tarjeta sin cobrarla, para enviarla con una solicitud. */
+  @Input() mode: 'pagar' | 'guardar' = 'pagar';
+  /** HU-036: el componente padre está enviando la solicitud. */
+  @Input() busy = false;
+  /** HU-036: tarjeta válida lista para enviarse con la solicitud (modo «guardar»). */
+  @Output() cardReady = new EventEmitter<PaymentCard>();
   /** Se emite cuando el pago queda APROBADO (CA1). */
   @Output() paid = new EventEmitter<BookingPaymentResult>();
   /** Se emite cuando el pago queda RECHAZADO (CA2). */
@@ -237,6 +253,10 @@ export class TestCardPaymentComponent implements OnInit {
     if (this.errorMessage) {
       return;
     }
+    if (this.mode === 'guardar') {
+      this.cardReady.emit(this.card());
+      return;
+    }
     this.loading = true;
     this.result = null;
     try {
@@ -247,13 +267,7 @@ export class TestCardPaymentComponent implements OnInit {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          cardNumber: this.cardNumber.replace(/\s/g, ''),
-          cardHolder: this.cardHolder.trim(),
-          expMonth: Number(this.expMonth),
-          expYear: Number(this.expYear),
-          cvc: this.cvc,
-        }),
+        body: JSON.stringify(this.card()),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -273,5 +287,15 @@ export class TestCardPaymentComponent implements OnInit {
       // El CVC nunca se conserva después de enviar el pago.
       this.cvc = '';
     }
+  }
+
+  private card(): PaymentCard {
+    return {
+      cardNumber: this.cardNumber.replace(/\s/g, ''),
+      cardHolder: this.cardHolder.trim(),
+      expMonth: Number(this.expMonth),
+      expYear: Number(this.expYear),
+      cvc: this.cvc,
+    };
   }
 }

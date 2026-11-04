@@ -13,6 +13,7 @@ export const STATUS_TEXT: Record<string, string> = {
   ADMINISTRADOR: 'Administrador',
   PENDIENTE: 'Pendiente de pago',
   PENDIENTE_APROBACION: 'Esperando aprobación',
+  RECHAZADA: 'Rechazada',
   CONFIRMADA: 'Confirmada',
   CANCELADA: 'Cancelada',
   COMPLETADA: 'Completada',
