@@ -1,3 +1,5 @@
+import type { BookingMode } from './booking-mode.model';
+
 export type ListingStatus =
   | 'BORRADOR'
   | 'PENDIENTE_REVISION'
@@ -82,6 +84,8 @@ export interface MyListing {
   adminReasonType?: 'DEVUELTA' | 'BLOQUEADA';
   adminReason?: string;
   cancellationPolicy?: string;
+  /** HU-018: modalidad de reserva (inmediata por defecto). */
+  bookingMode?: BookingMode;
   isComplete: boolean;
   missingFields: string[];
   createdAt: string;

@@ -50,6 +50,7 @@ describe('ListingDraftFormComponent (HU-010 · Crear publicación y HU-039 · Po
       amenities: ['WIFI'],
       rulesText: 'No fumar\n\nNo fiestas',
       imagesText: 'https://img/1.jpg',
+      bookingMode: 'INMEDIATA',
     };
 
     await component.save();
@@ -69,6 +70,7 @@ describe('ListingDraftFormComponent (HU-010 · Crear publicación y HU-039 · Po
       amenities: ['WIFI'],
       rules: ['No fumar', 'No fiestas'],
       images: ['https://img/1.jpg'],
+      bookingMode: 'INMEDIATA',
     });
     expect(component.saved?.status).toBe('BORRADOR');
     expect(component.myListings[0].id).toBe('listing-1');

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
+import { BOOKING_MODE_OPTIONS, BookingMode, DEFAULT_BOOKING_MODE } from '../../shared/models/booking-mode.model';
 
 export type PropertyType = 'CASA' | 'APARTAMENTO' | 'CABANA' | 'FINCA' | 'HABITACION' | 'OTRO';
 export type CancellationPolicyCode = 'FLEXIBLE';
@@ -45,6 +46,7 @@ export interface ListingDraftForm {
   rulesText: string;
   imagesText: string;
   cancellationPolicy?: CancellationPolicyCode | '';
+  bookingMode: BookingMode;
 }
 
 export interface SavedDraft {
@@ -97,6 +99,7 @@ const emptyForm = (): ListingDraftForm => ({
   amenities: [],
   rulesText: '',
   imagesText: '',
+  bookingMode: DEFAULT_BOOKING_MODE,
 });
 
 @Component({
@@ -301,6 +304,19 @@ const emptyForm = (): ListingDraftForm => ({
             </select>
             <p class="sub-label" *ngIf="selectedCancellationPolicy">{{ selectedCancellationPolicy.description }}</p>
           </div>
+
+          <fieldset class="field booking-mode-field">
+            <legend>Modalidad de reserva</legend>
+            <div class="mode-options">
+              <label class="mode-option" *ngFor="let option of bookingModes" [class.selected]="form.bookingMode === option.value">
+                <input type="radio" name="bookingMode" [value]="option.value" [(ngModel)]="form.bookingMode" />
+                <span>
+                  <strong>{{ option.label }}</strong>
+                  <small>{{ option.hostDescription }}</small>
+                </span>
+              </label>
+            </div>
+          </fieldset>
 
           </section>
 
@@ -920,6 +936,7 @@ export class ListingDraftFormComponent implements OnInit {
   readonly maxImages = MAX_IMAGES;
 
   cancellationPolicies: CancellationPolicyOption[] = CANCELLATION_POLICIES_CATALOG;
+  readonly bookingModes = BOOKING_MODE_OPTIONS;
   selectedCancellationPolicy: CancellationPolicyOption | null = null;
 
   listingId = '';
@@ -963,6 +980,7 @@ export class ListingDraftFormComponent implements OnInit {
         this.form.amenities = Array.isArray(data.amenities) ? [...data.amenities] : [];
         this.form.rulesText = Array.isArray(data.rules) ? data.rules.join('\n') : '';
         this.uploadedImages = Array.isArray(data.images) ? [...data.images] : [];
+        this.form.bookingMode = data.bookingMode ?? DEFAULT_BOOKING_MODE;
         if (data.cancellationPolicy?.code) {
           this.form.cancellationPolicy = data.cancellationPolicy.code;
           this.selectCancellationPolicy(data.cancellationPolicy.code);
@@ -1161,6 +1179,7 @@ export class ListingDraftFormComponent implements OnInit {
       rules: lines(this.form.rulesText),
       images: [...this.uploadedImages, ...lines(this.form.imagesText)],
       cancellationPolicy: this.form.cancellationPolicy || undefined,
+      bookingMode: this.form.bookingMode,
     };
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
   }
