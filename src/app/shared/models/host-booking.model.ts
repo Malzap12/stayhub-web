@@ -29,7 +29,21 @@ export interface GuestContact {
   phone?: string;
 }
 
-/** Detalle de GET /api/bookings/host/:id (HU-035 CA2). */
+/** Registro de cancelación visible para el anfitrión. */
+export interface HostBookingCancellation {
+  cancelledAt: string;
+  reason: string;
+  policy: string;
+  refundPercentage: number;
+  refundableAmount: number;
+  refundAmount: number;
+  appliedRule: string;
+  currency: string;
+  finalStatus: string;
+  releasedNights: string[];
+}
+
+/** Detalle de GET /api/bookings/host/:id (HU-035 CA2, HU-042). */
 export interface HostBookingDetail extends HostBookingSummary {
   listingId: string;
   listingTitle: string;
@@ -37,6 +51,7 @@ export interface HostBookingDetail extends HostBookingSummary {
   specialRequests?: string;
   additionalServices?: { name: string; cost: number }[];
   guestContact?: GuestContact;
+  cancellation?: HostBookingCancellation;
 }
 
 export const HOST_BOOKING_FILTERS: { value: string; label: string }[] = [
@@ -92,4 +107,41 @@ export function phoneHref(phone: string): string {
 /** Total de reservas en todos los alojamientos. */
 export function countHostBookings(groups: HostListingBookings[]): number {
   return groups.reduce((sum, group) => sum + group.bookings.length, 0);
+}
+
+/** Hora de llegada en Colombia (15:00 UTC-5) para validar si aún se puede cancelar. */
+export function hostArrivalInstant(checkIn: string): number {
+  return Date.parse(`${checkIn.slice(0, 10)}T15:00:00-05:00`);
+}
+
+/** Solo se puede cancelar una reserva confirmada cuya hora de llegada aún no ha pasado. */
+export function canHostCancelBooking(booking: Pick<HostBookingSummary, 'status' | 'checkIn'>, now = Date.now()): boolean {
+  return booking.status === 'CONFIRMADA' && now < hostArrivalInstant(booking.checkIn);
+}
+
+/** Fecha y hora de cancelación legible en hora de Colombia. */
+export function formatCancellationDate(iso: string): string {
+  return new Intl.DateTimeFormat('es-CO', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'America/Bogota',
+  }).format(new Date(iso));
+}
+
+/** Solicitud PATCH /api/bookings/host/:id/cancel para cancelar como anfitrión. */
+export async function cancelHostBookingRequest(
+  id: string,
+  reason: string,
+  token: string,
+): Promise<{ ok: boolean; status: number; body: Record<string, unknown> }> {
+  const response = await fetch(`/api/bookings/host/${encodeURIComponent(id)}/cancel`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ reason }),
+  });
+  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  return { ok: response.ok, status: response.status, body };
 }
