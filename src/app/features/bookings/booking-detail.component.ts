@@ -38,6 +38,7 @@ export interface BookingDetail {
 /** HU-033: qué significa cada estado de la reserva. */
 export const STATUS_EXPLANATIONS: Record<string, string> = {
   PENDIENTE: 'Creaste la reserva pero falta el pago. Paga con una tarjeta de prueba desde el detalle de la publicación para confirmarla.',
+  PENDIENTE_APROBACION: 'Enviaste una solicitud y el anfitrión debe aprobarla. No se te cobra nada hasta que la acepte.',
   CONFIRMADA: 'Tu reserva está pagada y las fechas quedaron bloqueadas para ti.',
   CANCELADA: 'La reserva se canceló y las fechas volvieron a estar disponibles.',
   COMPLETADA: 'La estancia ya terminó. Ya puedes reseñar el alojamiento desde Mis reservas.',

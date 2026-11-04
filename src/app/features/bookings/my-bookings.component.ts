@@ -157,6 +157,14 @@ export function toBooking(api: ApiBooking): Booking {
           <button
             type="button"
             class="pill-btn"
+            [class.active]="selectedStatus === 'PENDIENTE_APROBACION'"
+            (click)="setStatusFilter('PENDIENTE_APROBACION')"
+          >
+            Esperando aprobación ({{ countByStatus('PENDIENTE_APROBACION') }})
+          </button>
+          <button
+            type="button"
+            class="pill-btn"
             [class.active]="selectedStatus === 'EN_REVISION'"
             (click)="setStatusFilter('EN_REVISION')"
           >
@@ -261,7 +269,7 @@ export function toBooking(api: ApiBooking): Booking {
             </div>
 
             <div *ngIf="item.status === 'PENDIENTE_APROBACION'" class="info-notice pending">
-              <strong>Esperando aprobación:</strong> El anfitrión está revisando tu solicitud.
+              <strong>Esperando aprobación:</strong> el anfitrión está revisando tu solicitud. No se te cobra nada hasta que la acepte.
             </div>
 
             <div *ngIf="item.status === 'CANCELADA'" class="info-notice cancelled">
@@ -326,15 +334,6 @@ export function toBooking(api: ApiBooking): Booking {
               <span *ngIf="item.status === 'CONFIRMADA' && !canCancel(item)" class="arrival-passed">
                 La llegada ya pasó: esta reserva no se puede cancelar.
               </span>
-
-              <button
-                *ngIf="item.status === 'PENDIENTE_APROBACION'"
-                type="button"
-                class="action-btn secondary"
-                (click)="cancelPendingBooking(item)"
-              >
-                Retirar Solicitud
-              </button>
 
               <button
                 type="button"
@@ -1117,15 +1116,6 @@ export class MyBookingsComponent implements OnInit {
       this.cancelling = false;
       this.closeCancellationModal();
     }
-  }
-
-  cancelPendingBooking(booking: Booking): void {
-    booking.status = 'CANCELADA';
-    booking.cancellationReason = 'Solicitud retirada por el huésped';
-    booking.cancelledAt = new Date().toISOString().split('T')[0];
-    booking.refundAmount = 0;
-    this.feedbackMessage = `Solicitud de reserva ${booking.id} retirada correctamente.`;
-    this.feedbackIsError = false;
   }
 
   // Reviews (RF-063)

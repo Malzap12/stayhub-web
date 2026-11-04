@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { BookingPaymentResult, TestCardPaymentComponent } from '../bookings/test-card-payment.component';
+import { BookingMode } from '../../shared/models/booking-mode.model';
 
 /** Cotización tal como la devuelve POST /api/bookings/quote (HU-027). */
 export interface StayQuote {
@@ -76,7 +77,9 @@ export function formatQuoteAmount(value: number, negative = false): string {
         </p>
       </div>
       <button type="submit" class="quote-button" *ngIf="!quote" [disabled]="loading">{{ loading ? 'Calculando…' : 'Ver precio total' }}</button>
-      <p class="charge-note" *ngIf="!confirmedBooking && !bookingRoleNotice">Aún no se te cobrará nada.</p>
+      <p class="charge-note" *ngIf="!confirmedBooking && !requestedBooking && !bookingRoleNotice">
+        {{ needsApproval ? 'Es una solicitud: el anfitrión debe aprobarla y no se te cobra nada hasta entonces.' : 'Aún no se te cobrará nada.' }}
+      </p>
 
       <!-- Desglose en COP -->
       <dl class="breakdown" *ngIf="quote as q" aria-label="Desglose de la cotización">
@@ -98,7 +101,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
         <a *ngIf="isHost" routerLink="/anfitrion/publicaciones">Ir al panel de anfitrión</a>
       </div>
 
-      <div class="instant-booking" *ngIf="quote && !confirmedBooking && !bookingRoleNotice">
+      <div class="instant-booking" *ngIf="quote && !confirmedBooking && !requestedBooking && !bookingRoleNotice">
         <button
           type="button"
           class="book-button"
@@ -106,7 +109,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
           (click)="startInstantBooking()"
           [disabled]="bookingLoading"
         >
-          {{ bookingLoading ? 'Preparando reserva…' : 'Reservar' }}
+          {{ bookingLoading ? (needsApproval ? 'Enviando solicitud…' : 'Preparando reserva…') : needsApproval ? 'Solicitar reserva' : 'Reservar' }}
         </button>
 
         <div class="payment-step" *ngIf="createdBooking">
@@ -117,6 +120,15 @@ export function formatQuoteAmount(value: number, negative = false): string {
             (declined)="onPaymentDeclined($event)"
           ></app-test-card-payment>
         </div>
+      </div>
+
+      <!-- HU-018 CA2: solicitud que espera la aprobación del anfitrión -->
+      <div class="requested-card" *ngIf="requestedBooking" role="status" aria-label="Solicitud enviada">
+        <span class="badge">Esperando aprobación</span>
+        <h3>Enviaste tu solicitud</h3>
+        <p class="code">Código: <strong>{{ requestedBooking.code || requestedBooking.id }}</strong></p>
+        <p>El anfitrión revisará tu solicitud. No se te cobra nada hasta que la acepte.</p>
+        <a routerLink="/mis-reservas">Ver mis reservas</a>
       </div>
 
       <!-- Reserva confirmada con su código y desglose -->
@@ -358,6 +370,37 @@ export function formatQuoteAmount(value: number, negative = false): string {
       font-size: 0.88rem;
       color: #1d1d1f;
     }
+    .requested-card {
+      margin-top: 12px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #fff8eb;
+      border: 1px solid #fde2b3;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    .requested-card .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 980px;
+      background: #fff1d6;
+      color: #8a5300;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .requested-card h3 {
+      margin: 8px 0 4px;
+      font-size: 1rem;
+    }
+    .requested-card p {
+      margin: 4px 0;
+    }
+    .requested-card a {
+      display: inline-block;
+      margin-top: 6px;
+      font-weight: 600;
+      color: #222222;
+    }
     .confirmed-card {
       margin-top: 12px;
       padding: 16px;
@@ -421,6 +464,8 @@ export class StayQuoteComponent implements OnInit {
   @Input() listingId = '';
   @Input() maxGuests?: number;
   @Input() additionalServices: Array<{ name: string; cost: number }> = [];
+  /** HU-018: con aprobación, la reserva es una solicitud que no se paga hasta que el anfitrión la acepte. */
+  @Input() bookingMode: BookingMode = 'INMEDIATA';
 
   private readonly router = inject(Router, { optional: true });
 
@@ -437,6 +482,8 @@ export class StayQuoteComponent implements OnInit {
 
   createdBooking: any = null;
   confirmedBooking: any = null;
+  /** HU-018 CA2: solicitud creada en PENDIENTE_APROBACION. */
+  requestedBooking: any = null;
   paymentReference = '';
   idempotencyKey = '';
 
@@ -612,12 +659,20 @@ export class StayQuoteComponent implements OnInit {
         return;
       }
 
+      if (body?.status === 'PENDIENTE_APROBACION') {
+        this.requestedBooking = body;
+        return;
+      }
       this.createdBooking = body;
     } catch {
       this.errorMessage = 'Error de conexión al procesar la reserva.';
     } finally {
       this.bookingLoading = false;
     }
+  }
+
+  get needsApproval(): boolean {
+    return this.bookingMode === 'CON_APROBACION';
   }
 
   onPaymentApproved(result: BookingPaymentResult): void {
