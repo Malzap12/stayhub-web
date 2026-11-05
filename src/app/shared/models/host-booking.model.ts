@@ -41,6 +41,7 @@ export interface HostBookingCancellation {
   currency: string;
   finalStatus: string;
   releasedNights: string[];
+  refundReference?: string;
 }
 
 /** Detalle de GET /api/bookings/host/:id (HU-035 CA2, HU-042). */
