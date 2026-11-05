@@ -90,7 +90,6 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
             Configura las ventanas de fechas en que tu alojamiento está habilitado para recibir reservas y verifica las noches bloqueadas.
           </p>
         </div>
-        <a routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
       </header>
 
       <div class="alert-success" *ngIf="successMessage" role="status">
@@ -106,6 +105,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       <section class="form-card" *ngIf="!loadingListings && hostListings.length === 0 && !errorMessage">
         <h2>Aún no tienes alojamientos</h2>
         <p class="empty-msg">Crea una publicación para poder registrar sus periodos disponibles.</p>
+        <a routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
       </section>
 
       <div class="workspace-grid" *ngIf="hostListings.length > 0">

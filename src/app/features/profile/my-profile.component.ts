@@ -101,11 +101,6 @@ type ApiError = { message?: string | string[] };
             </div>
             <p id="locked-hint" class="hint">El correo y el rol no se pueden editar.</p>
 
-            <div class="field">
-              <span class="label">Estado de la cuenta</span>
-              <span class="value">{{ statusLabel(user) }}</span>
-            </div>
-
             <div class="alert-success" *ngIf="profileMessage && !profileFailed" role="status">{{ profileMessage }}</div>
             <div class="alert-inline-error" *ngIf="profileMessage && profileFailed" role="alert">{{ profileMessage }}</div>
 

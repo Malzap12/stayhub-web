@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import {
   ServiceFeeConfig,
@@ -11,7 +10,7 @@ import {
 @Component({
   selector: 'app-platform-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="settings-shell">
       <header class="settings-header">
@@ -21,9 +20,6 @@ import {
           <p class="subtitle">
             Ajusta los parámetros operativos del sistema. Los cambios aplican de forma inmediata.
           </p>
-        </div>
-        <div class="nav-links">
-          <a routerLink="/admin/moderacion" class="nav-link">← Volver a Moderación</a>
         </div>
       </header>
 

@@ -104,7 +104,7 @@ export function toBooking(api: ApiBooking): Booking {
     <section class="bookings-shell">
       <header class="bookings-header">
         <div class="header-content">
-          <span class="eyebrow">Portal del Huésped · Inversiones LR</span>
+          <span class="eyebrow">Portal del Huésped</span>
           <h1>Mis Reservas &amp; Estancias</h1>
           <p class="subtitle">
             Consulta el historial de tus reservas, revisa el desglose de cada reserva en COP,

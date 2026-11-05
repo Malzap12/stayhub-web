@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { SESSION_STORAGE_KEY } from '../../../core/guards/auth.guard';
 import { AppNotification, NotificationBellComponent } from './notification-bell.component';
 
 describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', () => {
@@ -19,7 +20,10 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   };
 
   beforeEach(async () => {
-    sessionStorage.setItem('auth_session', JSON.stringify({ token: 'jwt-guest', role: 'HUESPED', expiresAt: Date.now() + 3_600_000 }));
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ token: 'jwt-guest', email: 'guest@stayhub.com', name: 'Guest', role: 'HUESPED', expiresAt: Date.now() + 3_600_000 }),
+    );
     await TestBed.configureTestingModule({ imports: [NotificationBellComponent], providers: [provideRouter([])] }).compileComponents();
     fixture = TestBed.createComponent(NotificationBellComponent);
     component = fixture.componentInstance;
@@ -31,7 +35,7 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   });
 
   it('CA1: carga las notificaciones del usuario y muestra cuántas hay sin leer', async () => {
-    const fetchSpy = spyOn(window, 'fetch').and.returnValue(json({ data: [confirmed], unread: 1 }));
+    const fetchSpy = spyOn(window, 'fetch').and.callFake(() => json({ data: [confirmed], unread: 1 }));
 
     await component.load();
     component.open = true;
@@ -57,10 +61,13 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
       message: 'Notificación reciente',
       createdAt: '2027-05-02T10:00:00Z',
     };
-    const fetchSpy = spyOn(window, 'fetch').and.returnValues(
-      json({ data: [older, newer], unread: 2, page: 1, limit: 2, total: 4, totalPages: 2 }),
-      json({ data: [older], unread: 2, page: 2, limit: 2, total: 4, totalPages: 2 }),
-    );
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('page=2')) {
+        return json({ data: [older], unread: 2, page: 2, limit: 2, total: 4, totalPages: 2 });
+      }
+      return json({ data: [older, newer], unread: 2, page: 1, limit: 2, total: 4, totalPages: 2 });
+    });
 
     await component.load();
     component.open = true;
@@ -79,7 +86,7 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
 
   it('CA3 / HU-044 CA2: abrir una notificación la marca como leída y navega al detalle de la reserva', async () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    const fetchSpy = spyOn(window, 'fetch').and.returnValue(json({ ...confirmed, read: true }));
+    const fetchSpy = spyOn(window, 'fetch').and.callFake(() => json({ ...confirmed, read: true }));
     component.notifications = [{ ...confirmed }];
     component.unread = 1;
 
@@ -92,7 +99,7 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   });
 
   it('CA3: marca todas como leídas y deja el contador en cero', async () => {
-    spyOn(window, 'fetch').and.returnValue(json({ updated: 2, unread: 0 }));
+    spyOn(window, 'fetch').and.callFake(() => json({ updated: 2, unread: 0 }));
     component.notifications = [{ ...confirmed }, { ...confirmed, id: 'notif-2' }];
     component.unread = 2;
 
@@ -103,28 +110,38 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   });
 
   it('HU-045 CA1: muestra el contador de notificaciones no leídas al ingresar a la plataforma', async () => {
-    const fetchSpy = spyOn(window, 'fetch').and.returnValues(
-      json({ data: [confirmed, { ...confirmed, id: 'notif-2' }, { ...confirmed, id: 'notif-3' }], unread: 3 }),
-      json({ unread: 3 }),
-    );
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/unread-count')) {
+        return json({ unread: 5 });
+      }
+      return json({ data: [confirmed, { ...confirmed, id: 'notif-2' }, { ...confirmed, id: 'notif-3' }], unread: 3 });
+    });
 
-    fixture.detectChanges();
-    await fixture.whenStable();
+    await component.load();
     fixture.detectChanges();
 
     const badge = (fixture.nativeElement as HTMLElement).querySelector('.badge');
     expect(badge?.textContent?.trim()).toBe('3');
 
     await component.refreshUnreadCount();
+    fixture.detectChanges();
     expect(fetchSpy.calls.mostRecent().args[0]).toBe('/api/notifications/unread-count');
-    expect(component.unread).toBe(3);
+    expect(component.unread).toBe(5);
+    expect(badge?.textContent?.trim()).toBe('5');
   });
 
   it('HU-045 CA2: marca una notificación individual como leída sin navegar y actualiza el contador', async () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl');
-    const fetchSpy = spyOn(window, 'fetch').and.returnValue(json({ ...confirmed, read: true }));
-    component.notifications = [{ ...confirmed }, { ...confirmed, id: 'notif-2' }];
-    component.unread = 2;
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/read')) {
+        return json({ ...confirmed, read: true });
+      }
+      return json({ data: [{ ...confirmed }, { ...confirmed, id: 'notif-2' }], unread: 2 });
+    });
+
+    await component.load();
     component.open = true;
     fixture.detectChanges();
 
@@ -141,13 +158,22 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   });
 
   it('HU-045 CA2: selecciona varias notificaciones, las marca como leídas en lote y actualiza el contador', async () => {
-    const fetchSpy = spyOn(window, 'fetch').and.returnValue(json({ updated: 2, unread: 1 }));
-    component.notifications = [
-      { ...confirmed, id: 'notif-1' },
-      { ...confirmed, id: 'notif-2' },
-      { ...confirmed, id: 'notif-3' },
-    ];
-    component.unread = 3;
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url === '/api/notifications/read') {
+        return json({ updated: 2, unread: 1 });
+      }
+      return json({
+        data: [
+          { ...confirmed, id: 'notif-1' },
+          { ...confirmed, id: 'notif-2' },
+          { ...confirmed, id: 'notif-3' },
+        ],
+        unread: 3,
+      });
+    });
+
+    await component.load();
     component.open = true;
 
     component.toggleSelection('notif-1', { stopPropagation: () => undefined, target: { checked: true } } as unknown as Event);
@@ -175,7 +201,7 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   });
 
   it('HU-045 CA2: filtra solo las notificaciones no leídas para distinguir las nuevas', async () => {
-    const fetchSpy = spyOn(window, 'fetch').and.returnValue(
+    const fetchSpy = spyOn(window, 'fetch').and.callFake(() =>
       json({ data: [confirmed], unread: 1, page: 1, limit: 10, total: 1, totalPages: 1 }),
     );
     component.open = true;
@@ -195,7 +221,10 @@ describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', 
   });
 
   it('CA2 / HU-044 CA2: navega al detalle de publicación o reserva según la entidad relacionada', () => {
-    sessionStorage.setItem('auth_session', JSON.stringify({ token: 'jwt-host', role: 'ANFITRION', expiresAt: Date.now() + 3_600_000 }));
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ token: 'jwt-host', email: 'host@stayhub.com', name: 'Host', role: 'ANFITRION', expiresAt: Date.now() + 3_600_000 }),
+    );
     expect(component.routeFor({ ...confirmed, entity: 'Listing', type: 'PUBLICACION_DEVUELTA' })).toBe('/anfitrion/mis-publicaciones');
     expect(component.routeFor({ ...confirmed, entity: 'Listing', entityId: 'listing-9', type: 'PUBLICACION_APROBADA' })).toBe('/listings/listing-9');
     expect(component.routeFor({ ...confirmed, entity: 'Booking', entityId: 'booking-1' })).toBe('/anfitrion/publicaciones');

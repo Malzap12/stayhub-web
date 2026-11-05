@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import {
   AUDIT_ACTION_LABELS,
@@ -26,7 +25,7 @@ import {
 @Component({
   selector: 'app-audit-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="audit-shell">
       <header class="audit-header">
@@ -35,7 +34,6 @@ import {
           <h1>Auditoría</h1>
           <p class="subtitle">Quién hizo qué, cuándo y con qué resultado. Los eventos más recientes aparecen primero.</p>
         </div>
-        <a routerLink="/admin/moderacion" class="back-link">Ir a Moderación</a>
       </header>
 
       <form class="filters" (ngSubmit)="applyFilters()" novalidate aria-label="Filtros de la auditoría">

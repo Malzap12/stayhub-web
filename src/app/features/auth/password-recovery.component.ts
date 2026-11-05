@@ -24,7 +24,6 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     <main class="apple-auth-page" aria-labelledby="recovery-title">
       <section class="apple-card">
         <header class="apple-card-header">
-          <p class="apple-eyebrow">Inversiones LR · Seguridad</p>
           <h1 id="recovery-title">Recupera tu contraseña</h1>
           <p class="apple-subtitle">
             Te enviaremos un enlace de un solo uso a tu <strong>correo electrónico</strong>.
@@ -145,7 +144,7 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
           <a routerLink="/auth/login" class="banner-link">Ir a Iniciar sesión →</a>
         </div>
 
-        <footer class="apple-card-footer">
+        <footer class="apple-card-footer" *ngIf="step !== 'done'">
           <span>¿Recordaste tu contraseña?</span>
           <a routerLink="/auth/login">Iniciar sesión</a>
         </footer>
