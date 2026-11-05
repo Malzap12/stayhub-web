@@ -54,7 +54,7 @@ import { StatusLabelPipe } from '../../models/display.model';
             </button>
           </ng-container>
 
-          <ng-container *ngIf="!session">
+          <ng-container *ngIf="!session && !isAuthRoute">
             <a routerLink="/auth/login" routerLinkActive="active" class="login-link">
               Iniciar sesión
             </a>
@@ -238,6 +238,14 @@ export class NavbarComponent {
 
   get session(): StoredSession | null {
     return getActiveSession();
+  }
+
+  /** Oculta los accesos globales de autenticación cuando el usuario ya está en /auth/* para evitar redundancia visual. */
+  get isAuthRoute(): boolean {
+    const currentUrl =
+      this.router?.url ||
+      (typeof window !== 'undefined' ? window.location.pathname : '');
+    return currentUrl.startsWith('/auth/');
   }
 
   get isHuesped(): boolean {

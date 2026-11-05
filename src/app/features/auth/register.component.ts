@@ -24,8 +24,13 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
     <main class="apple-auth-page" aria-labelledby="register-title">
       <section class="apple-card">
         <header class="apple-card-header">
-          <p class="apple-eyebrow">Inversiones LR · Marketplace</p>
-          <h1 id="register-title">Crea tu cuenta</h1>
+          <div class="header-top-row">
+            <h1 id="register-title">Crea tu cuenta</h1>
+            <div class="auth-mode-switch" role="navigation" aria-label="Cambiar modo de acceso">
+              <a routerLink="/auth/login" class="mode-option">Iniciar sesión</a>
+              <a routerLink="/auth/register" class="mode-option active" aria-current="page">Registrarse</a>
+            </div>
+          </div>
           <p class="apple-subtitle">
             Elige tu perfil como <strong>Huésped</strong> o <strong>Anfitrión</strong> para comenzar.
           </p>
@@ -182,18 +187,13 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
           <div *ngIf="successMessage" class="banner-success" role="status">
             <strong>{{ successMessage }}</strong>
             <span>Estado de cuenta: <b>ACTIVA</b> · Rol: <b>{{ createdRoleLabel }}</b></span>
-            <a routerLink="/auth/login" class="banner-link">Ir a Iniciar sesión →</a>
+            <a routerLink="/auth/login" class="banner-link">Continuar al acceso →</a>
           </div>
 
           <button type="submit" class="apple-btn-primary" [disabled]="loading">
-            {{ loading ? 'Creando cuenta...' : 'Continuar con el registro' }}
+            {{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}
           </button>
         </form>
-
-        <footer class="apple-card-footer">
-          <span>¿Ya tienes una cuenta en Inversiones LR?</span>
-          <a routerLink="/auth/login">Iniciar sesión</a>
-        </footer>
       </section>
     </main>
   `,
@@ -207,35 +207,55 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
     }
     .apple-card {
       width: 100%;
-      max-width: 460px;
+      max-width: 500px;
       background: var(--apple-surface, #ffffff);
-      border-radius: var(--apple-radius-lg, 20px);
-      box-shadow: var(--apple-shadow, 0 12px 32px rgba(0, 0, 0, 0.06));
-      border: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
-      padding: 36px 32px;
+      border-radius: 26px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 34px 32px;
     }
     .apple-card-header {
-      text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
-    .apple-eyebrow {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--apple-text-secondary, #6e6e73);
-      margin-bottom: 6px;
+    .header-top-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
     }
     h1 {
       font-size: 1.75rem;
       font-weight: 600;
       letter-spacing: -0.03em;
       color: var(--apple-text-primary, #1d1d1f);
-      margin-bottom: 8px;
+      margin: 0;
+    }
+    .auth-mode-switch {
+      display: inline-flex;
+      padding: 4px;
+      background: #f2f2f5;
+      border-radius: 980px;
+    }
+    .mode-option {
+      padding: 7px 16px;
+      border-radius: 980px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #6e6e73;
+      text-decoration: none;
+    }
+    .mode-option.active {
+      background: #ffffff;
+      color: #1d1d1f;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
     .apple-subtitle {
-      font-size: 0.9375rem;
+      font-size: 0.9rem;
       color: var(--apple-text-secondary, #6e6e73);
+      margin: 0;
     }
     .apple-form {
       display: flex;
@@ -356,17 +376,7 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
       opacity: 0.6;
       cursor: not-allowed;
     }
-    .apple-card-footer {
-      margin-top: 24px;
-      padding-top: 18px;
-      border-top: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      color: var(--apple-text-secondary, #6e6e73);
-    }
-    @media (max-width: 420px) {
+    @media (max-width: 460px) {
       .apple-card {
         padding: 24px 18px;
       }

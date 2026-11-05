@@ -42,7 +42,7 @@ interface ActivationFailure {
           <h1>Mis publicaciones</h1>
           <p class="subtitle">Revisa el estado de tus alojamientos y gestiona tu oferta.</p>
         </div>
-        <a routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
+        <a *ngIf="listings.length > 0" routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
       </header>
 
       <p class="loading" *ngIf="loading" role="status">Cargando tus publicaciones…</p>

@@ -28,6 +28,16 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
     expect(component.canExplore).toBeTrue();
   });
 
+  it('oculta los enlaces redundantes de acceso cuando el visitante ya se encuentra en rutas /auth/*', () => {
+    const loginNav = new NavbarComponent({ url: '/auth/login', navigate: mockRouter.navigate } as unknown as Router);
+    const registerNav = new NavbarComponent({ url: '/auth/register', navigate: mockRouter.navigate } as unknown as Router);
+    const publicNav = new NavbarComponent({ url: '/listings', navigate: mockRouter.navigate } as unknown as Router);
+
+    expect(loginNav.isAuthRoute).toBeTrue();
+    expect(registerNav.isAuthRoute).toBeTrue();
+    expect(publicNav.isAuthRoute).toBeFalse();
+  });
+
   it('CA2: should show only guest modules when logged in as HUESPED', () => {
     sessionStorage.setItem(
       SESSION_STORAGE_KEY,

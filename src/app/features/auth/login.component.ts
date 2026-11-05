@@ -22,14 +22,11 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
         <!-- Columna Izquierda: Portal Unificado Multi-Rol -->
         <section class="portal-card" aria-labelledby="login-title">
           <div class="portal-header">
-            <div>
-              <p class="eyebrow">Inversiones LR</p>
-              <h1 id="login-title">Acceder a tu cuenta</h1>
-            </div>
+            <h1 id="login-title">Acceder a tu cuenta</h1>
 
             <!-- Segmented Control Estilo iOS -->
-            <div class="segmented-switch">
-              <a routerLink="/auth/login" class="seg-item active">Iniciar Sesión</a>
+            <div class="segmented-switch" role="navigation" aria-label="Cambiar modo de acceso">
+              <a routerLink="/auth/login" class="seg-item active" aria-current="page">Iniciar sesión</a>
               <a routerLink="/auth/register" class="seg-item">Registrarse</a>
             </div>
           </div>
@@ -39,9 +36,6 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
             <div class="role-selector-block">
               <div class="role-selector-top">
                 <span class="section-label">Perfil de acceso</span>
-                <span class="active-profile-pill">
-                  {{ selectedRoleLabel }}
-                </span>
               </div>
 
               <div class="role-cards-grid">
