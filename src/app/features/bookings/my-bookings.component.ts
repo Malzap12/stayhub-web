@@ -26,7 +26,7 @@ export interface ApiBooking {
   listingCity?: string;
   listingImage?: string;
   cancellationPolicyName?: string;
-  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; appliedRule?: string; releasedNights: string[] };
+  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; appliedRule?: string; releasedNights: string[]; refundReference?: string };
   review?: { id: string; rating: number; comment: string; createdAt: string };
   hostDecision?: { decision: string; reason?: string };
 }
@@ -89,6 +89,7 @@ export function toBooking(api: ApiBooking): Booking {
       : undefined,
     refundAmount: api.cancellation?.refundAmount,
     refundPercentage: api.cancellation?.refundPercentage,
+    refundReference: api.cancellation?.refundReference,
     appliedRule: api.cancellation?.appliedRule,
     rating: api.review?.rating,
     reviewComment: api.review?.comment,

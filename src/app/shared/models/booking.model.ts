@@ -35,6 +35,7 @@ export interface Booking {
   cancelledAt?: string;
   refundAmount?: number;
   refundPercentage?: number;
+  refundReference?: string;
   appliedRule?: string;
   rating?: number;
   reviewComment?: string;

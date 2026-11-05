@@ -31,7 +31,7 @@ export interface BookingDetail {
   cancellationPolicyName?: string;
   cancellationPolicyDescription?: string;
   payment?: { status: string; reference: string; cardBrand?: string; cardLast4?: string };
-  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number };
+  cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; refundReference?: string };
   savedPaymentMethod?: { cardBrand: string; cardLast4: string };
   hostDecision?: { decision: string; reason?: string };
   createdAt?: string;
@@ -125,7 +125,7 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
             <p>{{ b.cancellationPolicyDescription || 'Política Flexible: 100 % de devolución hasta 48 horas antes de la llegada y 50 % después.' }}</p>
             <div class="cancelled" *ngIf="b.cancellation">
               <strong>Cancelada el {{ formatDateTime(b.cancellation.cancelledAt) }}.</strong>
-              Motivo: {{ b.cancellation.reason }}. Devolución simulada: {{ money(b.cancellation.refundAmount) }} ({{ b.cancellation.refundPercentage }} %).
+              Motivo: {{ b.cancellation.reason }}. Devolución simulada: {{ money(b.cancellation.refundAmount) }} ({{ b.cancellation.refundPercentage }} %). <span *ngIf="b.cancellation.refundReference">· Ref. reembolso: <code>{{ b.cancellation.refundReference }}</code></span>
             </div>
           </article>
         </div>
