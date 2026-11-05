@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AppNotification, NotificationBellComponent } from './notification-bell.component';
 
-describe('NotificationBellComponent · HU-043 & HU-044 Consultar y recibir notificaciones', () => {
+describe('NotificationBellComponent · HU-043, HU-044 & HU-045 Notificaciones', () => {
   let fixture: ComponentFixture<NotificationBellComponent>;
   let component: NotificationBellComponent;
 
@@ -91,8 +91,8 @@ describe('NotificationBellComponent · HU-043 & HU-044 Consultar y recibir notif
     expect(navigate).toHaveBeenCalledWith('/mis-reservas/booking-1');
   });
 
-  it('CA3: marca todas como leídas', async () => {
-    spyOn(window, 'fetch').and.returnValue(json({ updated: 2 }));
+  it('CA3: marca todas como leídas y deja el contador en cero', async () => {
+    spyOn(window, 'fetch').and.returnValue(json({ updated: 2, unread: 0 }));
     component.notifications = [{ ...confirmed }, { ...confirmed, id: 'notif-2' }];
     component.unread = 2;
 
@@ -100,6 +100,92 @@ describe('NotificationBellComponent · HU-043 & HU-044 Consultar y recibir notif
 
     expect(component.notifications.every((item) => item.read)).toBeTrue();
     expect(component.unread).toBe(0);
+  });
+
+  it('HU-045 CA1: muestra el contador de notificaciones no leídas al ingresar a la plataforma', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.returnValues(
+      json({ data: [confirmed, { ...confirmed, id: 'notif-2' }, { ...confirmed, id: 'notif-3' }], unread: 3 }),
+      json({ unread: 3 }),
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const badge = (fixture.nativeElement as HTMLElement).querySelector('.badge');
+    expect(badge?.textContent?.trim()).toBe('3');
+
+    await component.refreshUnreadCount();
+    expect(fetchSpy.calls.mostRecent().args[0]).toBe('/api/notifications/unread-count');
+    expect(component.unread).toBe(3);
+  });
+
+  it('HU-045 CA2: marca una notificación individual como leída sin navegar y actualiza el contador', async () => {
+    const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl');
+    const fetchSpy = spyOn(window, 'fetch').and.returnValue(json({ ...confirmed, read: true }));
+    component.notifications = [{ ...confirmed }, { ...confirmed, id: 'notif-2' }];
+    component.unread = 2;
+    component.open = true;
+    fixture.detectChanges();
+
+    await component.markOneAsRead(component.notifications[0], new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/notifications/notif-1/read',
+      jasmine.objectContaining({ method: 'PATCH' }),
+    );
+    expect(component.notifications[0].read).toBeTrue();
+    expect(component.unread).toBe(1);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('HU-045 CA2: selecciona varias notificaciones, las marca como leídas en lote y actualiza el contador', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.returnValue(json({ updated: 2, unread: 1 }));
+    component.notifications = [
+      { ...confirmed, id: 'notif-1' },
+      { ...confirmed, id: 'notif-2' },
+      { ...confirmed, id: 'notif-3' },
+    ];
+    component.unread = 3;
+    component.open = true;
+
+    component.toggleSelection('notif-1', { stopPropagation: () => undefined, target: { checked: true } } as unknown as Event);
+    component.toggleSelection('notif-2', { stopPropagation: () => undefined, target: { checked: true } } as unknown as Event);
+    fixture.detectChanges();
+
+    expect(component.selectedIds.size).toBe(2);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Marcar seleccionadas (2)');
+
+    await component.markSelectedAsRead();
+    fixture.detectChanges();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/notifications/read',
+      jasmine.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ ids: ['notif-1', 'notif-2'] }),
+      }),
+    );
+    expect(component.notifications[0].read).toBeTrue();
+    expect(component.notifications[1].read).toBeTrue();
+    expect(component.notifications[2].read).toBeFalse();
+    expect(component.selectedIds.size).toBe(0);
+    expect(component.unread).toBe(1);
+  });
+
+  it('HU-045 CA2: filtra solo las notificaciones no leídas para distinguir las nuevas', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.returnValue(
+      json({ data: [confirmed], unread: 1, page: 1, limit: 10, total: 1, totalPages: 1 }),
+    );
+    component.open = true;
+
+    await component.setFilter(true);
+    fixture.detectChanges();
+
+    expect(fetchSpy.calls.mostRecent().args[0]).toBe('/api/notifications?unread=true');
+    expect(component.onlyUnread).toBeTrue();
+    expect(component.visibleNotifications.length).toBe(1);
   });
 
   it('HU-046 CA3: la invitación a reseñar lleva al huésped a Mis reservas', () => {
