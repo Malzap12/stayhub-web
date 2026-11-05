@@ -33,6 +33,7 @@ export interface ApiPendingListing {
   requestedAt?: string;
   images?: string[];
   blockReason?: string;
+  pauseReason?: string;
 }
 
 /** HU-051: nombre de cada estado en la lista de publicaciones del administrador. */
@@ -80,7 +81,7 @@ export type ReviewDecision = 'MANTENER' | 'CANCELAR';
 type ModerationTab = 'solicitudes' | 'reservas' | 'publicaciones' | 'usuarios';
 
 interface ReasonDialog {
-  kind: 'return' | 'block' | 'restrict' | 'keep' | 'cancel';
+  kind: 'return' | 'block' | 'restrict' | 'keep' | 'cancel' | 'pause';
   title: string;
   subject: string;
   help: string;
@@ -272,14 +273,17 @@ interface ModerationResponse {
               <div>
                 <strong>{{ item.title }}</strong>
                 <span class="muted">{{ item.city || 'Sin ciudad' }}</span>
-                <span class="reason" *ngIf="item.status === 'BLOQUEADA' && item.blockReason">Motivo: {{ item.blockReason }}</span>
+                <span class="reason" *ngIf="item.status === 'BLOQUEADA' && item.blockReason">Motivo bloqueo: {{ item.blockReason }}</span>
+                  <span class="reason" *ngIf="item.status === 'PAUSADA' && item.pauseReason">Motivo pausa: {{ item.pauseReason }}</span>
               </div>
             </div>
             <div class="cell" role="cell"><span class="muted">{{ item.hostName || 'Anfitrión' }}</span></div>
             <div class="cell" role="cell"><span class="badge" [attr.data-status]="item.status">{{ statusLabel(item.status) }}</span></div>
             <div class="cell right" role="cell">
+              <button type="button" class="btn warning small btn-pause" *ngIf="item.status === 'ACTIVA'" (click)="openPausePrompt(item.id)">Pausar</button>
               <button type="button" class="btn danger small btn-block" *ngIf="item.status !== 'BLOQUEADA'" (click)="openBlockPrompt(item.id)">Bloquear</button>
               <span class="muted small" *ngIf="item.status === 'BLOQUEADA'">Bloqueada</span>
+              <span class="muted small" *ngIf="item.status === 'PAUSADA'">Pausada</span>
             </div>
           </div>
         </div>
@@ -545,6 +549,9 @@ export class AdminModerationComponent implements OnInit {
 
   blockFilter = '';
   blockingListingId: string | null = null;
+  pausingListingId: string | null = null;
+  pauseReasonInput = '';
+  pauseError = '';
   blockReasonInput = '';
   blockError = '';
 
@@ -667,6 +674,18 @@ export class AdminModerationComponent implements OnInit {
         confirm: 'Devolver',
       };
     }
+    
+    if (this.pausingListingId) {
+      return {
+        kind: 'pause',
+        title: 'Pausar publicación',
+        subject: this.allListings.find((item) => item.id === this.pausingListingId)?.title ?? '',
+        help: 'La publicación pasará a estado PAUSADA, saldrá de las búsquedas y se notificará al anfitrión con el motivo.',
+        placeholder: 'Ej. Revisión preventiva por reporte de inconsistencia.',
+        confirm: 'Pausar',
+      };
+    }
+
     if (this.blockingListingId) {
       return {
         kind: 'block',
@@ -991,6 +1010,64 @@ export class AdminModerationComponent implements OnInit {
       this.feedbackMessage = `Restricción levantada para "${user.name}". Ya puede iniciar sesión; sus publicaciones siguen pausadas hasta que las reactive.`;
     } catch {
       this.errorMessage = 'No fue posible conectar con el servidor. Intenta de nuevo.';
+    } finally {
+      this.busyId = null;
+    }
+  }
+
+  
+  openPausePrompt(id: string): void {
+    this.pausingListingId = id;
+    this.pauseReasonInput = '';
+    this.pauseError = '';
+  }
+
+  cancelPause(): void {
+    this.pausingListingId = null;
+    this.pauseReasonInput = '';
+    this.pauseError = '';
+  }
+
+  /** HU-055 CA1: pausa una publicación activa por moderación indicando el motivo. */
+  async confirmPause(id: string): Promise<void> {
+    const reason = this.pauseReasonInput.trim();
+    if (reason.length < 5) {
+      this.pauseError = 'Indica el motivo de la pausa (al menos 5 caracteres).';
+      return;
+    }
+    const item = this.allListings.find((listing) => listing.id === id);
+    if (!item) return;
+
+    this.busyId = id;
+    this.pauseError = '';
+    try {
+      const response = await fetch(`/api/listings/${encodeURIComponent(id)}/pause-moderation`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify({ reason }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.pauseError = this.apiError(response.status, body, 'No fue posible pausar la publicación.');
+        return;
+      }
+      const result = body as ModerationResponse & { pauseReason?: string };
+      item.status = result.status;
+      item.pauseReason = result.pauseReason;
+      this.notifications.unshift({
+        id: result.notification.id,
+        listingId: id,
+        listingTitle: item.title,
+        hostName: item.hostName || 'Anfitrión',
+        type: result.notification.type,
+        message: result.notification.message,
+        reason: result.notification.reason,
+        createdAt: result.notification.createdAt,
+      });
+      this.feedbackMessage = `"${item.title}" quedó pausada por moderación y ya no aparece en las búsquedas. Se notificó al anfitrión.`;
+      this.cancelPause();
+    } catch {
+      this.pauseError = 'No fue posible conectar con el servidor. Intenta de nuevo.';
     } finally {
       this.busyId = null;
     }
