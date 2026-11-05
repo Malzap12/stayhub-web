@@ -129,7 +129,7 @@ describe('HU-018 · Elegir la modalidad de reserva', () => {
       component.bookingMode = 'CON_APROBACION';
       spyOn(window, 'fetch').and.returnValue(json({ id: 'booking-1', code: 'RES-1A2B3C4D', status: 'PENDIENTE_APROBACION' }, 201));
 
-      await component.startInstantBooking();
+      await component.startInstantBooking({ cardNumber: '4242424242424242', cardHolder: 'Ana', expMonth: 12, expYear: 2030, cvc: '123' });
 
       expect(component.requestedBooking.code).toBe('RES-1A2B3C4D');
       expect(component.createdBooking).toBeNull();

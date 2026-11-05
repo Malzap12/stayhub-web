@@ -2,6 +2,7 @@ export type BookingStatus =
   | 'PENDIENTE'
   | 'CONFIRMADA'
   | 'PENDIENTE_APROBACION'
+  | 'RECHAZADA'
   | 'EN_REVISION'
   | 'COMPLETADA'
   | 'CANCELADA';
@@ -29,6 +30,8 @@ export interface Booking {
   status: BookingStatus;
   cancellationPolicy: string;
   cancellationReason?: string;
+  /** HU-036: motivo con que el anfitrión rechazó la solicitud. */
+  rejectionReason?: string;
   cancelledAt?: string;
   refundAmount?: number;
   refundPercentage?: number;

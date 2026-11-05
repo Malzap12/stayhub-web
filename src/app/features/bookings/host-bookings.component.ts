@@ -167,6 +167,7 @@ import {
       .status-badge.pendiente { background: #fff7e6; color: #9a5b00; }
       .status-badge.cancelada { background: #fdecec; color: #b42318; }
       .status-badge.en_revision { background: #eef2ff; color: #3730a3; }
+      .status-badge.pendiente_aprobacion { background: #fff7e6; color: #9a5b00; }
       .row-actions { display: flex; align-items: center; gap: 0.75rem; }
       .detail-link { color: #0071e3; font-weight: 600; font-size: 0.88rem; text-decoration: none; white-space: nowrap; }
       .cancel-btn {

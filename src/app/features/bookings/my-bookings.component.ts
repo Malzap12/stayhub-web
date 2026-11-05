@@ -28,6 +28,7 @@ export interface ApiBooking {
   cancellationPolicyName?: string;
   cancellation?: { cancelledAt: string; reason: string; refundAmount: number; refundPercentage: number; appliedRule?: string; releasedNights: string[] };
   review?: { id: string; rating: number; comment: string; createdAt: string };
+  hostDecision?: { decision: string; reason?: string };
 }
 
 /** HU-047 CA4: se puede reseñar hasta 30 días después de la salida (igual que en el API). */
@@ -82,6 +83,7 @@ export function toBooking(api: ApiBooking): Booking {
     status: api.status,
     cancellationPolicy: api.cancellationPolicyName ?? 'Flexible',
     cancellationReason: api.cancellation?.reason,
+    rejectionReason: api.hostDecision?.reason,
     cancelledAt: api.cancellation?.cancelledAt
       ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota' }).format(new Date(api.cancellation.cancelledAt))
       : undefined,
@@ -186,6 +188,14 @@ export function toBooking(api: ApiBooking): Booking {
           >
             Canceladas ({{ countByStatus('CANCELADA') }})
           </button>
+          <button
+            type="button"
+            class="pill-btn"
+            [class.active]="selectedStatus === 'RECHAZADA'"
+            (click)="setStatusFilter('RECHAZADA')"
+          >
+            Rechazadas ({{ countByStatus('RECHAZADA') }})
+          </button>
         </div>
 
         <div class="search-box">
@@ -270,6 +280,11 @@ export function toBooking(api: ApiBooking): Booking {
 
             <div *ngIf="item.status === 'PENDIENTE_APROBACION'" class="info-notice pending">
               <strong>Esperando aprobación:</strong> el anfitrión está revisando tu solicitud. No se te cobra nada hasta que la acepte.
+            </div>
+
+            <div *ngIf="item.status === 'RECHAZADA'" class="info-notice cancelled">
+              <strong>Solicitud rechazada:</strong> el anfitrión no aceptó tu solicitud y no se te cobró nada.<span
+                *ngIf="item.rejectionReason"> Motivo: «{{ item.rejectionReason }}».</span>
             </div>
 
             <div *ngIf="item.status === 'CANCELADA'" class="info-notice cancelled">
