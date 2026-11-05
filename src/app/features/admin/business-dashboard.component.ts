@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { getActiveSession } from '../../core/guards/auth.guard';
 
-/** HU-056 · Respuesta de GET /api/reports/dashboard. */
+/** HU-056 · Respuesta de GET /api/reports/dashboard. HU-057 · Periodo filtrado opcional. */
 export interface Dashboard {
   generatedAt: string;
+  period?: { from?: string; to?: string };
   usersByRole: { HUESPED: number; ANFITRION: number; ADMINISTRADOR: number; total: number };
   activeListings: number;
   bookingsByStatus: { PENDIENTE: number; CONFIRMADA: number; CANCELADA: number; COMPLETADA: number; EN_REVISION: number; total: number };
@@ -60,6 +61,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
 
 /**
  * HU-056 · Ver los indicadores del negocio (CA1, CA3 · RF-074, RN-026).
+ * HU-057 · Filtrar el dashboard por periodo (CA1 · RF-075).
  * HU-058 · Exportar reportes a Excel y HU-059 · Exportar reportes a PDF (CA1, CA2 · RF-076, RF-077, RN-026).
  */
 @Component({
@@ -81,6 +83,39 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
           </button>
         </div>
       </header>
+
+      <!-- HU-057 CA1 · Filtrar el dashboard por periodo -->
+      <section class="period-filter-bar" aria-label="Filtrar por periodo">
+        <form class="period-form" (ngSubmit)="load()" novalidate>
+          <div class="period-inputs">
+            <label>
+              <span>Desde</span>
+              <input type="date" name="periodFrom" [(ngModel)]="periodFilter.from" aria-label="Fecha inicial del periodo" />
+            </label>
+            <label>
+              <span>Hasta</span>
+              <input type="date" name="periodTo" [min]="periodFilter.from" [(ngModel)]="periodFilter.to" aria-label="Fecha final del periodo" />
+            </label>
+          </div>
+          <div class="period-actions">
+            <button type="submit" class="apply-btn" [disabled]="loading">
+              Filtrar periodo
+            </button>
+            <button
+              type="button"
+              class="clear-btn"
+              *ngIf="periodFilter.from || periodFilter.to"
+              [disabled]="loading"
+              (click)="clearPeriodFilter()"
+            >
+              Restablecer
+            </button>
+          </div>
+          <span class="period-badge" *ngIf="dashboard?.period as p">
+            Periodo aplicado: {{ p.from || 'Inicio' }} — {{ p.to || 'Hoy' }}
+          </span>
+        </form>
+      </section>
 
       <div class="alert-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</div>
       <p class="empty-state" *ngIf="loading && !dashboard" role="status">Cargando indicadores…</p>
@@ -135,7 +170,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
           <section class="panel" aria-label="Ciudades con más reservas">
             <h2>Top 5 ciudades</h2>
             <p class="panel-hint">Por reservas confirmadas y completadas.</p>
-            <p class="empty-inline" *ngIf="d.topCities.length === 0">Todavía no hay reservas confirmadas ni completadas.</p>
+            <p class="empty-inline" *ngIf="d.topCities.length === 0">Todavía no hay reservas confirmadas ni completadas en este periodo.</p>
             <ol class="cities" *ngIf="d.topCities.length > 0">
               <li *ngFor="let city of d.topCities; let i = index">
                 <span class="rank">{{ i + 1 }}</span>
@@ -208,7 +243,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
     .dash-shell { max-width: 1180px; margin: 0 auto; padding: 36px 24px 72px; color: #1d1d1f; }
     .dash-header {
       display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap;
-      margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #e5e5ea;
+      margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e5ea;
     }
     .eyebrow { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #86868b; }
     h1 { margin: 6px 0 8px; font-size: 2rem; letter-spacing: -0.03em; }
@@ -221,6 +256,41 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
     }
     .refresh-btn.pdf-btn { background: #374151; }
     .refresh-btn:disabled { opacity: 0.6; cursor: default; }
+
+    /* HU-057 · Barra de filtro por periodo */
+    .period-filter-bar {
+      background: #fbfbfd; border: 1px solid #e5e5ea; border-radius: 16px; padding: 14px 18px; margin-bottom: 24px;
+    }
+    .period-form {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
+    }
+    .period-inputs {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    }
+    .period-inputs label {
+      display: flex; align-items: center; gap: 8px; font-size: 0.78rem; font-weight: 600; color: #6e6e73;
+    }
+    .period-inputs input[type='date'] {
+      height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid #d2d2d7; background: #fff;
+      font: inherit; font-size: 0.84rem; color: #1d1d1f; font-weight: 500;
+    }
+    .period-actions {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .apply-btn {
+      border-radius: 980px; padding: 8px 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      background: #1d1d1f; color: #fff; border: none; transition: opacity 0.15s ease;
+    }
+    .apply-btn:disabled { opacity: 0.6; cursor: default; }
+    .clear-btn {
+      border-radius: 980px; padding: 7px 14px; font-size: 0.8rem; font-weight: 500; cursor: pointer;
+      background: transparent; color: #6e6e73; border: 1px solid #d2d2d7; transition: all 0.15s ease;
+    }
+    .clear-btn:hover { color: #1d1d1f; border-color: #86868b; }
+    .period-badge {
+      font-size: 0.75rem; font-weight: 600; color: #1d1d1f; background: #e5e5ea; padding: 4px 10px; border-radius: 980px;
+    }
+
     .alert-error {
       padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #fef2f2; color: #991b1b;
       border: 1px solid #fecaca; font-size: 0.88rem; font-weight: 600;
@@ -278,6 +348,7 @@ export function toBars(entries: Array<[string, number, string?]>): Bar[] {
     .export-ok { margin: 12px 0 0; color: #166534; font-size: 0.84rem; font-weight: 600; }
     @media (max-width: 520px) {
       .export-form label { flex: 1 1 100%; }
+      .period-inputs { flex-direction: column; align-items: stretch; }
       .dash-shell { padding: 24px 16px 56px; }
       .bars li { grid-template-columns: 100px 1fr 40px; }
     }
@@ -289,6 +360,7 @@ export class BusinessDashboardComponent implements OnInit {
   errorMessage = '';
   roleBars: Bar[] = [];
   statusBars: Bar[] = [];
+  periodFilter = { from: '', to: '' };
   readonly exportReports = EXPORT_REPORTS;
   exportFilters: ExportFilters = { report: 'reservas', from: '', to: '', city: '', status: '' };
   exporting = false;
@@ -305,13 +377,24 @@ export class BusinessDashboardComponent implements OnInit {
     return this.copFormatter.format(value);
   }
 
-  /** CA1: carga los indicadores del API; CA3: si no es administrador, el API responde 403 y se informa. */
+  /** CA1: carga los indicadores del API recalculando por periodo si se define; CA3: responde 403 si no es admin. */
   async load(): Promise<void> {
-    this.loading = true;
     this.errorMessage = '';
+    const { from, to } = this.periodFilter;
+    if (from && to && from > to) {
+      this.errorMessage = 'La fecha inicial no puede ser posterior a la fecha final.';
+      return;
+    }
+    this.loading = true;
     try {
       const token = getActiveSession()?.token;
-      const response = await fetch('/api/reports/dashboard', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const query = params.toString();
+      const response = await fetch(`/api/reports/dashboard${query ? `?${query}` : ''}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         this.errorMessage =
@@ -319,7 +402,7 @@ export class BusinessDashboardComponent implements OnInit {
             ? 'Tu sesión expiró. Inicia sesión de nuevo como administrador.'
             : response.status === 403
               ? 'Solo el administrador puede ver los indicadores del negocio.'
-              : 'No fue posible cargar los indicadores.';
+              : [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible cargar los indicadores.';
         return;
       }
       this.setDashboard(body as Dashboard);
@@ -328,6 +411,13 @@ export class BusinessDashboardComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  clearPeriodFilter(): void {
+    if (!this.periodFilter.from && !this.periodFilter.to) return;
+    this.periodFilter.from = '';
+    this.periodFilter.to = '';
+    void this.load();
   }
 
   get statusOptions(): string[] {
