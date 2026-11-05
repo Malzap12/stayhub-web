@@ -50,6 +50,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   LISTING_PRICING_UPDATE: 'Cambio de tarifas',
   AVAILABILITY_PERIOD_CREATE: 'Registro de disponibilidad',
   RESERVED_PERIOD_BLOCK: 'Bloqueo de fechas',
+  RESERVED_PERIOD_UNBLOCK: 'Desbloqueo de fechas',
   BOOKING_STATUS_CHANGE: 'Cambio de estado de una reserva',
   BOOKING_CANCELLATION: 'Cancelación de una reserva',
   REVIEW_CREATED: 'Reseña publicada',

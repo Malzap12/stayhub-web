@@ -21,6 +21,41 @@ interface PeriodErrorBody {
   affectedReservations?: AffectedBooking[];
 }
 
+/** HU-021 · Error del API al bloquear fechas. */
+interface BlockErrorBody {
+  reason?: string;
+  message?: string | string[];
+  reservedDates?: string[];
+  blockedDates?: string[];
+  outsideDates?: string[];
+}
+
+/** "2027-03-10" -> "10 mar 2027" */
+export function shortDate(iso: string): string {
+  return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(`${iso.slice(0, 10)}T00:00:00Z`))
+    .replace(/\./g, '');
+}
+
+/** HU-021 · Explicación de por qué no se pudieron bloquear las fechas. */
+export function blockErrorMessage(status: number, body: BlockErrorBody): string {
+  const list = (dates?: string[]) => (dates ?? []).map(shortDate).join(', ');
+  switch (body.reason) {
+    case 'FECHAS_OCUPADAS':
+      return body.reservedDates?.length
+        ? `No se pueden bloquear: ya hay reservas el ${list(body.reservedDates)}.`
+        : `Algunas de esas fechas ya están bloqueadas (${list(body.blockedDates)}).`;
+    case 'FUERA_DE_DISPONIBILIDAD':
+      return `Solo puedes bloquear fechas dentro de tus periodos disponibles. Fuera de ellos: ${list(body.outsideDates)}.`;
+    case 'FECHA_PASADA':
+      return 'No se pueden bloquear fechas que ya pasaron.';
+  }
+  if (status === 404) {
+    return 'El alojamiento no existe o no te pertenece.';
+  }
+  return [body.message].flat().filter(Boolean).join(' ') || 'No pudimos bloquear las fechas. Intenta de nuevo.';
+}
+
 /** Fecha YYYY-MM-DD en la hora local del navegador (toISOString usaría UTC y en la noche ya sería mañana). */
 function localDateString(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
@@ -134,46 +169,44 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
           <app-availability-calendar #calendar [listingId]="selectedListingId" title="Calendario de los próximos 12 meses"></app-availability-calendar>
         </section>
 
-        <!-- HU-023: Bloqueo automático de periodo reservado [llegada, salida) / HU-022: bloqueo del anfitrión -->
-        <section class="form-card" aria-label="Bloqueo de periodo reservado">
-          <h2>Reservar o bloquear noches</h2>
-          <div class="type-choice" role="radiogroup" aria-label="Tipo de registro">
-            <label>
-              <input type="radio" name="blockType" value="RESERVA" [(ngModel)]="blockType" />
-              Reserva confirmada
-            </label>
-            <label>
-              <input type="radio" name="blockType" value="BLOQUEO" [(ngModel)]="blockType" />
-              Bloquear fechas (no recibir reservas)
-            </label>
-          </div>
+        <!-- HU-021: el anfitrión bloquea fechas para uso propio o mantenimiento y las desbloquea -->
+        <section class="form-card block-card" aria-label="Bloquear fechas" *ngIf="selectedListingId">
+          <h2>Bloquear fechas</h2>
           <p class="period-meta">
-            Intervalo [llegada, salida): el día de salida no se bloquea como noche y puede ser la llegada de otra reserva.
+            Bloquea noches para uso propio o mantenimiento: no se podrán reservar hasta que las desbloquees. Solo puedes bloquear
+            fechas libres dentro de tus periodos disponibles.
           </p>
 
           <div class="date-row">
             <div class="field">
-              <label for="checkin-date">Llegada (check-in)</label>
-              <input id="checkin-date" type="date" [(ngModel)]="checkInInput" />
+              <label for="block-start">Desde</label>
+              <input id="block-start" type="date" [min]="today" [(ngModel)]="blockStartInput" />
             </div>
-
             <div class="field">
-              <label for="checkout-date">Salida (check-out)</label>
-              <input id="checkout-date" type="date" [(ngModel)]="checkOutInput" />
+              <label for="block-end">Hasta (incluida)</label>
+              <input id="block-end" type="date" [min]="blockStartInput || today" [(ngModel)]="blockEndInput" />
             </div>
           </div>
+          <div class="field">
+            <label for="block-note">Nota (opcional)</label>
+            <input id="block-note" type="text" maxlength="80" placeholder="Por ejemplo: mantenimiento" [(ngModel)]="blockNoteInput" />
+          </div>
 
-          <button type="button" class="btn-primary" [disabled]="saving" (click)="confirmReservedBlock()">
-            {{ blockType === 'BLOQUEO' ? 'Bloquear fechas' : 'Bloquear periodo reservado' }}
+          <button type="button" class="btn-primary" [disabled]="saving" (click)="blockDates()">
+            {{ saving ? 'Guardando…' : 'Bloquear fechas' }}
           </button>
 
-          <ul class="period-list" *ngIf="reservedPeriods.length > 0" style="margin-top: 14px;">
-            <li class="period-item" *ngFor="let block of reservedPeriods">
+          <h3 class="block-subtitle">Fechas bloqueadas ({{ blockedDates.length }})</h3>
+          <p class="empty-msg" *ngIf="blockedDates.length === 0">No tienes fechas bloqueadas en este alojamiento.</p>
+          <ul class="period-list" *ngIf="blockedDates.length > 0">
+            <li class="period-item blocked-item" *ngFor="let block of blockedDates">
               <div>
-                <strong>{{ block.checkIn }} → {{ block.checkOut }}</strong>
-                <span class="period-meta">Noches bloqueadas: {{ block.blockedNights.join(', ') }}</span>
+                <strong>{{ blockRangeLabel(block) }}</strong>
+                <span class="period-meta">{{ blockNightsLabel(block) }}<span *ngIf="block.note"> · {{ block.note }}</span></span>
               </div>
-              <span [class]="block.type === 'BLOQUEO' ? 'badge-host-block' : 'badge-blocked'">{{ block.type === 'BLOQUEO' ? 'Bloqueado' : 'Reservado' }}</span>
+              <button type="button" class="btn-sm btn-outline" [disabled]="unblockingId === block.id" (click)="unblockDates(block)">
+                {{ unblockingId === block.id ? 'Desbloqueando…' : 'Desbloquear' }}
+              </button>
             </li>
           </ul>
         </section>
@@ -394,6 +427,22 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       background: #e8f8ee;
       color: #166534;
     }
+    .block-card > .period-meta {
+      margin: 0 0 14px;
+      line-height: 1.45;
+    }
+    .block-subtitle {
+      margin: 18px 0 10px;
+      font-size: 0.92rem;
+      color: #1d1d1f;
+    }
+    .blocked-item {
+      gap: 12px;
+      background: #fef2f2;
+    }
+    .blocked-item strong {
+      overflow-wrap: anywhere;
+    }
     .badge-blocked {
       padding: 4px 10px;
       border-radius: 980px;
@@ -482,6 +531,12 @@ export class HostAvailabilityComponent implements OnInit {
   hostListings: MyListing[] = [];
   periods: AvailabilityPeriod[] = [];
   reservedPeriods: BlockedPeriod[] = [];
+  /** HU-021: bloqueos manuales del alojamiento seleccionado. */
+  blockedDates: BlockedPeriod[] = [];
+  blockStartInput = '';
+  blockEndInput = '';
+  blockNoteInput = '';
+  unblockingId = '';
 
   selectedListingId = '';
   startDateInput = '';
@@ -525,8 +580,10 @@ export class HostAvailabilityComponent implements OnInit {
     this.selectedListingId = listingId;
     this.clearFeedback();
     this.reservedPeriods = [];
+    this.blockedDates = [];
     this.availabilityResult = null;
     await this.loadPeriods();
+    await this.loadBlockedDates();
   }
 
 
@@ -644,6 +701,7 @@ export class HostAvailabilityComponent implements OnInit {
       if (initial) {
         this.selectedListingId = initial.id;
         await this.loadPeriods();
+        await this.loadBlockedDates();
       }
     } catch {
       this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
@@ -671,6 +729,105 @@ export class HostAvailabilityComponent implements OnInit {
     } finally {
       this.loadingPeriods = false;
     }
+  }
+
+  /** HU-021 · Bloqueos manuales del alojamiento seleccionado. */
+  async loadBlockedDates(): Promise<void> {
+    if (!this.selectedListingId) {
+      this.blockedDates = [];
+      return;
+    }
+    try {
+      const response = await fetch(this.blockedDatesUrl(), { headers: this.authHeaders() });
+      this.blockedDates = response.ok ? ((await response.json()) as BlockedPeriod[]) : [];
+    } catch {
+      this.blockedDates = [];
+    }
+  }
+
+  /** HU-021 CA1 · Bloquea las noches de «Desde» a «Hasta», ambas incluidas; luego no se pueden reservar. */
+  async blockDates(): Promise<BlockedPeriod | null> {
+    this.clearFeedback();
+    const startDate = this.blockStartInput?.trim();
+    const endDate = this.blockEndInput?.trim() || startDate;
+    if (!startDate) {
+      this.errorMessage = 'Elige desde qué fecha quieres bloquear.';
+      return null;
+    }
+    if (endDate < startDate) {
+      this.errorMessage = 'La fecha «Hasta» no puede ser anterior a «Desde».';
+      return null;
+    }
+    if (startDate < this.today) {
+      this.errorMessage = 'No se pueden bloquear fechas que ya pasaron.';
+      return null;
+    }
+
+    this.saving = true;
+    try {
+      const note = this.blockNoteInput.trim();
+      const response = await fetch(this.blockedDatesUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+        body: JSON.stringify({ startDate, endDate, ...(note ? { note } : {}) }),
+      });
+      const body = (await response.json().catch(() => ({}))) as BlockedPeriod & BlockErrorBody;
+      if (!response.ok) {
+        this.errorMessage = blockErrorMessage(response.status, body);
+        return null;
+      }
+      this.blockedDates = [...this.blockedDates, body].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+      this.successMessage = `Bloqueaste ${this.blockRangeLabel(body)}. Esas noches ya no se pueden reservar.`;
+      this.blockStartInput = '';
+      this.blockEndInput = '';
+      this.blockNoteInput = '';
+      void this.calendar?.load();
+      return body;
+    } catch {
+      this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      return null;
+    } finally {
+      this.saving = false;
+    }
+  }
+
+  /** HU-021 CA2 · Quita el bloqueo: las noches vuelven a estar disponibles. */
+  async unblockDates(block: BlockedPeriod): Promise<boolean> {
+    this.clearFeedback();
+    this.unblockingId = block.id;
+    try {
+      const response = await fetch(`${this.blockedDatesUrl()}/${encodeURIComponent(block.id)}`, {
+        method: 'DELETE',
+        headers: this.authHeaders(),
+      });
+      if (!response.ok) {
+        this.errorMessage =
+          response.status === 404 ? 'Ese bloqueo ya no existe; actualizamos la lista.' : this.describeHttpError(response.status, 'No pudimos desbloquear las fechas.');
+        await this.loadBlockedDates();
+        return false;
+      }
+      this.blockedDates = this.blockedDates.filter((item) => item.id !== block.id);
+      this.successMessage = `Desbloqueaste ${this.blockRangeLabel(block)}. Esas noches vuelven a estar disponibles.`;
+      void this.calendar?.load();
+      return true;
+    } catch {
+      this.errorMessage = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      return false;
+    } finally {
+      this.unblockingId = '';
+    }
+  }
+
+  /** "10 mar 2027" o "del 10 mar 2027 al 12 mar 2027" (última noche incluida). */
+  blockRangeLabel(block: BlockedPeriod): string {
+    const first = block.blockedNights[0] ?? block.checkIn;
+    const last = block.blockedNights[block.blockedNights.length - 1] ?? first;
+    return first === last ? `el ${shortDate(first)}` : `del ${shortDate(first)} al ${shortDate(last)}`;
+  }
+
+  blockNightsLabel(block: BlockedPeriod): string {
+    const count = block.blockedNights.length;
+    return `${count} ${count === 1 ? 'noche bloqueada' : 'noches bloqueadas'}`;
   }
 
   /** HU-019: valida en el navegador (CA2, CA3) y registra el periodo en el servidor (CA1). */
@@ -854,6 +1011,10 @@ export class HostAvailabilityComponent implements OnInit {
 
   private periodsUrl(): string {
     return `/api/listings/${encodeURIComponent(this.selectedListingId)}/availability-periods`;
+  }
+
+  private blockedDatesUrl(): string {
+    return `/api/listings/${encodeURIComponent(this.selectedListingId)}/blocked-dates`;
   }
 
   private reservedPeriodsUrl(): string {
