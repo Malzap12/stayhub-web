@@ -18,6 +18,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'mis-favoritos',
+    canActivate: [roleGuard(['HUESPED'])],
+    loadComponent: () =>
+      import('./features/favorites/my-favorites.component').then(
+        (m) => m.MyFavoritesComponent,
+      ),
+  },
+  {
     path: 'mis-reservas',
     canActivate: [roleGuard(['HUESPED'])],
     loadComponent: () =>
@@ -39,6 +47,22 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/profile/my-profile.component').then(
         (m) => m.MyProfileComponent,
+      ),
+  },
+  {
+    path: 'mensajes',
+    canActivate: [roleGuard(['HUESPED', 'ANFITRION', 'ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/messages/messages.component').then(
+        (m) => m.MessagesComponent,
+      ),
+  },
+  {
+    path: 'mensajes/:id',
+    canActivate: [roleGuard(['HUESPED', 'ANFITRION', 'ADMINISTRADOR'])],
+    loadComponent: () =>
+      import('./features/messages/messages.component').then(
+        (m) => m.MessagesComponent,
       ),
   },
   {

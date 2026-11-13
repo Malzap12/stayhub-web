@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   clearActiveSession,
   getActiveSession,
@@ -1000,7 +1000,10 @@ export class LoginComponent {
   reactivating = false;
   activeSession: StoredSession | null = getActiveSession();
 
-  constructor(private readonly router?: Router) {
+  constructor(
+    private readonly router?: Router,
+    @Optional() private readonly route?: ActivatedRoute,
+  ) {
     if (arrivedWith(ACCOUNT_DEACTIVATED_STATE)) {
       this.deactivatedNotice = 'Tu cuenta quedó desactivada y tu sesión se cerró. Tu historial se conserva.';
     }
@@ -1010,6 +1013,11 @@ export class LoginComponent {
   }
 
   private navigateByRole(role: 'HUESPED' | 'ANFITRION' | 'ADMINISTRADOR'): void {
+    const returnUrl = this.route?.snapshot?.queryParamMap?.get('returnUrl') ?? '';
+    if (role === 'HUESPED' && returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+      void this.router?.navigateByUrl(returnUrl);
+      return;
+    }
     if (role === 'ADMINISTRADOR') {
       this.router?.navigate(['/admin/moderacion']);
     } else if (role === 'ANFITRION') {

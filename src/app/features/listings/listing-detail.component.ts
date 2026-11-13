@@ -1,12 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { AvailabilityCalendarComponent } from './availability-calendar.component';
 import { StayQuoteComponent } from './stay-quote.component';
+import { ListingMapComponent } from '../../shared/components/listing-map/listing-map.component';
 import { amenityIconPaths, amenityLabel } from '../../shared/models/amenities.model';
 import { initialsOf } from '../../shared/models/display.model';
 import { BookingMode, bookingModeOption, BookingModeOption } from '../../shared/models/booking-mode.model';
+import { MAX_MESSAGE_LENGTH, validateMessageText } from '../../shared/models/messages.model';
+import { canShowFavoriteControl } from '../../shared/models/favorites.model';
 
 export { AMENITY_LABELS, amenityLabel } from '../../shared/models/amenities.model';
 
@@ -15,7 +19,16 @@ export interface ListingDetail {
   id: string;
   title: string;
   description?: string;
-  location: { address?: string; city?: string; department?: string; country?: string; text: string };
+  location: {
+    address?: string;
+    city?: string;
+    department?: string;
+    country?: string;
+    text: string;
+    latitude?: number;
+    longitude?: number;
+    mapAttribution?: string;
+  };
   propertyType?: string;
   propertyTypeLabel?: string;
   maxGuests?: number;
@@ -62,7 +75,7 @@ export function formatCop(value?: number | null): string {
 @Component({
   selector: 'app-listing-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, AvailabilityCalendarComponent, StayQuoteComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AvailabilityCalendarComponent, StayQuoteComponent, ListingMapComponent],
   template: `
     <section class="detail-shell">
       <a routerLink="/listings" class="back-link">← Volver a los resultados</a>
@@ -83,7 +96,20 @@ export function formatCop(value?: number | null): string {
 
       <article *ngIf="!loading && listing as item">
         <header class="detail-header">
-          <h1>{{ item.title }}</h1>
+          <div class="detail-header-row">
+            <h1>{{ item.title }}</h1>
+            <button
+              *ngIf="canShowSaveButton(item)"
+              type="button"
+              class="save-detail-btn"
+              [class.saved]="savedFavorite"
+              [attr.aria-pressed]="savedFavorite"
+              [disabled]="togglingFavorite"
+              (click)="toggleFavorite(item)"
+            >
+              {{ savedFavorite ? '♥ Guardado' : '♡ Guardar' }}
+            </button>
+          </div>
           <div class="header-meta">
             <span class="rating" [class.muted]="item.reviewCount === 0">
               <ng-container *ngIf="item.reviewCount > 0; else noRating">
@@ -166,6 +192,20 @@ export function formatCop(value?: number | null): string {
               <ng-template #noAmenities><p class="muted">Sin servicios registrados.</p></ng-template>
             </section>
 
+            <section class="location-section">
+              <h2>Ubicación</h2>
+              <p class="location-text">{{ item.location.text || 'Ubicación por definir' }}</p>
+              <app-listing-map
+                *ngIf="hasMapCoordinates(item) && !mapLoadFailed"
+                [latitude]="item.location.latitude!"
+                [longitude]="item.location.longitude!"
+                [attribution]="item.location.mapAttribution || '© OpenStreetMap contributors'"
+                [editable]="false"
+                ariaLabel="Mapa de ubicación del alojamiento"
+                (mapError)="onMapError()"
+              ></app-listing-map>
+            </section>
+
             <section *ngIf="item.status === 'ACTIVA'">
               <app-availability-calendar [listingId]="item.id" title="Disponibilidad" [monthsPerPage]="2"></app-availability-calendar>
             </section>
@@ -242,6 +282,45 @@ export function formatCop(value?: number | null): string {
             <ng-template #notBookable>
               <p class="muted not-bookable">Este alojamiento no recibe reservas por ahora.</p>
             </ng-template>
+
+            <div class="contact-host-box" *ngIf="canContactHost(item)">
+              <button
+                *ngIf="!contactOpen"
+                type="button"
+                class="contact-host-btn"
+                (click)="openContactForm()"
+              >
+                Contactar al anfitrión
+              </button>
+
+              <div class="contact-form" *ngIf="contactOpen">
+                <label for="contact-host-msg" class="contact-label">Mensaje para {{ item.hostName || 'el anfitrión' }}</label>
+                <textarea
+                  id="contact-host-msg"
+                  rows="3"
+                  [attr.maxlength]="maxContactLength + 10"
+                  [(ngModel)]="contactMessage"
+                  (ngModelChange)="onContactMessageChange()"
+                  placeholder="Escribe tus dudas sobre el alojamiento o las fechas…"
+                  [disabled]="sendingContact"
+                ></textarea>
+                <div class="contact-meta">
+                  <span class="contact-count" [class.over]="contactMessage.length > maxContactLength">
+                    {{ contactMessage.length }} / {{ maxContactLength }}
+                  </span>
+                </div>
+                <p class="contact-error" *ngIf="contactValidationError" role="alert">{{ contactValidationError }}</p>
+                <p class="contact-error" *ngIf="contactServerError" role="alert">{{ contactServerError }}</p>
+                <div class="contact-actions">
+                  <button type="button" class="contact-cancel" [disabled]="sendingContact" (click)="closeContactForm()">
+                    Cancelar
+                  </button>
+                  <button type="button" class="contact-send" [disabled]="sendingContact" (click)="submitContactHost()">
+                    {{ sendingContact ? 'Enviando…' : 'Enviar mensaje' }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </aside>
         </div>
       </article>
@@ -260,7 +339,15 @@ export function formatCop(value?: number | null): string {
       border-radius: 12px; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-weight: 600;
     }
     .retry-btn { padding: 6px 14px; border-radius: 980px; border: 1px solid #fecaca; background: #ffffff; color: #991b1b; font-weight: 600; cursor: pointer; }
+    .detail-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
     .detail-header h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 1.95rem); letter-spacing: -0.02em; line-height: 1.2; }
+    .save-detail-btn {
+      padding: 8px 16px; border-radius: 980px; border: 1px solid #d2d2d7;
+      background: #ffffff; color: #222222; font-weight: 600; font-size: 0.86rem; cursor: pointer;
+    }
+    .save-detail-btn:hover:not(:disabled) { border-color: #222222; }
+    .save-detail-btn.saved { background: #fff1f2; border-color: #f43f5e; color: #be123c; }
+    .save-detail-btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .header-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.92rem; }
     .rating { font-weight: 600; }
     .location { color: #222222; text-decoration: underline; text-underline-offset: 2px; }
@@ -336,6 +423,33 @@ export function formatCop(value?: number | null): string {
     .price span { color: #222222; margin-left: 4px; }
     .mini-rating { font-size: 0.86rem; font-weight: 600; }
     .not-bookable { margin: 0; font-size: 0.9rem; }
+    .contact-host-box { margin-top: 16px; padding-top: 16px; border-top: 1px solid #ebebeb; }
+    .contact-host-btn {
+      width: 100%; padding: 11px 16px; border-radius: 10px; border: 1px solid #222222;
+      background: #ffffff; color: #222222; font-weight: 600; font-size: 0.92rem; cursor: pointer;
+    }
+    .contact-host-btn:hover { background: #f7f7f7; }
+    .contact-form { display: flex; flex-direction: column; gap: 8px; }
+    .contact-label { font-size: 0.86rem; font-weight: 600; color: #222222; }
+    .contact-form textarea {
+      width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #d2d2d7;
+      border-radius: 10px; font-family: inherit; font-size: 0.9rem; resize: vertical;
+    }
+    .contact-meta { display: flex; justify-content: flex-end; }
+    .contact-count { font-size: 0.75rem; color: #6a6a6a; }
+    .contact-count.over { color: #b42318; font-weight: 700; }
+    .contact-error { margin: 0; color: #b42318; font-size: 0.82rem; font-weight: 600; }
+    .contact-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .contact-cancel {
+      padding: 8px 14px; border-radius: 980px; border: 1px solid #d2d2d7;
+      background: #ffffff; color: #222222; font-weight: 600; font-size: 0.84rem; cursor: pointer;
+    }
+    .contact-send {
+      padding: 8px 16px; border-radius: 980px; border: none;
+      background: #222222; color: #ffffff; font-weight: 600; font-size: 0.84rem; cursor: pointer;
+    }
+    .contact-send:disabled, .contact-cancel:disabled { opacity: 0.55; cursor: not-allowed; }
+    .location-text { margin: 0 0 12px; color: #3f3f3f; line-height: 1.5; }
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; gap: 8px; }
       .booking-card { position: static; order: -1; margin-bottom: 8px; }
@@ -357,11 +471,165 @@ export class ListingDetailComponent implements OnInit {
   loading = false;
   unavailable = false;
   errorMessage = '';
+  mapLoadFailed = false;
 
-  constructor(private readonly route?: ActivatedRoute) {}
+  readonly maxContactLength = MAX_MESSAGE_LENGTH;
+  contactOpen = false;
+  contactMessage = '';
+  contactValidationError = '';
+  contactServerError = '';
+  sendingContact = false;
+
+  savedFavorite = false;
+  togglingFavorite = false;
+
+  constructor(
+    private readonly route?: ActivatedRoute,
+    private readonly router?: Router,
+  ) {}
+
+  canShowSaveButton(item: ListingDetail): boolean {
+    return canShowFavoriteControl(getActiveSession()?.role) && (item.status === 'ACTIVA' || this.savedFavorite);
+  }
+
+  async loadFavoriteState(id: string): Promise<void> {
+    const session = getActiveSession();
+    if (!session || session.role !== 'HUESPED' || !id) {
+      this.savedFavorite = false;
+      return;
+    }
+    try {
+      const response = await fetch('/api/favorites/ids', {
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as { listingIds?: string[] };
+      this.savedFavorite = (body.listingIds ?? []).includes(id);
+    } catch {
+      // No bloquear el detalle si falla la consulta de favoritos
+    }
+  }
+
+  async toggleFavorite(item: ListingDetail): Promise<void> {
+    const session = getActiveSession();
+    if (!session) {
+      void this.router?.navigate(['/auth/login'], { queryParams: { returnUrl: `/listings/${item.id}` } });
+      return;
+    }
+    if (session.role !== 'HUESPED' || this.togglingFavorite) return;
+
+    this.togglingFavorite = true;
+    try {
+      const response = await fetch(`/api/favorites/${encodeURIComponent(item.id)}`, {
+        method: this.savedFavorite ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      if (response.ok) {
+        this.savedFavorite = !this.savedFavorite;
+      }
+    } finally {
+      this.togglingFavorite = false;
+    }
+  }
+
+  canContactHost(item: ListingDetail): boolean {
+    const session = getActiveSession();
+    return Boolean(session && session.role === 'HUESPED' && item.status === 'ACTIVA');
+  }
+
+  openContactForm(): void {
+    this.contactOpen = true;
+    this.contactValidationError = '';
+    this.contactServerError = '';
+  }
+
+  closeContactForm(): void {
+    this.contactOpen = false;
+    this.contactMessage = '';
+    this.contactValidationError = '';
+    this.contactServerError = '';
+  }
+
+  onContactMessageChange(): void {
+    this.contactServerError = '';
+    if (this.contactValidationError) {
+      this.contactValidationError = validateMessageText(this.contactMessage) ?? '';
+    }
+  }
+
+  async submitContactHost(): Promise<void> {
+    if (!this.listing) return;
+    const validationError = validateMessageText(this.contactMessage);
+    if (validationError) {
+      this.contactValidationError = validationError;
+      return;
+    }
+
+    const session = getActiveSession();
+    if (!session) {
+      this.contactServerError = 'Inicia sesión para contactar al anfitrión.';
+      return;
+    }
+
+    this.sendingContact = true;
+    this.contactValidationError = '';
+    this.contactServerError = '';
+
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ listingId: this.listing.id, content: this.contactMessage }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.contactServerError =
+          [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible enviar el mensaje.';
+        return;
+      }
+
+      const conversationId = body?.conversation?.id as string | undefined;
+      this.contactMessage = '';
+      this.contactOpen = false;
+      if (conversationId) {
+        void this.router?.navigate(['/mensajes', conversationId]);
+      } else {
+        void this.router?.navigate(['/mensajes']);
+      }
+    } catch {
+      this.contactServerError = 'Error de conexión al enviar el mensaje.';
+    } finally {
+      this.sendingContact = false;
+    }
+  }
+
+  hasMapCoordinates(item: ListingDetail): boolean {
+    const lat = item.location?.latitude;
+    const lng = item.location?.longitude;
+    return (
+      typeof lat === 'number' &&
+      Number.isFinite(lat) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      typeof lng === 'number' &&
+      Number.isFinite(lng) &&
+      lng >= -180 &&
+      lng <= 180
+    );
+  }
+
+  onMapError(): void {
+    this.mapLoadFailed = true;
+  }
 
   ngOnInit(): void {
     void this.load();
+    if (this.listingId) {
+      void this.loadFavoriteState(this.listingId);
+    }
   }
 
   get listingId(): string {
@@ -462,6 +730,7 @@ export class ListingDetailComponent implements OnInit {
     this.loading = true;
     this.unavailable = false;
     this.errorMessage = '';
+    this.mapLoadFailed = false;
     this.listing = null;
     try {
       const token = getActiveSession()?.token;

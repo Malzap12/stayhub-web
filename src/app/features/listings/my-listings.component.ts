@@ -42,7 +42,12 @@ interface ActivationFailure {
           <h1>Mis publicaciones</h1>
           <p class="subtitle">Revisa el estado de tus alojamientos y gestiona tu oferta.</p>
         </div>
-        <a *ngIf="listings.length > 0" routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <a routerLink="/mensajes" [queryParams]="{ contactAdmin: 'true' }" class="secondary-btn" style="text-decoration: none;">
+            Contactar al administrador
+          </a>
+          <a *ngIf="listings.length > 0" routerLink="/anfitrion/publicaciones/nueva" class="new-listing-btn">+ Nueva publicación</a>
+        </div>
       </header>
 
       <p class="loading" *ngIf="loading" role="status">Cargando tus publicaciones…</p>
@@ -221,6 +226,13 @@ interface ActivationFailure {
               >
                 Asociar política Flexible →
               </button>
+              <a
+                class="availability-link"
+                routerLink="/mensajes"
+                [queryParams]="{ contactAdmin: 'true', listingId: item.id, listingTitle: item.title }"
+              >
+                Contactar al administrador sobre esta publicación →
+              </a>
             </li>
           </ul>
 
