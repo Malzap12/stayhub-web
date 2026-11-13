@@ -62,6 +62,9 @@ export interface Listing {
   requestedAt?: string;
   returnReason?: string;
   imageUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  geocodingWarning?: string;
 }
 
 export interface HostModerationNotification {
