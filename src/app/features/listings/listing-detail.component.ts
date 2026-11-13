@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { AvailabilityCalendarComponent } from './availability-calendar.component';
 import { StayQuoteComponent } from './stay-quote.component';
+import { ListingMapComponent } from '../../shared/components/listing-map/listing-map.component';
 import { amenityIconPaths, amenityLabel } from '../../shared/models/amenities.model';
 import { initialsOf } from '../../shared/models/display.model';
 import { BookingMode, bookingModeOption, BookingModeOption } from '../../shared/models/booking-mode.model';
@@ -17,7 +18,16 @@ export interface ListingDetail {
   id: string;
   title: string;
   description?: string;
-  location: { address?: string; city?: string; department?: string; country?: string; text: string };
+  location: {
+    address?: string;
+    city?: string;
+    department?: string;
+    country?: string;
+    text: string;
+    latitude?: number;
+    longitude?: number;
+    mapAttribution?: string;
+  };
   propertyType?: string;
   propertyTypeLabel?: string;
   maxGuests?: number;
@@ -64,7 +74,7 @@ export function formatCop(value?: number | null): string {
 @Component({
   selector: 'app-listing-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AvailabilityCalendarComponent, StayQuoteComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AvailabilityCalendarComponent, StayQuoteComponent, ListingMapComponent],
   template: `
     <section class="detail-shell">
       <a routerLink="/listings" class="back-link">← Volver a los resultados</a>
@@ -166,6 +176,20 @@ export function formatCop(value?: number | null): string {
                 </li>
               </ul>
               <ng-template #noAmenities><p class="muted">Sin servicios registrados.</p></ng-template>
+            </section>
+
+            <section class="location-section">
+              <h2>Ubicación</h2>
+              <p class="location-text">{{ item.location.text || 'Ubicación por definir' }}</p>
+              <app-listing-map
+                *ngIf="hasMapCoordinates(item) && !mapLoadFailed"
+                [latitude]="item.location.latitude!"
+                [longitude]="item.location.longitude!"
+                [attribution]="item.location.mapAttribution || '© OpenStreetMap contributors'"
+                [editable]="false"
+                ariaLabel="Mapa de ubicación del alojamiento"
+                (mapError)="onMapError()"
+              ></app-listing-map>
             </section>
 
             <section *ngIf="item.status === 'ACTIVA'">
@@ -403,6 +427,7 @@ export function formatCop(value?: number | null): string {
       background: #222222; color: #ffffff; font-weight: 600; font-size: 0.84rem; cursor: pointer;
     }
     .contact-send:disabled, .contact-cancel:disabled { opacity: 0.55; cursor: not-allowed; }
+    .location-text { margin: 0 0 12px; color: #3f3f3f; line-height: 1.5; }
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; gap: 8px; }
       .booking-card { position: static; order: -1; margin-bottom: 8px; }
@@ -424,6 +449,7 @@ export class ListingDetailComponent implements OnInit {
   loading = false;
   unavailable = false;
   errorMessage = '';
+  mapLoadFailed = false;
 
   readonly maxContactLength = MAX_MESSAGE_LENGTH;
   contactOpen = false;
@@ -509,6 +535,25 @@ export class ListingDetailComponent implements OnInit {
     } finally {
       this.sendingContact = false;
     }
+  }
+
+  hasMapCoordinates(item: ListingDetail): boolean {
+    const lat = item.location?.latitude;
+    const lng = item.location?.longitude;
+    return (
+      typeof lat === 'number' &&
+      Number.isFinite(lat) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      typeof lng === 'number' &&
+      Number.isFinite(lng) &&
+      lng >= -180 &&
+      lng <= 180
+    );
+  }
+
+  onMapError(): void {
+    this.mapLoadFailed = true;
   }
 
   ngOnInit(): void {
@@ -613,6 +658,7 @@ export class ListingDetailComponent implements OnInit {
     this.loading = true;
     this.unavailable = false;
     this.errorMessage = '';
+    this.mapLoadFailed = false;
     this.listing = null;
     try {
       const token = getActiveSession()?.token;
