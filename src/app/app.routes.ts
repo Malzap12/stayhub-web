@@ -43,7 +43,7 @@ export const routes: Routes = [
   },
   {
     path: 'mensajes',
-    canActivate: [roleGuard(['HUESPED', 'ANFITRION'])],
+    canActivate: [roleGuard(['HUESPED', 'ANFITRION', 'ADMINISTRADOR'])],
     loadComponent: () =>
       import('./features/messages/messages.component').then(
         (m) => m.MessagesComponent,
@@ -51,7 +51,7 @@ export const routes: Routes = [
   },
   {
     path: 'mensajes/:id',
-    canActivate: [roleGuard(['HUESPED', 'ANFITRION'])],
+    canActivate: [roleGuard(['HUESPED', 'ANFITRION', 'ADMINISTRADOR'])],
     loadComponent: () =>
       import('./features/messages/messages.component').then(
         (m) => m.MessagesComponent,
