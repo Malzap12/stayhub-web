@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -112,11 +112,11 @@ import {
               </button>
             </div>
 
-            <div class="messages-list" aria-live="polite">
+            <div class="messages-list" #messagesListRef aria-live="polite">
               <p class="muted-state" *ngIf="messages.length === 0">Aún no hay mensajes en esta conversación.</p>
 
               <article
-                *ngFor="let msg of messages"
+                *ngFor="let msg of chronologicalMessages"
                 class="message-bubble"
                 [class.mine]="isMyMessage(msg)"
               >
@@ -244,10 +244,16 @@ export class MessagesComponent implements OnInit, OnDestroy {
 
   private pollTimer?: ReturnType<typeof setInterval>;
 
+  @ViewChild('messagesListRef') messagesListRef?: ElementRef<HTMLDivElement>;
+
   constructor(
     private readonly route?: ActivatedRoute,
     private readonly router?: Router,
   ) {}
+
+  get chronologicalMessages(): ConversationMessage[] {
+    return [...this.messages].reverse();
+  }
 
   get isGuest(): boolean {
     return getActiveSession()?.role === 'HUESPED';
@@ -354,10 +360,16 @@ export class MessagesComponent implements OnInit, OnDestroy {
         return;
       }
       const body = (await response.json()) as ConversationDetailResponse;
+      const prevCount = this.messages.length;
+      const prevNewestId = this.messages[0]?.id;
       this.activeConversation = body.conversation;
       this.messages = body.messages?.data ?? [];
       this.messagesPage = body.messages?.page ?? 1;
       this.messagesTotalPages = body.messages?.totalPages ?? 1;
+      const newNewestId = this.messages[0]?.id;
+      if (this.messagesPage === 1 && (!silent || this.messages.length !== prevCount || newNewestId !== prevNewestId)) {
+        this.scrollToBottom();
+      }
     } catch {
       if (!silent) {
         this.threadError = 'Error de conexión al abrir la conversación.';
@@ -427,12 +439,22 @@ export class MessagesComponent implements OnInit, OnDestroy {
       this.messagesPage = detail.messages?.page ?? 1;
       this.messagesTotalPages = detail.messages?.totalPages ?? 1;
       this.draftMessage = '';
+      this.scrollToBottom();
       await this.loadInbox(true);
     } catch {
       this.sendServerError = 'Error de conexión al enviar el mensaje.';
     } finally {
       this.sending = false;
     }
+  }
+
+  private scrollToBottom(): void {
+    queueMicrotask(() => {
+      const el = this.messagesListRef?.nativeElement;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
   }
 
   isMyMessage(msg: ConversationMessage): boolean {
