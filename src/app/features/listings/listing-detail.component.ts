@@ -10,6 +10,7 @@ import { amenityIconPaths, amenityLabel } from '../../shared/models/amenities.mo
 import { initialsOf } from '../../shared/models/display.model';
 import { BookingMode, bookingModeOption, BookingModeOption } from '../../shared/models/booking-mode.model';
 import { MAX_MESSAGE_LENGTH, validateMessageText } from '../../shared/models/messages.model';
+import { canShowFavoriteControl } from '../../shared/models/favorites.model';
 
 export { AMENITY_LABELS, amenityLabel } from '../../shared/models/amenities.model';
 
@@ -95,7 +96,20 @@ export function formatCop(value?: number | null): string {
 
       <article *ngIf="!loading && listing as item">
         <header class="detail-header">
-          <h1>{{ item.title }}</h1>
+          <div class="detail-header-row">
+            <h1>{{ item.title }}</h1>
+            <button
+              *ngIf="canShowSaveButton(item)"
+              type="button"
+              class="save-detail-btn"
+              [class.saved]="savedFavorite"
+              [attr.aria-pressed]="savedFavorite"
+              [disabled]="togglingFavorite"
+              (click)="toggleFavorite(item)"
+            >
+              {{ savedFavorite ? '♥ Guardado' : '♡ Guardar' }}
+            </button>
+          </div>
           <div class="header-meta">
             <span class="rating" [class.muted]="item.reviewCount === 0">
               <ng-container *ngIf="item.reviewCount > 0; else noRating">
@@ -325,7 +339,15 @@ export function formatCop(value?: number | null): string {
       border-radius: 12px; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-weight: 600;
     }
     .retry-btn { padding: 6px 14px; border-radius: 980px; border: 1px solid #fecaca; background: #ffffff; color: #991b1b; font-weight: 600; cursor: pointer; }
+    .detail-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
     .detail-header h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 1.95rem); letter-spacing: -0.02em; line-height: 1.2; }
+    .save-detail-btn {
+      padding: 8px 16px; border-radius: 980px; border: 1px solid #d2d2d7;
+      background: #ffffff; color: #222222; font-weight: 600; font-size: 0.86rem; cursor: pointer;
+    }
+    .save-detail-btn:hover:not(:disabled) { border-color: #222222; }
+    .save-detail-btn.saved { background: #fff1f2; border-color: #f43f5e; color: #be123c; }
+    .save-detail-btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .header-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.92rem; }
     .rating { font-weight: 600; }
     .location { color: #222222; text-decoration: underline; text-underline-offset: 2px; }
@@ -458,10 +480,57 @@ export class ListingDetailComponent implements OnInit {
   contactServerError = '';
   sendingContact = false;
 
+  savedFavorite = false;
+  togglingFavorite = false;
+
   constructor(
     private readonly route?: ActivatedRoute,
     private readonly router?: Router,
   ) {}
+
+  canShowSaveButton(item: ListingDetail): boolean {
+    return canShowFavoriteControl(getActiveSession()?.role) && (item.status === 'ACTIVA' || this.savedFavorite);
+  }
+
+  async loadFavoriteState(id: string): Promise<void> {
+    const session = getActiveSession();
+    if (!session || session.role !== 'HUESPED' || !id) {
+      this.savedFavorite = false;
+      return;
+    }
+    try {
+      const response = await fetch('/api/favorites/ids', {
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as { listingIds?: string[] };
+      this.savedFavorite = (body.listingIds ?? []).includes(id);
+    } catch {
+      // No bloquear el detalle si falla la consulta de favoritos
+    }
+  }
+
+  async toggleFavorite(item: ListingDetail): Promise<void> {
+    const session = getActiveSession();
+    if (!session) {
+      void this.router?.navigate(['/auth/login'], { queryParams: { returnUrl: `/listings/${item.id}` } });
+      return;
+    }
+    if (session.role !== 'HUESPED' || this.togglingFavorite) return;
+
+    this.togglingFavorite = true;
+    try {
+      const response = await fetch(`/api/favorites/${encodeURIComponent(item.id)}`, {
+        method: this.savedFavorite ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      if (response.ok) {
+        this.savedFavorite = !this.savedFavorite;
+      }
+    } finally {
+      this.togglingFavorite = false;
+    }
+  }
 
   canContactHost(item: ListingDetail): boolean {
     const session = getActiveSession();
@@ -558,6 +627,9 @@ export class ListingDetailComponent implements OnInit {
 
   ngOnInit(): void {
     void this.load();
+    if (this.listingId) {
+      void this.loadFavoriteState(this.listingId);
+    }
   }
 
   get listingId(): string {
