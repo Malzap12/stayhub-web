@@ -8,7 +8,7 @@ export interface AppNotification {
   id: string;
   type: string;
   message: string;
-  entity: 'Booking' | 'Listing' | 'UserAccount' | 'Review';
+  entity: 'Booking' | 'Listing' | 'UserAccount' | 'Review' | 'Conversation';
   entityId: string;
   bookingCode?: string;
   createdAt: string;
@@ -30,6 +30,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   PUBLICACION_BLOQUEADA: 'Publicación bloqueada',
   CUENTA_RESTRINGIDA: 'Cuenta restringida',
   RESENA_OCULTADA: 'Reseña moderada',
+  MENSAJE_NUEVO: 'Nuevo mensaje',
 };
 
 /** Cada cuánto se revisa si llegaron notificaciones nuevas. */
@@ -330,6 +331,9 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
   routeFor(item: AppNotification): string | null {
     if (!item.entityId) return null;
+    if (item.entity === 'Conversation' || item.type === 'MENSAJE_NUEVO') {
+      return `/mensajes/${item.entityId}`;
+    }
     const role = getActiveSession()?.role;
     if (item.type === 'RESERVA_COMPLETADA' && role === 'HUESPED') return '/mis-reservas';
     if (item.entity === 'Booking' && role === 'HUESPED') return `/mis-reservas/${item.entityId}`;

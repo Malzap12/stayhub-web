@@ -32,6 +32,7 @@ import { StatusLabelPipe } from '../../models/display.model';
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/publicaciones" routerLinkActive="active">Panel Anfitrión</a>
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/mis-publicaciones" routerLinkActive="active">Mis Publicaciones</a>
           <a *ngIf="isAnfitrion" routerLink="/anfitrion/reservas" routerLinkActive="active">Reservas Recibidas</a>
+          <a *ngIf="isHuesped || isAnfitrion || isAdmin" routerLink="/mensajes" routerLinkActive="active">Mensajes</a>
           <a *ngIf="isAdmin" routerLink="/admin/indicadores" routerLinkActive="active">Indicadores</a>
           <a *ngIf="isAdmin" routerLink="/admin/moderacion" routerLinkActive="active">Moderación</a>
           <a *ngIf="isAdmin" routerLink="/admin/auditoria" routerLinkActive="active">Auditoría</a>

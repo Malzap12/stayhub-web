@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { formatQuoteAmount } from '../listings/stay-quote.component';
 import { StatusLabelPipe } from '../../shared/models/display.model';
+import { MAX_MESSAGE_LENGTH, validateMessageText } from '../../shared/models/messages.model';
 import {
   decisionErrorMessage,
   cancelHostBookingRequest,
@@ -126,6 +127,55 @@ import {
           </article>
         </div>
 
+        <article class="card message-guest-card">
+          <div class="cancel-header">
+            <div>
+              <h2>Mensajes con el huésped</h2>
+              <p class="hint">
+                Escribe a {{ b.guestName }} sobre esta reserva sin compartir datos de contacto externos.
+              </p>
+            </div>
+            <button
+              *ngIf="existingConversationId"
+              type="button"
+              class="btn secondary"
+              (click)="openConversation(existingConversationId)"
+            >
+              Ver conversación
+            </button>
+          </div>
+          <div class="cancel-form">
+            <label for="host-guest-message" class="field-label">Mensaje para {{ b.guestName }}</label>
+            <textarea
+              id="host-guest-message"
+              class="reason-input"
+              rows="3"
+              [attr.maxlength]="maxMessageLength + 10"
+              [(ngModel)]="hostMessage"
+              (ngModelChange)="onHostMessageChange()"
+              placeholder="Escribe un mensaje para coordinar dudas de la estancia…"
+              [disabled]="sendingHostMessage"
+            ></textarea>
+            <div class="form-actions" style="justify-content: space-between; align-items: center;">
+              <small class="counter">{{ hostMessage.length }}/{{ maxMessageLength }}</small>
+              <button
+                type="button"
+                class="accept-btn"
+                [disabled]="sendingHostMessage"
+                (click)="sendHostMessage()"
+              >
+                {{ sendingHostMessage ? 'Enviando…' : 'Enviar mensaje' }}
+              </button>
+            </div>
+            <p *ngIf="hostMessageValidationError" class="inline-error" role="alert">{{ hostMessageValidationError }}</p>
+            <p *ngIf="hostMessageServerError" class="inline-error" role="alert">{{ hostMessageServerError }}</p>
+            <p *ngIf="hostMessageSentOk" class="success" role="status" style="margin-top: 0.75rem;">
+              Mensaje enviado al huésped.
+              <a [routerLink]="['/mensajes', existingConversationId || '']" class="back" style="margin-left: 8px;">Abrir conversación</a>
+            </p>
+          </div>
+        </article>
+
         <article class="card cancel-action-card" *ngIf="b.status === 'CONFIRMADA'">
           <ng-container *ngIf="canCancel(b); else arrivalPassed">
             <div class="cancel-header">
@@ -243,6 +293,7 @@ import {
       .btn:disabled { opacity: 0.6; cursor: not-allowed; }
       .btn.danger { background: #b42318; color: #fff; }
       .btn.secondary { background: #f5f5f7; color: #1d1d1f; }
+      .message-guest-card { margin-top: 1.25rem; }
       @media (max-width: 600px) { .status { flex-direction: column; align-items: flex-start; } }
     `,
   ],
@@ -262,7 +313,18 @@ export class HostBookingDetailComponent implements OnInit {
   cancelError = '';
   submittingCancel = false;
 
-  constructor(private readonly route: ActivatedRoute) {}
+  readonly maxMessageLength = MAX_MESSAGE_LENGTH;
+  existingConversationId = '';
+  hostMessage = '';
+  hostMessageValidationError = '';
+  hostMessageServerError = '';
+  hostMessageSentOk = false;
+  sendingHostMessage = false;
+
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly router?: Router,
+  ) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -288,6 +350,7 @@ export class HostBookingDetailComponent implements OnInit {
         this.errorMessage = [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible cargar la reserva.';
       } else {
         this.booking = body as HostBookingDetail;
+        void this.lookupConversation(id, session.token);
       }
     } catch {
       this.errorMessage = 'Error de conexión al cargar la reserva.';
@@ -430,5 +493,76 @@ export class HostBookingDetailComponent implements OnInit {
 
   money(value: number): string {
     return formatQuoteAmount(value);
+  }
+
+  onHostMessageChange(): void {
+    this.hostMessageServerError = '';
+    this.hostMessageSentOk = false;
+    if (this.hostMessageValidationError) {
+      this.hostMessageValidationError = validateMessageText(this.hostMessage) ?? '';
+    }
+  }
+
+  openConversation(conversationId: string): void {
+    void this.router?.navigate(['/mensajes', conversationId]);
+  }
+
+  async sendHostMessage(): Promise<void> {
+    if (!this.booking) return;
+    const validationError = validateMessageText(this.hostMessage);
+    if (validationError) {
+      this.hostMessageValidationError = validationError;
+      return;
+    }
+
+    const session = getActiveSession();
+    if (!session) {
+      this.hostMessageServerError = 'Tu sesión expiró. Inicia sesión nuevamente como anfitrión.';
+      return;
+    }
+
+    this.sendingHostMessage = true;
+    this.hostMessageValidationError = '';
+    this.hostMessageServerError = '';
+    this.hostMessageSentOk = false;
+
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bookingId: this.booking.id, content: this.hostMessage }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        this.hostMessageServerError =
+          [body?.message].flat().filter(Boolean).join(' ') || 'No fue posible enviar el mensaje.';
+        return;
+      }
+      this.existingConversationId = body?.conversation?.id ?? this.existingConversationId;
+      this.hostMessage = '';
+      this.hostMessageSentOk = true;
+    } catch {
+      this.hostMessageServerError = 'Error de conexión al enviar el mensaje.';
+    } finally {
+      this.sendingHostMessage = false;
+    }
+  }
+
+  private async lookupConversation(bookingId: string, token: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/conversations/lookup?bookingId=${encodeURIComponent(bookingId)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as { conversationId?: string | null };
+      if (body?.conversationId) {
+        this.existingConversationId = body.conversationId;
+      }
+    } catch {
+      // Silencioso: no impide mostrar la reserva
+    }
   }
 }
