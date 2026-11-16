@@ -49,8 +49,9 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background: #f5f5f7;
-      color: #1d1d1f;
+      background: var(--apple-bg);
+      color: var(--apple-text-primary);
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
     .cupertino-main {
       flex: 1;
@@ -60,8 +61,9 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       padding: 24px 24px 56px;
     }
     .cupertino-footer {
-      background: #ffffff;
-      border-top: 1px solid rgba(0, 0, 0, 0.07);
+      background: var(--apple-surface);
+      border-top: 1px solid var(--apple-border-subtle);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .footer-inner {
       max-width: 1240px;
@@ -75,10 +77,11 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       justify-content: space-between;
       gap: 16px;
       padding-bottom: 18px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      border-bottom: 1px solid var(--apple-border-subtle);
     }
     .footer-brand {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 10px;
     }
@@ -86,8 +89,8 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       width: 24px;
       height: 24px;
       border-radius: 7px;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-surface);
       font-size: 0.7rem;
       font-weight: 700;
       display: inline-flex;
@@ -98,7 +101,7 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       font-weight: 600;
       font-size: 0.95rem;
       letter-spacing: -0.02em;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .status-pill {
       display: inline-flex;
@@ -106,16 +109,16 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       gap: 6px;
       padding: 4px 10px;
       border-radius: 980px;
-      background: #f5f5f7;
+      background: var(--apple-surface-subtle);
       font-size: 0.72rem;
       font-weight: 500;
-      color: #515154;
+      color: var(--apple-text-secondary);
     }
     .status-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #248a3d;
+      background: var(--apple-green);
     }
     .footer-locale {
       display: flex;
@@ -123,7 +126,7 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       gap: 8px;
       font-size: 0.8rem;
       font-weight: 500;
-      color: #515154;
+      color: var(--apple-text-secondary);
     }
     .divider {
       opacity: 0.4;
@@ -136,7 +139,7 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       justify-content: space-between;
       gap: 12px;
       font-size: 0.75rem;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .footer-bottom p {
       margin: 0;
@@ -147,15 +150,25 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
       gap: 18px;
     }
     .footer-links a {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       text-decoration: none;
     }
     .footer-links a:hover {
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
+    }
+    @media (max-width: 768px) {
+      .cupertino-main {
+        padding: 16px 14px 40px;
+      }
+      .footer-inner {
+        padding: 20px 14px;
+      }
+      .footer-links {
+        gap: 12px;
+      }
     }
   `],
 })
 export class AppComponent {
   title = 'inversiones-lr-web';
 }
-
