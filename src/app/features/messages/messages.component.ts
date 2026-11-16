@@ -25,10 +25,59 @@ import {
           <h1>Mensajes</h1>
           <p class="subtitle">Conversaciones directas dentro de la plataforma sobre tus alojamientos y reservas.</p>
         </div>
-        <span class="unread-badge" *ngIf="unreadConversations > 0" aria-live="polite">
-          {{ unreadConversations }} {{ unreadConversations === 1 ? 'conversación sin leer' : 'conversaciones sin leer' }}
-        </span>
+        <div class="header-right">
+          <button
+            *ngIf="isHost"
+            type="button"
+            class="contact-admin-btn"
+            (click)="toggleAdminComposer()"
+          >
+            Contactar al administrador
+          </button>
+          <span class="unread-badge" *ngIf="unreadConversations > 0" aria-live="polite">
+            {{ unreadConversations }} {{ unreadConversations === 1 ? 'conversación sin leer' : 'conversaciones sin leer' }}
+          </span>
+        </div>
       </header>
+
+      <section class="admin-composer-card" *ngIf="isHost && adminComposerOpen" aria-label="Contactar al administrador">
+        <div class="admin-composer-head">
+          <div>
+            <h2>Escribir a Administración</h2>
+            <p class="subtitle" *ngIf="adminContextListingTitle">
+              Publicación vinculada: <strong>{{ adminContextListingTitle }}</strong>
+            </p>
+            <p class="subtitle" *ngIf="!adminContextListingTitle && adminContextBookingId">
+              Reserva vinculada: <strong>{{ adminContextBookingId }}</strong>
+            </p>
+          </div>
+          <button type="button" class="page-btn" (click)="closeAdminComposer()">Cerrar</button>
+        </div>
+        <form (ngSubmit)="sendToAdmin()" novalidate>
+          <textarea
+            id="admin-draft-msg"
+            name="adminDraft"
+            rows="3"
+            [attr.maxlength]="maxMessageLength + 10"
+            [(ngModel)]="adminDraftMessage"
+            (ngModelChange)="onAdminDraftChange()"
+            placeholder="Cuéntale a la administración tu duda sobre moderación, bloqueos o soporte…"
+            [disabled]="sendingAdmin"
+          ></textarea>
+          <div class="composer-footer">
+            <div class="composer-feedback">
+              <span class="char-count" [class.over]="adminDraftMessage.length > maxMessageLength">
+                {{ adminDraftMessage.length }} / {{ maxMessageLength }}
+              </span>
+              <p class="field-error" *ngIf="adminValidationError" role="alert">{{ adminValidationError }}</p>
+              <p class="field-error" *ngIf="adminServerError" role="alert">{{ adminServerError }}</p>
+            </div>
+            <button type="submit" class="send-btn" [disabled]="sendingAdmin">
+              {{ sendingAdmin ? 'Enviando…' : 'Enviar a Administración' }}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <div class="alert error" *ngIf="inboxError" role="alert">{{ inboxError }}</div>
 
@@ -86,8 +135,16 @@ import {
           <ng-container *ngIf="activeConversation as active">
             <header class="thread-header">
               <div>
-                <h2>{{ active.counterpartName }}</h2>
-                <a [routerLink]="['/listings', active.listingId]" class="thread-listing">{{ active.listingTitle }}</a>
+                <div class="thread-title-row">
+                  <h2>{{ active.counterpartName }}</h2>
+                  <span class="admin-badge" *ngIf="active.channel === 'ANFITRION_ADMIN'">Canal Administración</span>
+                </div>
+                <a *ngIf="active.listingId !== 'ADMIN_GENERAL'" [routerLink]="['/listings', active.listingId]" class="thread-listing">
+                  {{ active.listingTitle }}
+                </a>
+                <span *ngIf="active.listingId === 'ADMIN_GENERAL'" class="thread-listing-static">
+                  {{ active.listingTitle }}
+                </span>
               </div>
               <span class="live-indicator" title="Actualización automática cada pocos segundos">Actualización automática</span>
             </header>
@@ -121,7 +178,7 @@ import {
                 [class.mine]="isMyMessage(msg)"
               >
                 <div class="message-meta">
-                  <strong>{{ msg.senderName }}</strong>
+                  <strong>{{ msg.senderRole === 'ADMINISTRADOR' ? 'Administración' : msg.senderName }}</strong>
                   <time [attr.datetime]="msg.createdAt">{{ formatDate(msg.createdAt) }}</time>
                 </div>
                 <p class="message-body">{{ msg.content }}</p>
@@ -164,6 +221,16 @@ import {
       .page-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 20px; }
       .page-header h1 { margin: 0; font-size: 1.85rem; letter-spacing: -0.02em; }
       .subtitle { margin: 4px 0 0; color: #6e6e73; font-size: 0.94rem; }
+      .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .contact-admin-btn { border: 1px solid #1d1d1f; background: #ffffff; color: #1d1d1f; padding: 8px 16px; border-radius: 980px; font-size: 0.84rem; font-weight: 600; cursor: pointer; }
+      .contact-admin-btn:hover { background: #f5f5f7; }
+      .admin-composer-card { background: #ffffff; border: 1px solid #d2d2d7; border-radius: 18px; padding: 18px 20px; margin-bottom: 20px; }
+      .admin-composer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+      .admin-composer-head h2 { margin: 0; font-size: 1.08rem; }
+      .admin-composer-card textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 12px; font-family: inherit; font-size: 0.94rem; resize: vertical; }
+      .thread-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .admin-badge { background: #eef2ff; color: #3730a3; font-size: 0.72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+      .thread-listing-static { color: #515154; font-size: 0.85rem; font-weight: 600; }
       .unread-badge { background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 0.82rem; padding: 6px 14px; border-radius: 980px; }
       .alert.error { background: #fef2f2; color: #b42318; border: 1px solid #fecaca; padding: 12px 16px; border-radius: 12px; font-weight: 600; margin-bottom: 16px; }
       .inbox-grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -242,6 +309,15 @@ export class MessagesComponent implements OnInit, OnDestroy {
   sendServerError = '';
   sending = false;
 
+  adminComposerOpen = false;
+  adminContextListingId = '';
+  adminContextListingTitle = '';
+  adminContextBookingId = '';
+  adminDraftMessage = '';
+  adminValidationError = '';
+  adminServerError = '';
+  sendingAdmin = false;
+
   private pollTimer?: ReturnType<typeof setInterval>;
 
   @ViewChild('messagesListRef') messagesListRef?: ElementRef<HTMLDivElement>;
@@ -259,10 +335,22 @@ export class MessagesComponent implements OnInit, OnDestroy {
     return getActiveSession()?.role === 'HUESPED';
   }
 
+  get isHost(): boolean {
+    return getActiveSession()?.role === 'ANFITRION';
+  }
+
   ngOnInit(): void {
     const paramId = this.route?.snapshot.paramMap.get('id');
     const queryId = this.route?.snapshot.queryParamMap.get('conversationId');
     this.selectedId = paramId || queryId || '';
+
+    const contactAdmin = this.route?.snapshot.queryParamMap.get('contactAdmin');
+    if (contactAdmin === 'true' && this.isHost) {
+      this.adminComposerOpen = true;
+      this.adminContextListingId = this.route?.snapshot.queryParamMap.get('listingId') ?? '';
+      this.adminContextListingTitle = this.route?.snapshot.queryParamMap.get('listingTitle') ?? '';
+      this.adminContextBookingId = this.route?.snapshot.queryParamMap.get('bookingId') ?? '';
+    }
 
     void this.loadInbox();
     if (this.selectedId) {
@@ -455,6 +543,82 @@ export class MessagesComponent implements OnInit, OnDestroy {
         el.scrollTop = el.scrollHeight;
       }
     });
+  }
+
+  toggleAdminComposer(): void {
+    this.adminComposerOpen = !this.adminComposerOpen;
+    this.adminValidationError = '';
+    this.adminServerError = '';
+  }
+
+  closeAdminComposer(): void {
+    this.adminComposerOpen = false;
+    this.adminValidationError = '';
+    this.adminServerError = '';
+  }
+
+  onAdminDraftChange(): void {
+    this.adminServerError = '';
+    if (this.adminDraftMessage.length > this.maxMessageLength || this.adminValidationError) {
+      this.adminValidationError = validateMessageText(this.adminDraftMessage) ?? '';
+    }
+  }
+
+  async sendToAdmin(): Promise<void> {
+    const validation = validateMessageText(this.adminDraftMessage);
+    if (validation) {
+      this.adminValidationError = validation;
+      return;
+    }
+
+    const session = getActiveSession();
+    if (!session || this.sendingAdmin) return;
+
+    this.sendingAdmin = true;
+    this.adminValidationError = '';
+    this.adminServerError = '';
+
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.token}`,
+        },
+        body: JSON.stringify({
+          channel: 'ANFITRION_ADMIN',
+          ...(this.adminContextListingId ? { listingId: this.adminContextListingId } : {}),
+          ...(this.adminContextBookingId ? { bookingId: this.adminContextBookingId } : {}),
+          content: this.adminDraftMessage,
+        }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = Array.isArray(body?.message) ? body.message[0] : body?.message;
+        this.adminServerError = message || 'No fue posible enviar el mensaje a administración.';
+        return;
+      }
+
+      const detail = body as ConversationDetailResponse;
+      this.adminDraftMessage = '';
+      this.adminContextListingId = '';
+      this.adminContextListingTitle = '';
+      this.adminContextBookingId = '';
+      this.adminComposerOpen = false;
+      this.activeConversation = detail.conversation;
+      this.messages = detail.messages?.data ?? [];
+      this.messagesPage = detail.messages?.page ?? 1;
+      this.messagesTotalPages = detail.messages?.totalPages ?? 1;
+      this.selectedId = detail.conversation.id;
+      void this.router?.navigate(['/mensajes', detail.conversation.id]);
+      this.scrollToBottom();
+      await this.loadInbox(true);
+    } catch {
+      this.adminServerError = 'Error de conexión al enviar el mensaje a administración.';
+    } finally {
+      this.sendingAdmin = false;
+    }
   }
 
   isMyMessage(msg: ConversationMessage): boolean {

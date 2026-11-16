@@ -1,7 +1,8 @@
 export const MESSAGES_POLL_INTERVAL_MS = 5000;
 export const MAX_MESSAGE_LENGTH = 1000;
 
-export type MessageSenderRole = 'HUESPED' | 'ANFITRION';
+export type MessageSenderRole = 'HUESPED' | 'ANFITRION' | 'ADMINISTRADOR';
+export type ConversationChannel = 'HUESPED_ANFITRION' | 'ANFITRION_ADMIN';
 
 export interface LastMessagePreview {
   content: string;
@@ -11,6 +12,8 @@ export interface LastMessagePreview {
 
 export interface ConversationSummary {
   id: string;
+  channel?: ConversationChannel;
+  bookingId?: string;
   listingId: string;
   listingTitle: string;
   listingCity?: string;
