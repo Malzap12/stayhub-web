@@ -344,4 +344,76 @@ describe('ListingDraftFormComponent (HU-010 · Crear publicación y HU-039 · Po
       expect(editComponent.errors.form).toContain('Publicación no encontrada');
     });
   });
+
+  describe('HU-069 · Ubicación del alojamiento en mapa (CA2, CA3, CA6)', () => {
+    it('CA2 y CA3: muestra el mapa al cargar coordenadas, limpia al cambiar dirección y muestra aviso si falla geocodificación', async () => {
+      const mockRoute = {
+        snapshot: {
+          paramMap: { get: (key: string) => (key === 'id' ? 'listing-map-1' : null) },
+        },
+      } as unknown as ActivatedRoute;
+      const editComponent = new ListingDraftFormComponent(mockRoute);
+
+      fetchSpy.and.returnValue(
+        jsonResponse({
+          id: 'listing-map-1',
+          title: 'Loft en El Poblado',
+          location: {
+            department: 'Antioquia',
+            city: 'Medellín',
+            address: 'Carrera 37 # 8A-30',
+            latitude: 6.2088,
+            longitude: -75.5674,
+          },
+        }),
+      );
+
+      await editComponent.loadListingForEdit('listing-map-1');
+      expect(editComponent.hasCoordinates).toBeTrue();
+      expect(editComponent.showManualMap).toBeTrue();
+      expect(editComponent.form.latitude).toBe(6.2088);
+      expect(editComponent.form.longitude).toBe(-75.5674);
+
+      editComponent.onMapCoordinatesChange({ latitude: 6.215, longitude: -75.572 });
+      expect(editComponent.manualCoordinatesPinned).toBeTrue();
+      expect(editComponent.buildPayload()['latitude']).toBe(6.215);
+
+      editComponent.form.address = 'Nueva dirección sin resultado';
+      editComponent.onLocationFieldChange();
+      expect(editComponent.hasCoordinates).toBeFalse();
+      expect(editComponent.buildPayload()['latitude']).toBeUndefined();
+
+      fetchSpy.and.returnValue(
+        jsonResponse({
+          id: 'listing-map-1',
+          title: 'Loft en El Poblado',
+          status: 'BORRADOR',
+          isComplete: false,
+          missingFields: [],
+          createdAt: '',
+          geocodingWarning: 'No fue posible calcular las coordenadas automáticamente.',
+        }),
+      );
+
+      await editComponent.save();
+      expect(editComponent.geocodingWarning).toContain('No fue posible calcular');
+      expect(editComponent.showManualMap).toBeTrue();
+    });
+
+    it('CA6: rechaza coordenadas fuera de rango o incompletas antes de enviar al servidor', async () => {
+      component.form.title = 'Cabaña con coordenadas inválidas';
+      component.form.latitude = 4.65;
+      component.form.longitude = null;
+
+      await component.save();
+      expect(component.errors.coordinates).toContain('latitud como la longitud');
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      component.form.latitude = 95;
+      component.form.longitude = -74;
+      await component.save();
+      expect(component.errors.coordinates).toContain('fuera de rango');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
 });

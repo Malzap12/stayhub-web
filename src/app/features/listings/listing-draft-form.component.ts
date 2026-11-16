@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getActiveSession } from '../../core/guards/auth.guard';
 import { BOOKING_MODE_OPTIONS, BookingMode, DEFAULT_BOOKING_MODE } from '../../shared/models/booking-mode.model';
+import { ListingMapComponent, MapCoordinates } from '../../shared/components/listing-map/listing-map.component';
 
 export type PropertyType = 'CASA' | 'APARTAMENTO' | 'CABANA' | 'FINCA' | 'HABITACION' | 'OTRO';
 export type CancellationPolicyCode = 'FLEXIBLE';
@@ -39,6 +40,8 @@ export interface ListingDraftForm {
   city: string;
   department: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
   propertyType: PropertyType | '';
   maxGuests: number | null;
   pricePerNight: number | null;
@@ -56,9 +59,12 @@ export interface SavedDraft {
   isComplete: boolean;
   missingFields: string[];
   createdAt: string;
+  latitude?: number;
+  longitude?: number;
+  geocodingWarning?: string;
 }
 
-export type DraftField = 'title' | 'maxGuests' | 'pricePerNight' | 'form';
+export type DraftField = 'title' | 'maxGuests' | 'pricePerNight' | 'coordinates' | 'form';
 
 /** HU-010: límites que también valida el API al subir imágenes. */
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -93,6 +99,8 @@ const emptyForm = (): ListingDraftForm => ({
   city: '',
   department: '',
   address: '',
+  latitude: null,
+  longitude: null,
   propertyType: '',
   maxGuests: null,
   pricePerNight: null,
@@ -105,7 +113,7 @@ const emptyForm = (): ListingDraftForm => ({
 @Component({
   selector: 'app-listing-draft-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ListingMapComponent],
   template: `
     <section class="draft-shell">
       <header class="draft-header">
@@ -171,14 +179,25 @@ const emptyForm = (): ListingDraftForm => ({
           <div class="grid-2">
             <div class="field">
               <label for="draft-department">Departamento</label>
-              <select id="draft-department" name="department" [(ngModel)]="form.department">
+              <select
+                id="draft-department"
+                name="department"
+                [(ngModel)]="form.department"
+                (ngModelChange)="onLocationFieldChange()"
+              >
                 <option value="">Selecciona…</option>
                 <option *ngFor="let item of departments" [value]="item">{{ item }}</option>
               </select>
             </div>
             <div class="field">
               <label for="draft-city">Ciudad o municipio</label>
-              <input id="draft-city" name="city" [(ngModel)]="form.city" placeholder="Ej. Guatapé" />
+              <input
+                id="draft-city"
+                name="city"
+                [(ngModel)]="form.city"
+                (ngModelChange)="onLocationFieldChange()"
+                placeholder="Ej. Guatapé"
+              />
             </div>
           </div>
 
@@ -188,8 +207,45 @@ const emptyForm = (): ListingDraftForm => ({
               id="draft-address"
               name="address"
               [(ngModel)]="form.address"
+              (ngModelChange)="onLocationFieldChange()"
               placeholder="Ej. Vereda El Roble, a 2 km del parque principal"
             />
+          </div>
+
+          <div *ngIf="geocodingWarning" class="alert alert-warning geo-warning" role="status">
+            <strong>No fue posible ubicar automáticamente la dirección.</strong>
+            <span>{{ geocodingWarning }}</span>
+          </div>
+
+          <div class="map-editor-block">
+            <div class="map-editor-header">
+              <span class="map-coords-status" *ngIf="hasCoordinates">
+                Punto en el mapa: {{ form.latitude?.toFixed(5) }}, {{ form.longitude?.toFixed(5) }}
+                <small *ngIf="manualCoordinatesPinned">(ajustado manualmente)</small>
+              </span>
+              <span class="map-coords-status muted" *ngIf="!hasCoordinates">
+                Al guardar con departamento, ciudad y dirección se calculará el punto en el mapa, o puedes ubicarlo manualmente.
+              </span>
+              <button
+                type="button"
+                class="link-btn"
+                *ngIf="!hasCoordinates && !showManualMap"
+                (click)="openManualMap()"
+              >
+                Ubicar en el mapa
+              </button>
+            </div>
+
+            <app-listing-map
+              *ngIf="hasCoordinates || showManualMap || geocodingWarning"
+              [latitude]="form.latitude ?? null"
+              [longitude]="form.longitude ?? null"
+              [editable]="true"
+              ariaLabel="Mapa para confirmar o corregir la ubicación del alojamiento"
+              (coordinatesChange)="onMapCoordinatesChange($event)"
+            ></app-listing-map>
+
+            <p *ngIf="errors.coordinates" class="field-error" role="alert">{{ errors.coordinates }}</p>
           </div>
 
           </section>
@@ -779,6 +835,27 @@ const emptyForm = (): ListingDraftForm => ({
       border: 1px solid rgba(178, 107, 0, 0.3);
       color: #8a5300;
     }
+    .map-editor-block {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .map-editor-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+    .map-coords-status {
+      color: var(--apple-ink, #1d1d1f);
+      font-weight: 500;
+    }
+    .map-coords-status.muted {
+      color: var(--apple-text-secondary, #6e6e73);
+      font-weight: 400;
+    }
     .alert-error {
       background: var(--apple-red-bg, #fff2f4);
       border: 1px solid rgba(215, 0, 21, 0.25);
@@ -950,6 +1027,18 @@ export class ListingDraftFormComponent implements OnInit {
   saved: SavedDraft | null = null;
   myListings: SavedDraft[] = [];
   loading = false;
+  geocodingWarning = '';
+  showManualMap = false;
+  manualCoordinatesPinned = false;
+
+  get hasCoordinates(): boolean {
+    return (
+      this.form.latitude != null &&
+      this.form.longitude != null &&
+      Number.isFinite(this.form.latitude) &&
+      Number.isFinite(this.form.longitude)
+    );
+  }
 
   constructor(private readonly route?: ActivatedRoute) {}
 
@@ -971,9 +1060,14 @@ export class ListingDraftFormComponent implements OnInit {
         const data = await response.json();
         this.form.title = data.title ?? '';
         this.form.description = data.description ?? '';
-        this.form.city = data.city ?? '';
-        this.form.department = data.department ?? '';
-        this.form.address = data.address ?? '';
+        this.form.city = data.city ?? data.location?.city ?? '';
+        this.form.department = data.department ?? data.location?.department ?? '';
+        this.form.address = data.address ?? data.location?.address ?? '';
+        this.form.latitude = data.location?.latitude ?? data.latitude ?? null;
+        this.form.longitude = data.location?.longitude ?? data.longitude ?? null;
+        this.showManualMap = this.hasCoordinates;
+        this.manualCoordinatesPinned = false;
+        this.geocodingWarning = '';
         this.form.propertyType = data.propertyType ?? '';
         this.form.maxGuests = data.maxGuests ?? null;
         this.form.pricePerNight = data.pricePerNight ?? null;
@@ -1134,6 +1228,33 @@ export class ListingDraftFormComponent implements OnInit {
       : [...this.form.amenities, value];
   }
 
+  onLocationFieldChange(): void {
+    if (this.form.latitude !== null || this.form.longitude !== null) {
+      this.form.latitude = null;
+      this.form.longitude = null;
+    }
+    this.manualCoordinatesPinned = false;
+    this.geocodingWarning = '';
+    if (this.errors.coordinates) {
+      this.errors = { ...this.errors, coordinates: undefined };
+    }
+  }
+
+  openManualMap(): void {
+    this.showManualMap = true;
+  }
+
+  onMapCoordinatesChange(coords: MapCoordinates): void {
+    this.form.latitude = coords.latitude;
+    this.form.longitude = coords.longitude;
+    this.manualCoordinatesPinned = true;
+    this.showManualMap = true;
+    this.geocodingWarning = '';
+    if (this.errors.coordinates) {
+      this.errors = { ...this.errors, coordinates: undefined };
+    }
+  }
+
   /** CA2 y CA4: solo el título es obligatorio; capacidad y precio deben ser mayores que 0 si se ingresan. */
   validate(): boolean {
     const errors: Partial<Record<DraftField, string>> = {};
@@ -1154,6 +1275,19 @@ export class ListingDraftFormComponent implements OnInit {
       errors.pricePerNight = 'El precio por noche debe ser mayor que 0.';
     }
 
+    const hasLat = this.form.latitude !== null && this.form.latitude !== undefined;
+    const hasLng = this.form.longitude !== null && this.form.longitude !== undefined;
+    if (hasLat !== hasLng) {
+      errors.coordinates = 'Debes indicar tanto la latitud como la longitud, o ninguna de las dos.';
+    } else if (hasLat && hasLng) {
+      const lat = this.form.latitude!;
+      const lng = this.form.longitude!;
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+        errors.coordinates =
+          'Las coordenadas están fuera de rango: la latitud debe estar entre -90 y 90 y la longitud entre -180 y 180.';
+      }
+    }
+
     this.errors = errors;
     return Object.keys(errors).length === 0;
   }
@@ -1172,6 +1306,8 @@ export class ListingDraftFormComponent implements OnInit {
       city: text(this.form.city),
       department: text(this.form.department),
       address: text(this.form.address),
+      latitude: this.form.latitude ?? undefined,
+      longitude: this.form.longitude ?? undefined,
       propertyType: this.form.propertyType || undefined,
       maxGuests: this.form.maxGuests ?? undefined,
       pricePerNight: this.form.pricePerNight ?? undefined,
@@ -1186,6 +1322,7 @@ export class ListingDraftFormComponent implements OnInit {
 
   async save(): Promise<void> {
     this.saved = null;
+    this.geocodingWarning = '';
     if (!this.validate()) {
       return;
     }
@@ -1219,6 +1356,13 @@ export class ListingDraftFormComponent implements OnInit {
       }
 
       this.saved = body as SavedDraft;
+      this.form.latitude = this.saved.latitude ?? null;
+      this.form.longitude = this.saved.longitude ?? null;
+      this.geocodingWarning = this.saved.geocodingWarning ?? '';
+      if (this.hasCoordinates || this.geocodingWarning) {
+        this.showManualMap = true;
+      }
+      this.manualCoordinatesPinned = false;
       this.myListings = [this.saved, ...this.myListings.filter((item) => item.id !== this.saved?.id)];
     } catch {
       this.errors = { form: 'No fue posible conectar con el servidor. Intenta de nuevo.' };
@@ -1252,5 +1396,8 @@ export class ListingDraftFormComponent implements OnInit {
     this.imageError = '';
     this.errors = {};
     this.saved = null;
+    this.geocodingWarning = '';
+    this.showManualMap = false;
+    this.manualCoordinatesPinned = false;
   }
 }

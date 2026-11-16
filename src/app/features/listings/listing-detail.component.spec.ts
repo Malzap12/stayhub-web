@@ -260,4 +260,51 @@ describe('ListingDetailComponent · HU-026 y HU-039 Detalle de publicación y Po
     expect(element.querySelector('.host-avatar')?.textContent?.trim()).toBe('VR');
     expect(element.querySelectorAll('.amenities li svg').length).toBe(2);
   });
+
+  describe('HU-069 · Mapa interactivo en el detalle del alojamiento (CA4, CA5)', () => {
+    it('CA4: muestra el mapa interactivo con marcador y atribución OpenStreetMap cuando tiene coordenadas', async () => {
+      const detailWithCoords: ListingDetail = {
+        ...detail,
+        location: {
+          ...detail.location,
+          latitude: 4.64862,
+          longitude: -74.06285,
+          mapAttribution: '© OpenStreetMap contributors',
+        },
+      };
+
+      spyOn(window, 'fetch').and.returnValues(json(detailWithCoords), json({ reviews: [] }));
+      await render();
+
+      expect(element.querySelector('app-listing-map')).toBeTruthy();
+      expect(element.querySelector('.map-marker')).toBeTruthy();
+      expect(element.querySelector('.zoom-in-btn')).toBeTruthy();
+      expect(element.querySelector('.zoom-out-btn')).toBeTruthy();
+      expect(text()).toContain('OpenStreetMap');
+    });
+
+    it('CA5: conserva la ubicación textual sin errores cuando no hay coordenadas o el mapa falla al cargar', async () => {
+      const fetchSpy = spyOn(window, 'fetch').and.returnValues(json(detail), json({ reviews: [] }));
+      await render();
+
+      expect(element.querySelector('app-listing-map')).toBeNull();
+      expect(text()).toContain('Carrera 4 # 57-20, Chapinero Alto, Bogotá, Cundinamarca, Colombia');
+
+      const detailWithCoords: ListingDetail = {
+        ...detail,
+        location: {
+          ...detail.location,
+          latitude: 4.64862,
+          longitude: -74.06285,
+        },
+      };
+      fetchSpy.and.returnValues(json(detailWithCoords), json({ reviews: [] }));
+      await render();
+      fixture.componentInstance.onMapError();
+      fixture.detectChanges();
+
+      expect(element.querySelector('app-listing-map')).toBeNull();
+      expect(text()).toContain('Carrera 4 # 57-20, Chapinero Alto, Bogotá, Cundinamarca, Colombia');
+    });
+  });
 });
