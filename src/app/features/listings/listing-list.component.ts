@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { getActiveSession } from '../../core/guards/auth.guard';
 import { AMENITY_FILTERS, amenityLabel } from '../../shared/models/amenities.model';
+import { canShowFavoriteControl } from '../../shared/models/favorites.model';
 
 export interface PublicListingItem {
   id: string;
@@ -240,13 +242,26 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
                 <strong class="price-cop">{{ item.priceCop }}</strong>
                 <span>/ noche</span>
               </div>
-              <a
-                class="apple-secondary-btn"
-                [routerLink]="['/listings', item.id]"
-                (click)="$event.stopPropagation()"
-              >
-                Ver detalle
-              </a>
+              <div class="footer-actions">
+                <button
+                  *ngIf="canShowSaveControl"
+                  type="button"
+                  class="save-fav-btn"
+                  [class.saved]="isFavorite(item.id)"
+                  [attr.aria-pressed]="isFavorite(item.id)"
+                  [disabled]="togglingFavoriteId === item.id"
+                  (click)="toggleFavorite(item, $event)"
+                >
+                  {{ isFavorite(item.id) ? '♥ Guardado' : '♡ Guardar' }}
+                </button>
+                <a
+                  class="apple-secondary-btn"
+                  [routerLink]="['/listings', item.id]"
+                  (click)="$event.stopPropagation()"
+                >
+                  Ver detalle
+                </a>
+              </div>
             </div>
           </div>
         </article>
@@ -664,6 +679,34 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
     .apple-secondary-btn:hover {
       background: #000000;
     }
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .save-fav-btn {
+      padding: 8px 13px;
+      border-radius: 980px;
+      border: 1px solid #d2d2d7;
+      background: #ffffff;
+      color: #1d1d1f;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .save-fav-btn:hover:not(:disabled) {
+      border-color: #1d1d1f;
+    }
+    .save-fav-btn.saved {
+      background: #fff1f2;
+      border-color: #f43f5e;
+      color: #be123c;
+    }
+    .save-fav-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
   `],
 })
 export class ListingListComponent implements OnInit {
@@ -676,6 +719,8 @@ export class ListingListComponent implements OnInit {
   searched = false;
   formError = '';
   errorMessage = '';
+  favoriteIds = new Set<string>();
+  togglingFavoriteId = '';
 
   private readonly priceFormatter = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -686,7 +731,62 @@ export class ListingListComponent implements OnInit {
   constructor(private readonly router?: Router) {}
 
   ngOnInit(): void {
+    void this.loadFavoriteIds();
     void this.search();
+  }
+
+  get canShowSaveControl(): boolean {
+    return canShowFavoriteControl(getActiveSession()?.role);
+  }
+
+  isFavorite(listingId: string): boolean {
+    return this.favoriteIds.has(listingId);
+  }
+
+  async loadFavoriteIds(): Promise<void> {
+    const session = getActiveSession();
+    if (!session || session.role !== 'HUESPED') {
+      this.favoriteIds.clear();
+      return;
+    }
+    try {
+      const response = await fetch('/api/favorites/ids', {
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as { listingIds?: string[] };
+      this.favoriteIds = new Set(body.listingIds ?? []);
+    } catch {
+      // Sin bloqueo de catálogo si falla la carga de favoritos
+    }
+  }
+
+  async toggleFavorite(item: PublicListingItem, event: Event): Promise<void> {
+    event.stopPropagation();
+    const session = getActiveSession();
+    if (!session) {
+      void this.router?.navigate(['/auth/login'], { queryParams: { returnUrl: `/listings/${item.id}` } });
+      return;
+    }
+    if (session.role !== 'HUESPED' || this.togglingFavoriteId) return;
+
+    const currentlySaved = this.isFavorite(item.id);
+    this.togglingFavoriteId = item.id;
+    try {
+      const response = await fetch(`/api/favorites/${encodeURIComponent(item.id)}`, {
+        method: currentlySaved ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      if (response.ok) {
+        if (currentlySaved) {
+          this.favoriteIds.delete(item.id);
+        } else {
+          this.favoriteIds.add(item.id);
+        }
+      }
+    } finally {
+      this.togglingFavoriteId = '';
+    }
   }
 
   /** HU-026: abre el detalle completo del resultado. */

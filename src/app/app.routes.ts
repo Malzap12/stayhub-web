@@ -18,6 +18,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'mis-favoritos',
+    canActivate: [roleGuard(['HUESPED'])],
+    loadComponent: () =>
+      import('./features/favorites/my-favorites.component').then(
+        (m) => m.MyFavoritesComponent,
+      ),
+  },
+  {
     path: 'mis-reservas',
     canActivate: [roleGuard(['HUESPED'])],
     loadComponent: () =>
