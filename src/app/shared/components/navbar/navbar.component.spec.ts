@@ -1,22 +1,26 @@
-import { NavbarComponent } from './navbar.component';
+import { NavbarComponent, THEME_STORAGE_KEY } from './navbar.component';
 import {
   clearActiveSession,
   SESSION_STORAGE_KEY,
 } from '../../../core/guards/auth.guard';
 import { Router } from '@angular/router';
 
-describe('NavbarComponent (HU-003 · MA-38)', () => {
+describe('NavbarComponent (HU-003 · MA-38 · HU-073)', () => {
   let component: NavbarComponent;
   let mockRouter: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
     clearActiveSession();
+    localStorage.removeItem(THEME_STORAGE_KEY);
+    document.documentElement.removeAttribute('data-theme');
     mockRouter = jasmine.createSpyObj<Router>('Router', ['navigate']);
     component = new NavbarComponent(mockRouter);
   });
 
   afterEach(() => {
     clearActiveSession();
+    localStorage.removeItem(THEME_STORAGE_KEY);
+    document.documentElement.removeAttribute('data-theme');
   });
 
   it('CA1: should show only public exploration when unauthenticated', () => {
@@ -109,9 +113,39 @@ describe('NavbarComponent (HU-003 · MA-38)', () => {
       }),
     );
 
+    component.isMobileMenuOpen = true;
     component.logout();
 
     expect(component.session).toBeNull();
+    expect(component.isMobileMenuOpen).toBeFalse();
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/auth/login']);
+  });
+
+  it('HU-073 CA1: alterna y cierra el menú de navegación móvil correctamente', () => {
+    expect(component.isMobileMenuOpen).toBeFalse();
+    component.toggleMobileMenu();
+    expect(component.isMobileMenuOpen).toBeTrue();
+    component.closeMobileMenu();
+    expect(component.isMobileMenuOpen).toBeFalse();
+  });
+
+  it('HU-073 CA2: alterna entre modo claro y oscuro y persiste en localStorage y data-theme', () => {
+    localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    const themedNav = new NavbarComponent(mockRouter);
+
+    expect(themedNav.theme).toBe('light');
+    expect(themedNav.isDarkMode).toBeFalse();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+    themedNav.toggleTheme();
+    expect(themedNav.theme).toBe('dark');
+    expect(themedNav.isDarkMode).toBeTrue();
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+    themedNav.toggleTheme();
+    expect(themedNav.theme).toBe('light');
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 });
