@@ -480,18 +480,18 @@ const emptyForm = (): ListingDraftForm => ({
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     h1 {
       font-size: 1.9rem;
       font-weight: 600;
       letter-spacing: -0.03em;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
       margin: 4px 0 6px;
     }
     .subtitle,
     .muted {
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
       font-size: 0.92rem;
     }
     .back-link {
@@ -508,8 +508,8 @@ const emptyForm = (): ListingDraftForm => ({
     }
     .form-card,
     .list-card {
-      background: var(--apple-surface, #ffffff);
-      border: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 20px;
       box-shadow: var(--apple-shadow, 0 12px 32px rgba(0, 0, 0, 0.06));
       padding: 24px;
@@ -525,7 +525,7 @@ const emptyForm = (): ListingDraftForm => ({
       flex-direction: column;
       gap: 16px;
       padding: 26px 0;
-      border-bottom: 1px solid #ebebeb;
+      border-bottom: 1px solid var(--apple-border-subtle);
     }
     .section-head {
       display: flex;
@@ -536,19 +536,19 @@ const emptyForm = (): ListingDraftForm => ({
       margin: 0 0 2px;
       font-size: 1.12rem;
       letter-spacing: -0.01em;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .section-head p {
       margin: 0;
       font-size: 0.86rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .step {
       width: 30px;
       height: 30px;
       border-radius: 50%;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       display: grid;
       place-items: center;
       font-size: 0.82rem;
@@ -573,9 +573,9 @@ const emptyForm = (): ListingDraftForm => ({
       flex-wrap: wrap;
       margin: 0 -28px;
       padding: 16px 28px;
-      background: rgba(255, 255, 255, 0.96);
+      background: var(--apple-surface-glass);
       backdrop-filter: blur(8px);
-      border-top: 1px solid #ebebeb;
+      border-top: 1px solid var(--apple-border-subtle);
       border-radius: 0 0 20px 20px;
     }
     .side {
@@ -588,14 +588,14 @@ const emptyForm = (): ListingDraftForm => ({
     .progress {
       height: 8px;
       border-radius: 980px;
-      background: #f2f2f7;
+      background: var(--apple-fill);
       overflow: hidden;
       margin: 10px 0 14px;
     }
     .progress span {
       display: block;
       height: 100%;
-      background: #1d1d1f;
+      background: var(--apple-ink);
       border-radius: 980px;
       transition: width 0.2s ease;
     }
@@ -607,7 +607,7 @@ const emptyForm = (): ListingDraftForm => ({
       flex-direction: column;
       gap: 8px;
       font-size: 0.88rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .checklist li {
       display: flex;
@@ -615,22 +615,61 @@ const emptyForm = (): ListingDraftForm => ({
       gap: 10px;
     }
     .checklist li.done {
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       font-weight: 600;
     }
     .check {
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      border: 1.5px solid #d2d2d7;
+      border: 1.5px solid var(--apple-border);
       display: grid;
       place-items: center;
       font-size: 0.72rem;
       flex-shrink: 0;
     }
+    .mode-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .mode-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--apple-border);
+      border-radius: 12px;
+      background: var(--apple-surface);
+      cursor: pointer;
+    }
+    .mode-option.selected {
+      border-color: var(--apple-border-strong);
+      background: var(--apple-fill);
+    }
+    .mode-option input[type='radio'] {
+      width: auto;
+      height: auto;
+      margin-top: 3px;
+      flex-shrink: 0;
+      accent-color: var(--apple-ink);
+    }
+    .mode-option span {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .mode-option strong {
+      font-size: 0.9rem;
+      color: var(--apple-text-primary);
+    }
+    .mode-option small {
+      font-size: 0.8rem;
+      color: var(--apple-text-secondary);
+    }
     .checklist li.done .check {
-      background: #16a34a;
-      border-color: #16a34a;
+      background: #15803d;
+      border-color: var(--apple-success-fg);
       color: #ffffff;
     }
     .tip {
@@ -661,10 +700,10 @@ const emptyForm = (): ListingDraftForm => ({
     legend {
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
     }
     .required {
-      color: var(--apple-red, #d70015);
+      color: var(--apple-red);
     }
     input,
     select,
@@ -673,25 +712,25 @@ const emptyForm = (): ListingDraftForm => ({
       padding: 11px 12px;
       font: inherit;
       font-size: 0.92rem;
-      border: 1px solid var(--apple-border, #d2d2d7);
+      border: 1px solid var(--apple-border);
       border-radius: 12px;
-      background: #ffffff;
-      color: var(--apple-text-primary, #1d1d1f);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
     }
     input:focus,
     select:focus,
     textarea:focus {
-      border-color: var(--apple-ink, #1d1d1f);
+      border-color: var(--apple-ink);
       outline: none;
     }
     .input-error {
-      border-color: var(--apple-red, #d70015);
-      background: var(--apple-red-bg, #fff2f4);
+      border-color: var(--apple-red);
+      background: var(--apple-red-bg);
     }
     .field-error {
       font-size: 0.78rem;
       font-weight: 500;
-      color: var(--apple-red, #d70015);
+      color: var(--apple-red);
     }
     .chips {
       display: flex;
@@ -703,14 +742,14 @@ const emptyForm = (): ListingDraftForm => ({
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      border: 1px solid var(--apple-border, #d2d2d7);
+      border: 1px solid var(--apple-border);
       border-radius: 999px;
       font-weight: 500;
       cursor: pointer;
     }
     .chip.active {
-      border-color: var(--apple-ink, #1d1d1f);
-      background: #f5f5f7;
+      border-color: var(--apple-ink);
+      background: var(--apple-fill);
     }
     .chip input {
       width: auto;
@@ -723,17 +762,17 @@ const emptyForm = (): ListingDraftForm => ({
       align-items: center;
       gap: 4px;
       padding: 22px 16px;
-      border: 1.5px dashed var(--apple-border, #d2d2d7);
+      border: 1.5px dashed var(--apple-border);
       border-radius: 14px;
-      background: #fafafa;
+      background: var(--apple-fill);
       text-align: center;
       cursor: pointer;
       transition: border-color 0.15s ease, background 0.15s ease;
     }
     .dropzone:hover,
     .dropzone.dragging {
-      border-color: var(--apple-ink, #1d1d1f);
-      background: #f5f5f7;
+      border-color: var(--apple-ink);
+      background: var(--apple-fill);
     }
     .dropzone.busy {
       cursor: progress;
@@ -752,7 +791,7 @@ const emptyForm = (): ListingDraftForm => ({
     }
     .dropzone-hint {
       font-size: 0.78rem;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .previews {
       list-style: none;
@@ -767,7 +806,7 @@ const emptyForm = (): ListingDraftForm => ({
       aspect-ratio: 4 / 3;
       border-radius: 12px;
       overflow: hidden;
-      background: #e5e5ea;
+      background: var(--apple-fill-strong);
     }
     .previews img {
       width: 100%;
@@ -781,7 +820,7 @@ const emptyForm = (): ListingDraftForm => ({
       left: 6px;
       padding: 2px 8px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.92);
+      background: var(--apple-surface-glass);
       font-size: 0.68rem;
       font-weight: 700;
     }
@@ -801,14 +840,14 @@ const emptyForm = (): ListingDraftForm => ({
     .sub-label {
       margin-top: 6px;
       font-weight: 500;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .btn-primary {
       padding: 13px 28px;
       border: none;
       border-radius: 14px;
-      background: var(--apple-ink, #1d1d1f);
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
@@ -826,14 +865,14 @@ const emptyForm = (): ListingDraftForm => ({
       font-size: 0.88rem;
     }
     .alert-success {
-      background: var(--apple-green-bg, #f2fbf5);
-      border: 1px solid rgba(36, 138, 61, 0.25);
-      color: var(--apple-green, #248a3d);
+      background: var(--apple-green-bg);
+      border: 1px solid var(--apple-success-border);
+      color: var(--apple-green);
     }
     .alert-warning {
-      background: #fff8e6;
-      border: 1px solid rgba(178, 107, 0, 0.3);
-      color: #8a5300;
+      background: var(--apple-warning-bg);
+      border: 1px solid var(--apple-warning-border);
+      color: var(--apple-warning-fg);
     }
     .map-editor-block {
       display: flex;
@@ -849,17 +888,17 @@ const emptyForm = (): ListingDraftForm => ({
       font-size: 0.85rem;
     }
     .map-coords-status {
-      color: var(--apple-ink, #1d1d1f);
+      color: var(--apple-ink);
       font-weight: 500;
     }
     .map-coords-status.muted {
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
       font-weight: 400;
     }
     .alert-error {
-      background: var(--apple-red-bg, #fff2f4);
-      border: 1px solid rgba(215, 0, 21, 0.25);
-      color: var(--apple-red, #d70015);
+      background: var(--apple-red-bg);
+      border: 1px solid var(--apple-danger-border);
+      color: var(--apple-red);
     }
     .link-btn {
       align-self: flex-start;
@@ -885,7 +924,7 @@ const emptyForm = (): ListingDraftForm => ({
       gap: 10px;
     }
     .list-card li {
-      border: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 12px;
       padding: 10px 12px;
       display: flex;
@@ -914,17 +953,17 @@ const emptyForm = (): ListingDraftForm => ({
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 999px;
-      background: #f5f5f7;
-      color: var(--apple-text-secondary, #6e6e73);
+      background: var(--apple-fill);
+      color: var(--apple-text-secondary);
       white-space: nowrap;
     }
     .badge-warning {
-      background: #fff8e6;
-      color: #8a5300;
+      background: var(--apple-warning-bg);
+      color: var(--apple-warning-fg);
     }
     .badge-success {
-      background: var(--apple-green-bg, #f2fbf5);
-      color: var(--apple-green, #248a3d);
+      background: var(--apple-green-bg);
+      color: var(--apple-green);
     }
     @media (max-width: 860px) {
       .workspace {

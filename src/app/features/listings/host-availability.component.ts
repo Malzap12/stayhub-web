@@ -271,19 +271,19 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       border-radius: 980px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #fee2e2;
-      color: #991b1b;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
     }
     .host-shell {
       max-width: 1120px;
       margin: 0 auto;
       padding: 36px 24px 72px;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .host-header {
       margin-bottom: 24px;
       padding-bottom: 18px;
-      border-bottom: 1px solid #e5e5ea;
+      border-bottom: 1px solid var(--apple-border-subtle);
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
@@ -293,8 +293,8 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     .new-listing-btn {
       padding: 10px 16px;
       border-radius: 12px;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-weight: 600;
       font-size: 0.9rem;
       text-decoration: none;
@@ -305,7 +305,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     h1 {
       margin: 6px 0 8px;
@@ -314,7 +314,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     }
     .subtitle {
       margin: 0;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.92rem;
     }
     .alert-success,
@@ -326,14 +326,14 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       font-weight: 600;
     }
     .alert-success {
-      background: #e8f8ee;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
+      border: 1px solid var(--apple-success-border);
     }
     .alert-error {
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
     }
     .workspace-grid {
       display: grid;
@@ -342,8 +342,8 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     }
     .form-card,
     .periods-card {
-      background: #ffffff;
-      border: 1px solid #e5e5ea;
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 20px;
       padding: 24px;
     }
@@ -360,14 +360,14 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     .field label {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
     }
     .field select,
     .field input {
       height: 40px;
       padding: 0 12px;
       border-radius: 10px;
-      border: 1px solid #d2d2d7;
+      border: 1px solid var(--apple-border);
       font-size: 0.88rem;
       font-family: inherit;
     }
@@ -382,8 +382,8 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       padding: 11px 18px;
       border-radius: 980px;
       border: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-weight: 600;
       font-size: 0.84rem;
       cursor: pointer;
@@ -401,19 +401,19 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       justify-content: space-between;
       align-items: center;
       padding: 12px 14px;
-      background: #f5f5f7;
+      background: var(--apple-fill);
       border-radius: 12px;
       font-size: 0.86rem;
     }
     .period-meta {
       display: block;
       font-size: 0.72rem;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       margin-top: 2px;
     }
     .period-item.conflict {
-      background: #fef2f2;
-      outline: 2px solid #fca5a5;
+      background: var(--apple-danger-bg);
+      outline: 2px solid var(--apple-danger-border);
     }
     .btn-primary:disabled {
       opacity: 0.6;
@@ -424,8 +424,8 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       border-radius: 980px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #e8f8ee;
-      color: #166534;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
     }
     .block-card > .period-meta {
       margin: 0 0 14px;
@@ -434,11 +434,11 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     .block-subtitle {
       margin: 18px 0 10px;
       font-size: 0.92rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .blocked-item {
       gap: 12px;
-      background: #fef2f2;
+      background: var(--apple-danger-bg);
     }
     .blocked-item strong {
       overflow-wrap: anywhere;
@@ -448,8 +448,8 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       border-radius: 980px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #fef2f2;
-      color: #991b1b;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
     }
     
     .period-row {
@@ -478,23 +478,23 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     }
     .btn-outline {
       background: transparent;
-      border: 1px solid #d1d1d6;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      color: var(--apple-text-primary);
     }
     .btn-outline:hover {
-      background: #f5f5f7;
+      background: var(--apple-fill);
     }
     .btn-danger {
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fca5a5;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
     }
     .btn-danger:hover {
-      background: #fecaca;
+      background: var(--apple-danger-bg);
     }
     .edit-period-box {
       width: 100%;
-      background: #f5f5f7;
+      background: var(--apple-fill);
       padding: 12px;
       border-radius: 10px;
     }
@@ -506,7 +506,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
     .affected-bookings-box {
       margin-top: 8px;
       padding-top: 8px;
-      border-top: 1px solid rgba(153, 27, 27, 0.2);
+      border-top: 1px solid var(--apple-danger-border);
     }
     .affected-title {
       font-weight: 700;
@@ -521,7 +521,7 @@ export function nightsInInterval(checkIn: string, checkOut: string): string[] {
       margin: 0;
     }
     .empty-msg {
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       font-size: 0.86rem;
       margin: 0;
     }

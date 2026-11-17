@@ -294,19 +294,19 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       margin-bottom: 8px;
     }
     .catalog-hero h1 {
       font-size: clamp(1.85rem, 3.2vw, 2.6rem);
       font-weight: 800;
       letter-spacing: -0.04em;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       margin: 0;
       line-height: 1.08;
     }
     .hero-sub {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       max-width: 440px;
       margin: 0;
       font-size: 0.94rem;
@@ -318,8 +318,8 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       gap: 12px;
       align-items: end;
       padding: 18px;
-      background: #ffffff;
-      border: 1px solid #e5e5ea;
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 20px;
     }
     @media (max-width: 860px) {
@@ -342,26 +342,26 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .search-form input {
       height: 40px;
       padding: 0 12px;
       border-radius: 12px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-size: 0.88rem;
       width: 100%;
       box-sizing: border-box;
     }
     .search-form input:focus {
       outline: none;
-      border-color: #1d1d1f;
+      border-color: var(--apple-border-strong);
     }
     .search-form input.input-error {
-      border-color: #d70015;
-      background: #fff2f4;
+      border-color: var(--apple-danger-fg);
+      background: var(--apple-danger-bg);
     }
     .search-actions {
       display: flex;
@@ -372,8 +372,8 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       padding: 0 20px;
       border-radius: 980px;
       border: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.86rem;
       font-weight: 600;
       cursor: pointer;
@@ -387,9 +387,9 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       height: 40px;
       padding: 0 14px;
       border-radius: 980px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
@@ -403,7 +403,7 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       margin: 4px 0 0;
       padding: 14px 0 0;
       border: none;
-      border-top: 1px solid #f0f0f2;
+      border-top: 1px solid var(--apple-border-subtle);
       min-width: 0;
     }
     .sr-only {
@@ -418,9 +418,9 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       height: 40px;
       padding: 0 10px;
       border-radius: 12px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-size: 0.88rem;
       width: 100%;
     }
@@ -436,7 +436,7 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       margin-right: 4px;
     }
     .search-form .amenity-chip {
@@ -445,25 +445,25 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       gap: 6px;
       padding: 6px 12px;
       border-radius: 980px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
       font-size: 0.8rem;
       font-weight: 600;
       letter-spacing: normal;
       text-transform: none;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       cursor: pointer;
     }
     .search-form .amenity-chip input {
       width: auto;
       height: auto;
       margin: 0;
-      accent-color: #1d1d1f;
+      accent-color: var(--apple-ink);
     }
     .search-form .amenity-chip.selected {
-      background: #1d1d1f;
-      border-color: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      border-color: var(--apple-border-strong);
+      color: var(--apple-on-ink);
     }
     .clear-filters {
       justify-self: start;
@@ -487,8 +487,8 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
     .amenity-list li {
       padding: 3px 9px;
       border-radius: 980px;
-      background: #f2f2f7;
-      color: #3a3a3c;
+      background: var(--apple-fill);
+      color: var(--apple-text-body);
       font-size: 0.72rem;
       font-weight: 600;
     }
@@ -500,39 +500,39 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       margin: 0;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #d70015;
+      color: var(--apple-danger-fg);
     }
     .results-summary {
       margin: 0 0 18px;
       font-size: 0.9rem;
       font-weight: 600;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
     }
     .status-msg {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .alert-error {
       padding: 13px 16px;
       margin-bottom: 18px;
       border-radius: 12px;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
       font-size: 0.88rem;
       font-weight: 600;
     }
     .empty-state {
       text-align: center;
       padding: 48px 24px;
-      background: #ffffff;
-      border: 1px dashed #d2d2d7;
+      background: var(--apple-surface);
+      border: 1px dashed var(--apple-border);
       border-radius: 20px;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .empty-state h2 {
       margin: 0 0 8px;
       font-size: 1.15rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .empty-state p {
       margin: 0;
@@ -544,10 +544,10 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       gap: 28px;
     }
     .listing-card {
-      background: #ffffff;
+      background: var(--apple-surface);
       border-radius: 22px;
       overflow: hidden;
-      border: 1px solid rgba(0, 0, 0, 0.07);
+      border: 1px solid var(--apple-border-subtle);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
       display: flex;
       flex-direction: column;
@@ -559,16 +559,16 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
     .listing-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 20px 44px rgba(0, 0, 0, 0.07);
-      border-color: rgba(29, 29, 31, 0.2);
+      border-color: var(--apple-border-subtle);
     }
     .listing-card.selected {
-      border-color: #1d1d1f;
+      border-color: var(--apple-border-strong);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.09);
     }
     .card-media {
       position: relative;
       aspect-ratio: 16 / 10;
-      background: #e5e5ea;
+      background: var(--apple-fill-strong);
       overflow: hidden;
     }
     .card-media img {
@@ -586,9 +586,9 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       position: absolute;
       top: 14px;
       left: 14px;
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--apple-surface-glass);
       backdrop-filter: blur(10px);
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.04em;
@@ -620,22 +620,22 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       gap: 6px;
       font-size: 0.76rem;
       font-weight: 600;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     .dot {
-      color: #d2d2d7;
+      color: var(--apple-text-tertiary);
     }
     .listing-card h2 {
       font-size: 1.15rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       margin: 0;
     }
     .listing-desc {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.86rem;
       line-height: 1.5;
       margin: 0;
@@ -647,7 +647,7 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       align-items: center;
       margin-top: 12px;
       padding-top: 14px;
-      border-top: 1px solid #f5f5f7;
+      border-top: 1px solid var(--apple-border-subtle);
     }
     .price-block {
       display: flex;
@@ -655,19 +655,19 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       gap: 5px;
     }
     .price-cop {
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       font-size: 1.05rem;
       font-weight: 700;
       letter-spacing: -0.02em;
     }
     .price-block span {
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       font-size: 0.75rem;
     }
     .apple-secondary-btn {
       text-decoration: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       border: none;
       padding: 8px 15px;
       border-radius: 980px;
@@ -677,7 +677,7 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
       transition: background 0.16s ease;
     }
     .apple-secondary-btn:hover {
-      background: #000000;
+      background: var(--apple-ink-hover);
     }
     .footer-actions {
       display: flex;
@@ -687,21 +687,21 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
     .save-fav-btn {
       padding: 8px 13px;
       border-radius: 980px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-size: 0.76rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.16s ease;
     }
     .save-fav-btn:hover:not(:disabled) {
-      border-color: #1d1d1f;
+      border-color: var(--apple-border-strong);
     }
     .save-fav-btn.saved {
-      background: #fff1f2;
-      border-color: #f43f5e;
-      color: #be123c;
+      background: var(--apple-danger-bg);
+      border-color: var(--apple-danger-fg);
+      color: var(--apple-danger-fg);
     }
     .save-fav-btn:disabled {
       opacity: 0.55;

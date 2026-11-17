@@ -176,7 +176,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .picker {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      border: 1px solid #b0b0b0;
+      border: 1px solid var(--apple-border);
       border-radius: 10px;
       overflow: hidden;
     }
@@ -187,18 +187,18 @@ export function formatQuoteAmount(value: number, negative = false): string {
       padding: 10px 12px 8px;
       font-size: 0.64rem;
       font-weight: 800;
-      color: #222222;
+      color: var(--apple-text-primary);
       text-transform: uppercase;
       letter-spacing: 0.04em;
       min-width: 0;
     }
     .cell + .cell {
-      border-left: 1px solid #b0b0b0;
+      border-left: 1px solid var(--apple-border);
     }
     .cell.full {
       grid-column: 1 / -1;
       border-left: none;
-      border-top: 1px solid #b0b0b0;
+      border-top: 1px solid var(--apple-border);
     }
     .cell:focus-within {
       box-shadow: inset 0 0 0 2px #222222;
@@ -211,7 +211,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
       font: inherit;
       font-size: 0.88rem;
       font-weight: 400;
-      color: #222222;
+      color: var(--apple-text-primary);
       text-transform: none;
       letter-spacing: normal;
       background: transparent;
@@ -220,7 +220,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
       outline: none;
     }
     fieldset {
-      border: 1px solid #ebebeb;
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 10px;
       margin: 0;
       padding: 10px 12px;
@@ -231,7 +231,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
     legend {
       font-size: 0.72rem;
       font-weight: 800;
-      color: #222222;
+      color: var(--apple-text-primary);
       text-transform: uppercase;
       letter-spacing: 0.04em;
       padding: 0 4px;
@@ -243,7 +243,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
       gap: 8px;
       font-size: 0.88rem;
       font-weight: 500;
-      color: #222222;
+      color: var(--apple-text-primary);
       cursor: pointer;
     }
     .extra span {
@@ -251,14 +251,14 @@ export function formatQuoteAmount(value: number, negative = false): string {
     }
     .extra input {
       width: auto;
-      accent-color: #222222;
+      accent-color: var(--apple-ink);
     }
     button {
       height: 48px;
       border: none;
       border-radius: 10px;
-      background: #222222;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font: inherit;
       font-size: 0.98rem;
       font-weight: 600;
@@ -270,15 +270,17 @@ export function formatQuoteAmount(value: number, negative = false): string {
     }
     .quote-button, .book-button {
       background: linear-gradient(to right, #e61e4d 0%, #e31c5f 50%, #d70466 100%);
+      /* Texto fijo: el degradado de marca es igual en ambos temas */
+      color: #ffffff;
     }
     .role-note {
       padding: 12px 14px;
       border-radius: 10px;
-      background: #f7f7f7;
-      border: 1px solid #ebebeb;
+      background: var(--apple-fill);
+      border: 1px solid var(--apple-border-subtle);
       font-size: 0.86rem;
       line-height: 1.45;
-      color: #222222;
+      color: var(--apple-text-primary);
     }
     .role-note p {
       margin: 0;
@@ -287,22 +289,22 @@ export function formatQuoteAmount(value: number, negative = false): string {
       display: inline-block;
       margin-top: 8px;
       font-weight: 600;
-      color: #222222;
+      color: var(--apple-text-primary);
     }
     .charge-note {
       margin: -2px 0 0;
       text-align: center;
       font-size: 0.82rem;
-      color: #6a6a6a;
+      color: var(--apple-text-secondary);
     }
     .error {
       padding: 10px 12px;
       border-radius: 10px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      border: 1px solid var(--apple-danger-border);
       font-size: 0.82rem;
       font-weight: 600;
-      color: #b91c1c;
+      color: var(--apple-danger-fg);
     }
     .error p {
       margin: 0;
@@ -310,12 +312,12 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .error .nights {
       margin-top: 4px;
       font-weight: 500;
-      color: #7f1d1d;
+      color: var(--apple-danger-fg);
     }
     .hint {
       margin: -4px 0 0;
       font-size: 0.76rem;
-      color: #6a6a6a;
+      color: var(--apple-text-secondary);
     }
     .breakdown {
       margin: 4px 0 0;
@@ -328,12 +330,12 @@ export function formatQuoteAmount(value: number, negative = false): string {
       font-size: 0.94rem;
     }
     .breakdown dt {
-      color: #222222;
+      color: var(--apple-text-primary);
       text-decoration: underline;
       text-underline-offset: 2px;
     }
     .breakdown dd {
-      color: #222222;
+      color: var(--apple-text-primary);
     }
     .breakdown dd {
       margin: 0;
@@ -341,12 +343,12 @@ export function formatQuoteAmount(value: number, negative = false): string {
       white-space: nowrap;
     }
     .breakdown .discount.applied dd {
-      color: #166534;
+      color: var(--apple-success-fg);
     }
     .breakdown .total {
       margin-top: 8px;
       padding-top: 16px;
-      border-top: 1px solid #dddddd;
+      border-top: 1px solid var(--apple-border);
       font-size: 1rem;
     }
     .breakdown .total dt {
@@ -354,7 +356,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
     }
     .breakdown .total dt, .breakdown .total dd {
       font-weight: 800;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .instant-booking {
       margin-top: 10px;
@@ -378,19 +380,19 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .payment-step {
       margin-top: 8px;
       padding-top: 12px;
-      border-top: 1px dashed #d2d2d7;
+      border-top: 1px dashed var(--apple-border);
     }
     .payment-step h4 {
       margin: 0 0 8px;
       font-size: 0.88rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .requested-card {
       margin-top: 12px;
       padding: 16px;
       border-radius: 12px;
-      background: #fff8eb;
-      border: 1px solid #fde2b3;
+      background: var(--apple-warning-bg);
+      border: 1px solid var(--apple-warning-border);
       font-size: 0.88rem;
       line-height: 1.45;
     }
@@ -398,8 +400,8 @@ export function formatQuoteAmount(value: number, negative = false): string {
       display: inline-block;
       padding: 3px 10px;
       border-radius: 980px;
-      background: #fff1d6;
-      color: #8a5300;
+      background: var(--apple-warning-bg);
+      color: var(--apple-warning-fg);
       font-size: 0.75rem;
       font-weight: 700;
     }
@@ -414,14 +416,14 @@ export function formatQuoteAmount(value: number, negative = false): string {
       display: inline-block;
       margin-top: 6px;
       font-weight: 600;
-      color: #222222;
+      color: var(--apple-text-primary);
     }
     .confirmed-card {
       margin-top: 12px;
       padding: 16px;
       border-radius: 12px;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
+      background: var(--apple-success-bg);
+      border: 1px solid var(--apple-success-border);
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -429,7 +431,7 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .confirmed-header h3 {
       margin: 6px 0 2px;
       font-size: 1rem;
-      color: #166534;
+      color: var(--apple-success-fg);
     }
     .badge {
       display: inline-block;
@@ -444,18 +446,18 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .code {
       margin: 4px 0 0;
       font-size: 0.9rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .code strong {
       font-family: ui-monospace, monospace;
-      color: #0f172a;
+      color: var(--apple-text-primary);
     }
     .confirmed-breakdown {
       margin-top: 6px;
       padding-top: 8px;
-      border-top: 1px solid #bbf7d0;
+      border-top: 1px solid var(--apple-success-border);
       font-size: 0.82rem;
-      color: #374151;
+      color: var(--apple-accent);
     }
     .confirmed-breakdown h4 {
       margin: 0 0 6px;
@@ -469,9 +471,9 @@ export function formatQuoteAmount(value: number, negative = false): string {
     .total-confirmed {
       margin-top: 4px;
       padding-top: 4px;
-      border-top: 1px solid #cbd5e1;
+      border-top: 1px solid var(--apple-border);
       font-weight: 700;
-      color: #111827;
+      color: var(--apple-accent);
     }
   `],
 })
