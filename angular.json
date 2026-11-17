@@ -19,8 +19,13 @@
             "polyfills": [
               "zone.js"
             ],
-            "tsConfig": "tsconfig.json",
-            "assets": [],
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
             "styles": [
               "src/styles.css"
             ],
@@ -28,8 +33,27 @@
           },
           "configurations": {
             "production": {
-              "optimization": true,
-              "outputHashing": "all"
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": true
+              },
+              "outputHashing": "all",
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "40kb",
+                  "maximumError": "80kb"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -37,7 +61,42 @@
               "sourceMap": true
             }
           },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "stayhub-web:build:production"
+            },
+            "development": {
+              "buildTarget": "stayhub-web:build:development"
+            }
+          },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "tsconfig.spec.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
+            "scripts": []
+          }
         }
       }
     }
