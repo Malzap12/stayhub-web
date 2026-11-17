@@ -185,4 +185,6 @@ export const routes: Routes = [
     redirectTo: 'auth/register',
     pathMatch: 'full',
   },
+  // Cualquier ruta desconocida vuelve al listado en lugar de mostrar una página vacía.
+  { path: '**', redirectTo: 'listings' },
 ];

@@ -6,3 +6,6 @@ coverage
 .github
 *.log
 npm-debug.log*
+.env
+.env.*
+out-tsc
