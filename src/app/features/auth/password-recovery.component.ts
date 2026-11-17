@@ -162,10 +162,10 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     .apple-card {
       width: 100%;
       max-width: 460px;
-      background: var(--apple-surface, #ffffff);
+      background: var(--apple-surface);
       border-radius: var(--apple-radius-lg, 20px);
       box-shadow: var(--apple-shadow, 0 12px 32px rgba(0, 0, 0, 0.06));
-      border: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+      border: 1px solid var(--apple-border-subtle);
       padding: 36px 32px;
     }
     .apple-card-header {
@@ -177,24 +177,24 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
       margin-bottom: 6px;
     }
     h1 {
       font-size: 1.75rem;
       font-weight: 600;
       letter-spacing: -0.03em;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
       margin-bottom: 8px;
     }
     .apple-subtitle {
       font-size: 0.9375rem;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .section-title {
       font-size: 0.95rem;
       font-weight: 600;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
       overflow-wrap: anywhere;
     }
     .apple-form {
@@ -210,33 +210,33 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     .apple-label {
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
     }
     input {
       width: 100%;
       padding: 13px 14px;
       font-size: 0.9375rem;
-      border: 1px solid var(--apple-border, #d2d2d7);
+      border: 1px solid var(--apple-border);
       border-radius: var(--apple-radius-md, 12px);
-      background: #ffffff;
-      color: var(--apple-text-primary, #1d1d1f);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
     }
     input:focus {
-      border-color: var(--apple-ink, #1d1d1f);
+      border-color: var(--apple-ink);
       outline: none;
     }
     input.input-error {
-      border-color: var(--apple-red, #d70015);
-      background: var(--apple-red-bg, #fff2f4);
+      border-color: var(--apple-red);
+      background: var(--apple-red-bg);
     }
     .field-hint {
       font-size: 0.75rem;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .field-error {
       font-size: 0.78rem;
       font-weight: 500;
-      color: var(--apple-red, #d70015);
+      color: var(--apple-red);
     }
     .mail-list {
       list-style: none;
@@ -247,14 +247,14 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
       gap: 12px;
     }
     .mail-item {
-      border: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 14px;
       padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       font-size: 0.85rem;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
     }
     .mail-head {
       display: flex;
@@ -264,7 +264,7 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     .mail-badge {
       font-size: 0.7rem;
       font-weight: 600;
-      color: var(--apple-green, #248a3d);
+      color: var(--apple-green);
       white-space: nowrap;
     }
     .banner-success,
@@ -277,14 +277,14 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
       font-size: 0.85rem;
     }
     .banner-success {
-      background: var(--apple-green-bg, #f2fbf5);
-      border: 1px solid rgba(36, 138, 61, 0.25);
-      color: var(--apple-green, #248a3d);
+      background: var(--apple-green-bg);
+      border: 1px solid var(--apple-success-border);
+      color: var(--apple-green);
     }
     .banner-error {
-      background: var(--apple-red-bg, #fff2f4);
-      border: 1px solid rgba(215, 0, 21, 0.25);
-      color: var(--apple-red, #d70015);
+      background: var(--apple-red-bg);
+      border: 1px solid var(--apple-danger-border);
+      color: var(--apple-red);
     }
     .banner-link {
       font-weight: 600;
@@ -300,8 +300,8 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     }
     .apple-btn-primary {
       border: none;
-      background: var(--apple-ink, #1d1d1f);
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
     }
     .apple-btn-primary:disabled {
       opacity: 0.6;
@@ -309,9 +309,9 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     }
     .apple-btn-secondary {
       padding: 10px 16px;
-      border: 1px solid var(--apple-border, #d2d2d7);
-      background: #ffffff;
-      color: var(--apple-text-primary, #1d1d1f);
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
     }
     .link-btn {
       align-self: flex-start;
@@ -326,12 +326,12 @@ export type RecoveryDelivery = 'EMAIL' | 'SIMULATED';
     .apple-card-footer {
       margin-top: 24px;
       padding-top: 18px;
-      border-top: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+      border-top: 1px solid var(--apple-border-subtle);
       display: flex;
       justify-content: center;
       gap: 6px;
       font-size: 0.85rem;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     @media (max-width: 420px) {
       .apple-card {

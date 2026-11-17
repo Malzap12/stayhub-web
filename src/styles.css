@@ -1,24 +1,62 @@
-/* Sistema de Diseño Minimalista — Apple Cupertino Titanium & Space Black (Inversiones LR) */
+/* Sistema de Diseño Minimalista — Apple Cupertino Titanium & Space Black (Inversiones LR)
+ *
+ * HU-073: todos los colores de la interfaz salen de estos tokens semánticos.
+ * Los componentes no deben usar colores fijos salvo rellenos saturados (gráficos,
+ * botones destructivos) o texto sobre fotografías, que se ven igual en ambos temas.
+ * Cada par texto/fondo cumple al menos WCAG AA (4.5:1) en modo claro y oscuro.
+ */
 :root {
+  /* Superficies */
   --apple-bg: #f5f5f7;
   --apple-surface: #ffffff;
   --apple-surface-subtle: #ebebf0;
   --apple-surface-elevated: #f8f9fb;
   --apple-surface-glass: rgba(255, 255, 255, 0.84);
+  --apple-fill: #f5f5f7;
+  --apple-fill-strong: #e8e8ed;
+  --apple-hover: rgba(0, 0, 0, 0.05);
+  --apple-overlay: rgba(0, 0, 0, 0.45);
+
+  /* Texto */
   --apple-text-primary: #1d1d1f;
-  --apple-text-secondary: #6e6e73;
-  --apple-text-tertiary: #86868b;
+  --apple-text-body: #3a3a3c;
+  --apple-text-secondary: #636366;
+  --apple-text-tertiary: #6e6e73;
+
+  /* Bordes */
   --apple-border: #d2d2d7;
   --apple-border-subtle: rgba(0, 0, 0, 0.08);
+  --apple-border-strong: #1d1d1f;
+
+  /* Tinta: botones primarios, chips activos, toasts */
   --apple-ink: #1d1d1f;
   --apple-ink-hover: #000000;
+  --apple-on-ink: #ffffff;
   --apple-focus-ring: rgba(29, 29, 31, 0.22);
-  --apple-red: #d70015;
-  --apple-red-bg: #fff2f4;
-  --apple-green: #248a3d;
-  --apple-green-bg: #f2fbf5;
-  --apple-accent: #0071e3;
+
+  /* Estados */
+  --apple-danger-fg: #b42318;
+  --apple-danger-bg: #fef2f2;
+  --apple-danger-border: #fecaca;
+  --apple-success-fg: #166534;
+  --apple-success-bg: #f0fdf4;
+  --apple-success-border: #bbf7d0;
+  --apple-warning-fg: #8a5300;
+  --apple-warning-bg: #fff7e6;
+  --apple-warning-border: #f5d0a9;
+  --apple-accent: #0066cc;
   --apple-accent-soft: #eff6ff;
+  --apple-accent-border: #bfdbfe;
+  --apple-purple-fg: #6a1b9a;
+  --apple-purple-bg: #f3e5f5;
+  --apple-purple-border: #e1bee7;
+
+  /* Compatibilidad con nombres anteriores */
+  --apple-red: var(--apple-danger-fg);
+  --apple-red-bg: var(--apple-danger-bg);
+  --apple-green: var(--apple-success-fg);
+  --apple-green-bg: var(--apple-success-bg);
+
   --apple-radius-lg: 24px;
   --apple-radius-md: 14px;
   --apple-radius-pill: 980px;
@@ -32,20 +70,41 @@ html[data-theme="dark"] {
   --apple-surface-subtle: #2c2c2e;
   --apple-surface-elevated: #242426;
   --apple-surface-glass: rgba(28, 28, 30, 0.86);
+  --apple-fill: #2c2c2e;
+  --apple-fill-strong: #3a3a3c;
+  --apple-hover: rgba(255, 255, 255, 0.08);
+  --apple-overlay: rgba(0, 0, 0, 0.65);
+
   --apple-text-primary: #f5f5f7;
-  --apple-text-secondary: #a1a1a6;
-  --apple-text-tertiary: #8e8e93;
-  --apple-border: #38383a;
+  --apple-text-body: #d1d1d6;
+  --apple-text-secondary: #aeaeb2;
+  --apple-text-tertiary: #a1a1a6;
+
+  --apple-border: #48484a;
   --apple-border-subtle: rgba(255, 255, 255, 0.12);
+  --apple-border-strong: #f5f5f7;
+
   --apple-ink: #f5f5f7;
   --apple-ink-hover: #ffffff;
+  --apple-on-ink: #1d1d1f;
   --apple-focus-ring: rgba(245, 245, 247, 0.35);
-  --apple-red: #ff6961;
-  --apple-red-bg: rgba(255, 69, 58, 0.16);
-  --apple-green: #30d158;
-  --apple-green-bg: rgba(48, 209, 88, 0.16);
-  --apple-accent: #409cff;
+
+  --apple-danger-fg: #ff8a80;
+  --apple-danger-bg: rgba(255, 69, 58, 0.16);
+  --apple-danger-border: rgba(255, 105, 97, 0.42);
+  --apple-success-fg: #4cd964;
+  --apple-success-bg: rgba(48, 209, 88, 0.14);
+  --apple-success-border: rgba(48, 209, 88, 0.38);
+  --apple-warning-fg: #ffb340;
+  --apple-warning-bg: rgba(255, 159, 10, 0.16);
+  --apple-warning-border: rgba(255, 159, 10, 0.4);
+  --apple-accent: #4da3ff;
   --apple-accent-soft: rgba(10, 132, 255, 0.18);
+  --apple-accent-border: rgba(64, 156, 255, 0.42);
+  --apple-purple-fg: #d4a5f9;
+  --apple-purple-bg: rgba(191, 90, 242, 0.18);
+  --apple-purple-border: rgba(191, 90, 242, 0.42);
+
   --apple-shadow: 0 16px 38px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
@@ -96,103 +155,35 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* Adaptación global a Modo Oscuro para superficies y controles en componentes */
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
-  background-color: var(--apple-surface-subtle) !important;
-  color: var(--apple-text-primary) !important;
-  border-color: var(--apple-border) !important;
+/* Controles nativos: heredan el tema aunque el componente no los estilice */
+input,
+select,
+textarea {
+  color: var(--apple-text-primary);
+  background-color: var(--apple-surface);
+  border-color: var(--apple-border);
 }
 
-html[data-theme="dark"] input::placeholder,
-html[data-theme="dark"] textarea::placeholder {
-  color: var(--apple-text-tertiary) !important;
+input::placeholder,
+textarea::placeholder {
+  color: var(--apple-text-tertiary);
+  opacity: 1;
 }
 
-html[data-theme="dark"] option {
+option {
   background-color: var(--apple-surface);
   color: var(--apple-text-primary);
 }
 
-html[data-theme="dark"] main h1,
-html[data-theme="dark"] main h2,
-html[data-theme="dark"] main h3,
-html[data-theme="dark"] main h4,
-html[data-theme="dark"] main label,
-html[data-theme="dark"] main legend,
-html[data-theme="dark"] main th,
-html[data-theme="dark"] main td {
-  color: var(--apple-text-primary);
+button {
+  color: inherit;
 }
 
-html[data-theme="dark"] table {
-  background-color: var(--apple-surface) !important;
-  color: var(--apple-text-primary) !important;
-  border-color: var(--apple-border) !important;
-}
-
-html[data-theme="dark"] thead th {
-  background-color: var(--apple-surface-subtle) !important;
-  color: var(--apple-text-secondary) !important;
-  border-color: var(--apple-border) !important;
-}
-
-html[data-theme="dark"] td {
-  border-color: var(--apple-border-subtle) !important;
-}
-
-html[data-theme="dark"] [class*="-card"]:not(.status-pill),
-html[data-theme="dark"] [class*="-panel"],
-html[data-theme="dark"] [class*="-modal"],
-html[data-theme="dark"] [class*="-dialog"],
-html[data-theme="dark"] [class*="-box"]:not(.checkbox),
-html[data-theme="dark"] [class*="-dropdown"],
-html[data-theme="dark"] .search-bar,
-html[data-theme="dark"] .advanced-filters,
-html[data-theme="dark"] .filters-bar,
-html[data-theme="dark"] .empty-state,
-html[data-theme="dark"] .quote-box,
-html[data-theme="dark"] .summary-box,
-html[data-theme="dark"] .auth-shell > div,
-html[data-theme="dark"] .form-shell > form,
-html[data-theme="dark"] .settings-shell > form {
-  background-color: var(--apple-surface) !important;
-  color: var(--apple-text-primary) !important;
-  border-color: var(--apple-border) !important;
-}
-
-html[data-theme="dark"] [class*="-card"] p,
-html[data-theme="dark"] [class*="-panel"] p,
-html[data-theme="dark"] .subtitle,
-html[data-theme="dark"] .muted,
-html[data-theme="dark"] .helper,
-html[data-theme="dark"] .hint,
-html[data-theme="dark"] .detail {
-  color: var(--apple-text-secondary);
-}
-
-html[data-theme="dark"] .bell-btn,
-html[data-theme="dark"] .secondary-btn,
-html[data-theme="dark"] .ghost-btn,
-html[data-theme="dark"] .page-btn,
-html[data-theme="dark"] .filter-toggle,
-html[data-theme="dark"] .reset-btn {
-  background-color: var(--apple-surface-subtle) !important;
-  color: var(--apple-text-primary) !important;
-  border-color: var(--apple-border) !important;
-}
-
-html[data-theme="dark"] .bell-btn svg {
-  stroke: var(--apple-text-primary) !important;
-}
-
-html[data-theme="dark"] .primary-btn,
-html[data-theme="dark"] .search-btn,
-html[data-theme="dark"] .submit-btn,
-html[data-theme="dark"] .cta-btn {
-  background-color: #f5f5f7 !important;
-  color: #1d1d1f !important;
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
 }
 
 /* Experiencia Móvil Adaptable (<= 768px) */

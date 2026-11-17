@@ -34,17 +34,17 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
     }
     .cupertino-denied-card {
       max-width: 460px;
-      background: #ffffff;
+      background: var(--apple-surface);
       border-radius: 20px;
       padding: 36px 32px;
       text-align: center;
-      border: 1px solid rgba(215, 0, 21, 0.2);
+      border: 1px solid var(--apple-danger-border);
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.06);
     }
     .denied-badge {
       display: inline-block;
-      background: rgba(215, 0, 21, 0.1);
-      color: #d70015;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
       font-size: 0.75rem;
       font-weight: 600;
       padding: 4px 12px;
@@ -53,20 +53,20 @@ import { StatusLabelPipe } from '../../shared/models/display.model';
     }
     h1 {
       font-size: 1.5rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       margin: 0 0 10px;
       letter-spacing: -0.02em;
     }
     p {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.92rem;
       line-height: 1.5;
       margin: 0 0 24px;
     }
     .apple-primary-link {
       display: inline-block;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       text-decoration: none;
       padding: 11px 22px;
       border-radius: 980px;
