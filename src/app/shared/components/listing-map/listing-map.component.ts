@@ -254,10 +254,10 @@ export function pixelToLatLng(x: number, y: number, zoom: number): MapCoordinate
     .map-fallback {
       padding: 14px 16px;
       border-radius: 12px;
-      background: #f5f5f7;
-      color: #6a6a6a;
+      background: var(--apple-fill);
+      color: var(--apple-text-secondary);
       font-size: 0.9rem;
-      border: 1px dashed #d2d2d7;
+      border: 1px dashed var(--apple-border);
     }
   `],
 })

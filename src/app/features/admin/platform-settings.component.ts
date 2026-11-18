@@ -88,7 +88,7 @@ import {
       max-width: 960px;
       margin: 0 auto;
       padding: 36px 24px 72px;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .settings-header {
       display: flex;
@@ -98,14 +98,14 @@ import {
       gap: 16px;
       margin-bottom: 28px;
       padding-bottom: 18px;
-      border-bottom: 1px solid #e5e5ea;
+      border-bottom: 1px solid var(--apple-border-subtle);
     }
     .eyebrow {
       font-size: 0.74rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     h1 {
       margin: 6px 0 8px;
@@ -114,13 +114,13 @@ import {
     }
     .subtitle {
       margin: 0;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.92rem;
     }
     .nav-link {
       font-size: 0.88rem;
       font-weight: 600;
-      color: #0066cc;
+      color: var(--apple-accent);
       text-decoration: none;
     }
     .card-grid {
@@ -129,8 +129,8 @@ import {
       gap: 24px;
     }
     .setting-card {
-      background: #ffffff;
-      border: 1px solid #e5e5ea;
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 20px;
       padding: 28px;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
@@ -151,16 +151,16 @@ import {
       border-radius: 980px;
       font-size: 0.85rem;
       font-weight: 700;
-      background: #f5f5f7;
-      color: #6e6e73;
+      background: var(--apple-fill);
+      color: var(--apple-text-secondary);
     }
     .badge-active {
-      background: #e8f8ee;
-      color: #166534;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
     }
     .card-description {
       margin: 0 0 20px;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.9rem;
       line-height: 1.45;
     }
@@ -180,7 +180,7 @@ import {
     input {
       width: 100%;
       padding: 10px 32px 10px 14px;
-      border: 1px solid #d2d2d7;
+      border: 1px solid var(--apple-border);
       border-radius: 12px;
       font-size: 1.1rem;
       font-weight: 600;
@@ -188,7 +188,7 @@ import {
       outline: none;
     }
     input:focus {
-      border-color: #0071e3;
+      border-color: var(--apple-accent);
       box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
     .suffix {
@@ -196,18 +196,18 @@ import {
       right: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       font-weight: 600;
     }
     .field-hint {
       display: block;
       margin-top: 6px;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       font-size: 0.8rem;
     }
     .field-error {
       margin: 6px 0 0;
-      color: #b91c1c;
+      color: var(--apple-danger-fg);
       font-size: 0.84rem;
       font-weight: 600;
     }
@@ -218,14 +218,14 @@ import {
       gap: 16px;
       margin-top: 24px;
       padding-top: 18px;
-      border-top: 1px solid #f5f5f7;
+      border-top: 1px solid var(--apple-border-subtle);
     }
     .save-btn {
       padding: 11px 22px;
       border-radius: 980px;
       border: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
@@ -236,14 +236,14 @@ import {
     }
     .last-updated {
       font-size: 0.82rem;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .alert-success {
       padding: 14px 18px;
       border-radius: 14px;
-      background: #e8f8ee;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
+      border: 1px solid var(--apple-success-border);
       font-size: 0.9rem;
       font-weight: 600;
       margin-bottom: 20px;
@@ -251,9 +251,9 @@ import {
     .alert-error {
       padding: 14px 18px;
       border-radius: 14px;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
       font-size: 0.9rem;
       font-weight: 600;
       margin-bottom: 20px;

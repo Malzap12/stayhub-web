@@ -25,7 +25,7 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
             </div>
             <div class="footer-locale">
               <span>Español (CO)</span>
-              <span class="divider">•</span>
+              <span class="divider" aria-hidden="true">•</span>
               <span>COP ($)</span>
             </div>
           </div>

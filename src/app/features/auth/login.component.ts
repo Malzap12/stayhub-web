@@ -43,6 +43,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
                   type="button"
                   class="role-card"
                   [class.selected]="selectedRole === 'HUESPED'"
+                  [attr.aria-pressed]="selectedRole === 'HUESPED'"
                   (click)="selectRole('HUESPED')"
                 >
                   <div class="role-card-head">
@@ -57,6 +58,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
                   type="button"
                   class="role-card"
                   [class.selected]="selectedRole === 'ANFITRION'"
+                  [attr.aria-pressed]="selectedRole === 'ANFITRION'"
                   (click)="selectRole('ANFITRION')"
                 >
                   <div class="role-card-head">
@@ -71,6 +73,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
                   type="button"
                   class="role-card"
                   [class.selected]="selectedRole === 'ADMINISTRADOR'"
+                  [attr.aria-pressed]="selectedRole === 'ADMINISTRADOR'"
                   (click)="selectRole('ADMINISTRADOR')"
                 >
                   <div class="role-card-head">
@@ -306,7 +309,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       gap: 10px;
       font-size: 0.72rem;
       font-weight: 500;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
@@ -319,7 +322,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #1d1d1f;
+      background: var(--apple-ink);
     }
     .dot-sep {
       opacity: 0.4;
@@ -336,10 +339,10 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       }
     }
     .portal-card, .trust-card, .university-card {
-      background: #ffffff;
+      background: var(--apple-surface);
       border-radius: 26px;
       padding: 34px;
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--apple-border-subtle);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
     }
     .portal-header {
@@ -355,19 +358,19 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       margin-bottom: 4px;
     }
     h1 {
       font-size: 1.75rem;
       font-weight: 600;
       letter-spacing: -0.03em;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .segmented-switch {
       display: inline-flex;
       padding: 4px;
-      background: #f2f2f5;
+      background: var(--apple-fill);
       border-radius: 980px;
     }
     .seg-item {
@@ -375,12 +378,12 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       border-radius: 980px;
       font-size: 0.82rem;
       font-weight: 500;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       text-decoration: none;
     }
     .seg-item.active {
-      background: #ffffff;
-      color: #1d1d1f;
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-weight: 600;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
@@ -398,15 +401,15 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .active-profile-pill {
       font-size: 0.72rem;
       font-weight: 600;
       padding: 3px 11px;
       border-radius: 980px;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
     }
     .role-cards-grid {
       display: grid;
@@ -422,7 +425,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       text-align: left;
       padding: 16px;
       border-radius: 18px;
-      background: #f5f5f7;
+      background: var(--apple-fill);
       border: 1.5px solid transparent;
       cursor: pointer;
       display: flex;
@@ -432,12 +435,16 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       transition: all 0.18s ease;
     }
     .role-card:hover {
-      background: #ededf2;
+      background: var(--apple-fill-strong);
     }
     .role-card.selected {
-      background: #ffffff;
-      border-color: #1d1d1f;
+      background: var(--apple-surface-elevated);
+      border-color: var(--apple-border-strong);
       box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+    }
+    .role-card:focus-visible {
+      outline: 2px solid var(--apple-focus-ring);
+      outline-offset: 2px;
     }
     .role-card-head {
       display: flex;
@@ -448,17 +455,17 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       width: 34px;
       height: 34px;
       border-radius: 10px;
-      background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 0.95rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .role-check {
       font-size: 0.75rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .corp-badge {
       font-size: 0.62rem;
@@ -466,25 +473,25 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       text-transform: uppercase;
       padding: 2px 6px;
       border-radius: 6px;
-      background: #e8e8ed;
-      color: #1d1d1f;
+      background: var(--apple-fill-strong);
+      color: var(--apple-text-primary);
     }
     .role-card h2 {
       font-size: 0.98rem;
       font-weight: 600;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       margin: 0;
     }
     .role-card p {
       font-size: 0.76rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       line-height: 1.38;
       margin: 0;
     }
     .role-foot {
       font-size: 0.68rem;
       font-weight: 600;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       padding-top: 4px;
     }
     .apple-form {
@@ -505,19 +512,19 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     .apple-label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .domain-hint {
       font-size: 0.72rem;
       font-weight: 500;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .link-btn {
       background: none;
       border: none;
       font-size: 0.75rem;
       font-weight: 500;
-      color: #515154;
+      color: var(--apple-text-body);
       cursor: pointer;
       text-decoration: underline;
     }
@@ -526,16 +533,17 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       height: 46px;
       padding: 0 14px;
       font-size: 0.92rem;
-      border: 1px solid #d2d2d7;
+      border: 1px solid var(--apple-border);
       border-radius: 13px;
-      background: #f5f5f7;
-      color: #1d1d1f;
+      background: var(--apple-fill);
+      color: var(--apple-text-primary);
       transition: all 0.15s ease;
     }
     input:focus {
-      background: #ffffff;
-      border-color: #1d1d1f;
+      background: var(--apple-surface);
+      border-color: var(--apple-border-strong);
       outline: none;
+      box-shadow: 0 0 0 3px var(--apple-focus-ring);
     }
     .password-box {
       position: relative;
@@ -549,7 +557,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       border: none;
       font-size: 0.74rem;
       font-weight: 600;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       cursor: pointer;
     }
     .strength-meter {
@@ -565,24 +573,24 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       height: 4px;
     }
     .strength-bars span {
-      background: #e5e5ea;
+      background: var(--apple-fill-strong);
       border-radius: 980px;
       transition: background 0.25s ease;
     }
     .strength-bars span.filled {
-      background: #1d1d1f;
+      background: var(--apple-ink);
     }
     .strength-labels {
       display: flex;
       justify-content: space-between;
       font-size: 0.7rem;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .banner-error,
     .banner-deactivated {
-      background: #f5f5f7;
-      border: 1px solid #d2d2d7;
-      color: #3a3a3c;
+      background: var(--apple-fill);
+      border: 1px solid var(--apple-border);
+      color: var(--apple-text-body);
       padding: 12px 14px;
       border-radius: 12px;
       font-size: 0.84rem;
@@ -591,7 +599,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       gap: 4px;
     }
     .banner-deactivated strong {
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .reactivate-actions {
       display: flex;
@@ -608,22 +616,22 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     }
     .reactivate-btn {
       border: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
     }
     .decline-btn {
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
     }
     .reactivate-btn:disabled, .decline-btn:disabled {
       opacity: 0.6;
       cursor: progress;
     }
     .banner-restricted {
-      background: #fff2f4;
-      border: 1px solid rgba(215, 0, 21, 0.25);
-      color: #d70015;
+      background: var(--apple-danger-bg);
+      border: 1px solid var(--apple-danger-border);
+      color: var(--apple-danger-fg);
       padding: 12px 14px;
       border-radius: 12px;
       font-size: 0.84rem;
@@ -637,8 +645,8 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       height: 48px;
       border: none;
       border-radius: 14px;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
@@ -649,14 +657,14 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       transition: background 0.18s ease;
     }
     .apple-btn-primary:hover:not(:disabled) {
-      background: #000000;
+      background: var(--apple-ink-hover);
     }
     .apple-btn-secondary {
       padding: 11px 18px;
-      border: 1px solid #d2d2d7;
+      border: 1px solid var(--apple-border);
       border-radius: 14px;
-      background: #f5f5f7;
-      color: #1d1d1f;
+      background: var(--apple-fill);
+      color: var(--apple-text-primary);
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
@@ -676,8 +684,8 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       width: 28px;
       height: 28px;
       border-radius: 8px;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -686,11 +694,11 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     }
     .trust-title-row h3 {
       font-size: 1.1rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .trust-lead {
       font-size: 0.86rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       margin-bottom: 18px;
     }
     .pillars-list {
@@ -704,14 +712,14 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       gap: 12px;
       padding: 14px;
       border-radius: 16px;
-      background: #f5f5f7;
+      background: var(--apple-fill);
     }
     .pillar-icon {
       width: 34px;
       height: 34px;
       border-radius: 10px;
-      background: #ffffff;
-      color: #1d1d1f;
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -721,19 +729,19 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     .pillar-item strong {
       display: block;
       font-size: 0.84rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       margin-bottom: 2px;
     }
     .pillar-item p {
       font-size: 0.76rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       margin: 0;
     }
     .metrics-box {
       margin-top: 18px;
       padding: 14px;
       border-radius: 16px;
-      background: #f5f5f7;
+      background: var(--apple-fill);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -744,10 +752,10 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .metrics-head strong {
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .metrics-bar {
       display: flex;
@@ -755,16 +763,16 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       height: 7px;
       border-radius: 980px;
       overflow: hidden;
-      background: #e5e5ea;
+      background: var(--apple-fill-strong);
     }
-    .seg-primary { background: #1d1d1f; }
-    .seg-secondary { background: #6e6e73; }
-    .seg-tertiary { background: #aeaeb2; }
+    .seg-primary { background: var(--apple-ink); }
+    .seg-secondary { background: var(--apple-text-secondary); }
+    .seg-tertiary { background: var(--apple-text-tertiary); opacity: 0.6; }
     .metrics-legend {
       display: flex;
       justify-content: space-between;
       font-size: 0.68rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .university-card {
       padding: 22px 26px;
@@ -779,25 +787,25 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .university-card strong {
       display: block;
       font-size: 0.88rem;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       margin: 2px 0;
     }
     .university-card p {
       font-size: 0.76rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       margin: 0;
     }
     .uni-badge {
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      background: #f5f5f7;
-      color: #1d1d1f;
+      background: var(--apple-fill);
+      color: var(--apple-text-primary);
       font-size: 0.75rem;
       font-weight: 700;
       display: inline-flex;
@@ -813,8 +821,8 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     }
     .session-badge {
       align-self: center;
-      background: #f2fbf5;
-      color: #248a3d;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
       font-size: 0.75rem;
       font-weight: 600;
       padding: 4px 12px;
@@ -822,11 +830,11 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     }
     .session-email {
       font-size: 0.85rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .role-options {
       text-align: left;
-      background: #f5f5f7;
+      background: var(--apple-fill);
       padding: 16px 18px;
       border-radius: 16px;
       margin: 8px 0;
@@ -835,7 +843,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       font-size: 0.8rem;
       font-weight: 600;
       margin-bottom: 8px;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .role-options ul {
       padding-left: 18px;
@@ -848,7 +856,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       position: fixed;
       inset: 0;
       z-index: 60;
-      background: rgba(29, 29, 31, 0.4);
+      background: var(--apple-overlay);
       backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
@@ -856,7 +864,7 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
       padding: 16px;
     }
     .modal-card {
-      background: #ffffff;
+      background: var(--apple-surface);
       border-radius: 24px;
       max-width: 420px;
       width: 100%;
@@ -872,7 +880,8 @@ import { ACCOUNT_DEACTIVATED_STATE, ACCOUNT_REACTIVATED_STATE, arrivedWith } fro
     }
     .close-icon {
       border: none;
-      background: #f5f5f7;
+      background: var(--apple-fill);
+      color: var(--apple-text-primary);
       width: 28px;
       height: 28px;
       border-radius: 50%;

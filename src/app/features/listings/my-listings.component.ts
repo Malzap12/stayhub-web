@@ -246,7 +246,7 @@ interface ActivationFailure {
       max-width: 1120px;
       margin: 0 auto;
       padding: 36px 24px 72px;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .page-header {
       display: flex;
@@ -256,14 +256,14 @@ interface ActivationFailure {
       gap: 12px;
       margin-bottom: 24px;
       padding-bottom: 18px;
-      border-bottom: 1px solid #e5e5ea;
+      border-bottom: 1px solid var(--apple-border-subtle);
     }
     .eyebrow {
       font-size: 0.74rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     h1 {
       margin: 6px 0 8px;
@@ -272,22 +272,22 @@ interface ActivationFailure {
     }
     .subtitle {
       margin: 0;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.92rem;
     }
     .new-listing-btn {
       display: inline-block;
       padding: 10px 16px;
       border-radius: 12px;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-weight: 600;
       font-size: 0.9rem;
       text-decoration: none;
       white-space: nowrap;
     }
     .loading {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .alert-error {
       display: flex;
@@ -297,26 +297,26 @@ interface ActivationFailure {
       gap: 12px;
       padding: 13px 16px;
       border-radius: 12px;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
       font-size: 0.88rem;
       font-weight: 600;
     }
     .retry-btn {
       padding: 6px 14px;
       border-radius: 980px;
-      border: 1px solid #fecaca;
-      background: #ffffff;
-      color: #991b1b;
+      border: 1px solid var(--apple-danger-border);
+      background: var(--apple-surface);
+      color: var(--apple-danger-fg);
       font-weight: 600;
       cursor: pointer;
     }
     .empty-state {
       text-align: center;
       padding: 48px 24px;
-      background: #ffffff;
-      border: 1px dashed #d2d2d7;
+      background: var(--apple-surface);
+      border: 1px dashed var(--apple-border);
       border-radius: 20px;
     }
     .empty-state h2 {
@@ -325,7 +325,7 @@ interface ActivationFailure {
     }
     .empty-state p {
       margin: 0 0 18px;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .filters {
       display: flex;
@@ -336,17 +336,17 @@ interface ActivationFailure {
     .filters button {
       padding: 7px 14px;
       border-radius: 980px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
     }
     .filters button.active {
-      background: #1d1d1f;
-      border-color: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      border-color: var(--apple-border-strong);
+      color: var(--apple-on-ink);
     }
     .count {
       margin-left: 4px;
@@ -361,8 +361,8 @@ interface ActivationFailure {
       gap: 14px;
     }
     .listing-card {
-      background: #ffffff;
-      border: 1px solid #e5e5ea;
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 18px;
       padding: 18px 20px;
       display: flex;
@@ -383,59 +383,59 @@ interface ActivationFailure {
     }
     .meta {
       margin: 6px 0 0;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
       font-size: 0.9rem;
       font-weight: 500;
     }
     .meta .pending {
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       font-style: italic;
     }
     .dot {
       margin: 0 6px;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .incomplete {
       margin: 6px 0 0;
       font-size: 0.8rem;
-      color: #9a5b00;
+      color: var(--apple-warning-fg);
     }
     .status-badge {
       padding: 4px 10px;
       border-radius: 980px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #f5f5f7;
-      color: #3a3a3c;
+      background: var(--apple-fill);
+      color: var(--apple-text-body);
       white-space: nowrap;
     }
-    .status-badge[data-status='PENDIENTE_REVISION'] { background: #fff4e5; color: #9a5b00; }
-    .status-badge[data-status='ACTIVA'] { background: #e8f8ee; color: #166534; }
-    .status-badge[data-status='PAUSADA'] { background: #eef2ff; color: #3730a3; }
-    .status-badge[data-status='BLOQUEADA'] { background: #fef2f2; color: #991b1b; }
+    .status-badge[data-status='PENDIENTE_REVISION'] { background: var(--apple-warning-bg); color: var(--apple-warning-fg); }
+    .status-badge[data-status='ACTIVA'] { background: var(--apple-success-bg); color: var(--apple-success-fg); }
+    .status-badge[data-status='PAUSADA'] { background: var(--apple-accent-soft); color: var(--apple-accent); }
+    .status-badge[data-status='BLOQUEADA'] { background: var(--apple-danger-bg); color: var(--apple-danger-fg); }
     .admin-reason {
       padding: 12px 14px;
       border-radius: 12px;
-      background: #fff8eb;
-      border-left: 4px solid #d97706;
+      background: var(--apple-warning-bg);
+      border-left: 4px solid var(--apple-warning-fg);
       font-size: 0.86rem;
     }
     .admin-reason.blocked {
-      background: #fef2f2;
-      border-left-color: #b91c1c;
+      background: var(--apple-danger-bg);
+      border-left-color: var(--apple-danger-fg);
     }
     .admin-reason p {
       margin: 4px 0 0;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
       overflow-wrap: anywhere;
     }
     .alert-success {
       padding: 13px 16px;
       margin-bottom: 18px;
       border-radius: 12px;
-      background: #e8f8ee;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
+      border: 1px solid var(--apple-success-border);
       font-size: 0.88rem;
       font-weight: 600;
     }
@@ -449,8 +449,8 @@ interface ActivationFailure {
       padding: 9px 16px;
       border-radius: 980px;
       border: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
@@ -462,9 +462,9 @@ interface ActivationFailure {
     .secondary-btn {
       padding: 8px 15px;
       border-radius: 980px;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
@@ -477,10 +477,10 @@ interface ActivationFailure {
       width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
-      background: #fffaf3;
-      border: 1px solid #f5d0a9;
+      background: var(--apple-warning-bg);
+      border: 1px solid var(--apple-warning-border);
       font-size: 0.86rem;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
     }
     .confirm-box p {
       margin: 0 0 10px;
@@ -488,7 +488,7 @@ interface ActivationFailure {
     }
     .confirm-box strong {
       display: block;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .confirm-actions {
       display: flex;
@@ -498,39 +498,39 @@ interface ActivationFailure {
     .paused-note {
       padding: 10px 14px;
       border-radius: 12px;
-      background: #f5f5f7;
-      color: #3a3a3c;
+      background: var(--apple-fill);
+      color: var(--apple-text-body);
       font-size: 0.84rem;
     }
     .availability-link {
       align-self: flex-start;
       font-size: 0.84rem;
       font-weight: 600;
-      color: #0066cc;
+      color: var(--apple-accent);
       text-decoration: none;
     }
     .hint {
       font-size: 0.78rem;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .activation-error {
       padding: 12px 14px;
       border-radius: 12px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #991b1b;
+      background: var(--apple-danger-bg);
+      border: 1px solid var(--apple-danger-border);
+      color: var(--apple-danger-fg);
       font-size: 0.86rem;
     }
     .activation-error ul {
       margin: 6px 0 0;
       padding-left: 20px;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
     }
     .activation-error li::first-letter {
       text-transform: uppercase;
     }
     .empty-filter {
-      color: #86868b;
+      color: var(--apple-text-tertiary);
       font-size: 0.88rem;
     }
   `],

@@ -254,7 +254,7 @@ import {
       .listing-name { font-size: 0.78rem; color: var(--apple-accent); font-weight: 600; }
       .conv-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
       .preview { font-size: 0.84rem; color: var(--apple-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .pill-unread { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--apple-accent); color: #ffffff; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .pill-unread { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--apple-accent); color: var(--apple-on-ink); font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
       .pagination, .messages-pagination { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--apple-surface-elevated); border-top: 1px solid var(--apple-border-subtle); font-size: 0.8rem; color: var(--apple-text-secondary); gap: 8px; flex-wrap: wrap; }
       .messages-pagination { border-top: none; border-bottom: 1px solid var(--apple-border-subtle); }
       .page-btn { border: 1px solid var(--apple-border); background: var(--apple-surface); color: var(--apple-text-primary); border-radius: 8px; padding: 6px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }

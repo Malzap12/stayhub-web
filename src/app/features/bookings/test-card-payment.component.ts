@@ -131,36 +131,36 @@ export function formatCardNumber(value: string): string {
     .payment { display: flex; flex-direction: column; gap: 10px; }
     .sandbox {
       display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px;
-      background: #fffbeb; border: 1px solid #fde68a; font-size: 0.8rem; color: #92400e;
+      background: var(--apple-warning-bg); border: 1px solid var(--apple-warning-border); font-size: 0.8rem; color: var(--apple-warning-fg);
     }
     .cards { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip {
       display: flex; flex-direction: column; align-items: flex-start; padding: 6px 10px; border-radius: 10px;
-      border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; font: inherit; font-size: 0.78rem; cursor: pointer;
+      border: 1px solid var(--apple-success-border); background: var(--apple-success-bg); color: var(--apple-success-fg); font: inherit; font-size: 0.78rem; cursor: pointer;
     }
-    .chip.declined { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+    .chip.declined { border-color: var(--apple-danger-border); background: var(--apple-danger-bg); color: var(--apple-danger-fg); }
     .chip small { font-size: 0.7rem; opacity: 0.85; }
     label {
-      display: flex; flex-direction: column; gap: 4px; font-size: 0.74rem; font-weight: 700; color: #6e6e73;
+      display: flex; flex-direction: column; gap: 4px; font-size: 0.74rem; font-weight: 700; color: var(--apple-text-secondary);
       text-transform: uppercase; letter-spacing: 0.04em;
     }
     input {
-      height: 38px; padding: 0 10px; border: 1px solid #d2d2d7; border-radius: 10px; font: inherit; font-size: 0.86rem;
-      color: #1d1d1f; text-transform: none; letter-spacing: normal; font-weight: 400; width: 100%; box-sizing: border-box;
+      height: 38px; padding: 0 10px; border: 1px solid var(--apple-border); border-radius: 10px; font: inherit; font-size: 0.86rem;
+      color: var(--apple-text-primary); text-transform: none; letter-spacing: normal; font-weight: 400; width: 100%; box-sizing: border-box;
     }
     .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .error, .declined-result {
-      padding: 10px 12px; border-radius: 10px; background: #fef2f2; border: 1px solid #fecaca;
-      font-size: 0.82rem; color: #b91c1c;
+      padding: 10px 12px; border-radius: 10px; background: var(--apple-danger-bg); border: 1px solid var(--apple-danger-border);
+      font-size: 0.82rem; color: var(--apple-danger-fg);
     }
     .approved-result {
-      padding: 10px 12px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0;
-      font-size: 0.82rem; color: #166534;
+      padding: 10px 12px; border-radius: 10px; background: var(--apple-success-bg); border: 1px solid var(--apple-success-border);
+      font-size: 0.82rem; color: var(--apple-success-fg);
     }
     .declined-result p, .approved-result p { margin: 0 0 4px; }
     .ref { font-family: ui-monospace, monospace; font-size: 0.78rem; }
     .pay {
-      height: 42px; border: none; border-radius: 980px; background: #1d1d1f; color: #ffffff; font-weight: 600; cursor: pointer;
+      height: 42px; border: none; border-radius: 980px; background: var(--apple-ink); color: var(--apple-on-ink); font-weight: 600; cursor: pointer;
     }
     .pay:disabled { opacity: 0.6; cursor: progress; }
   `],

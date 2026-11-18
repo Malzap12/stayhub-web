@@ -353,7 +353,7 @@ export function formatCop(value?: number | null): string {
     .location { color: var(--apple-text-primary); text-decoration: underline; text-underline-offset: 2px; }
     .dot { color: var(--apple-text-secondary); }
     .pill { padding: 3px 10px; border-radius: 980px; font-size: 0.74rem; font-weight: 600; }
-    .pill.warn { background: #fff4e5; color: #9a5b00; margin-left: 6px; }
+    .pill.warn { background: var(--apple-warning-bg); color: var(--apple-warning-fg); margin-left: 6px; }
     .gallery {
       margin: 20px 0 32px; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px;
       height: clamp(260px, 42vw, 460px); border-radius: 18px; overflow: hidden;
@@ -371,7 +371,7 @@ export function formatCop(value?: number | null): string {
     .thumbs button:hover img { filter: brightness(0.88); }
     .thumbs button.active { outline: 3px solid var(--apple-ink); outline-offset: -3px; }
     .thumbs .more {
-      position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); color: #ffffff;
+      position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); color: #ffffff;
       font-weight: 700; font-size: 0.9rem;
     }
     .no-images { margin: 20px 0 32px; padding: 48px 20px; text-align: center; color: var(--apple-text-secondary); background: var(--apple-surface-subtle); border-radius: 18px; }

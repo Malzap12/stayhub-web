@@ -90,26 +90,26 @@ export function validatePricingForm(
     </section>
   `,
   styles: [`
-    .pricing-shell { max-width: 640px; margin: 0 auto; padding: 36px 24px 72px; color: #1d1d1f; }
-    .back-link { font-size: 0.84rem; font-weight: 600; color: #0066cc; text-decoration: none; }
-    .eyebrow { display: block; margin-top: 16px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #86868b; }
+    .pricing-shell { max-width: 640px; margin: 0 auto; padding: 36px 24px 72px; color: var(--apple-text-primary); }
+    .back-link { font-size: 0.84rem; font-weight: 600; color: var(--apple-accent); text-decoration: none; }
+    .eyebrow { display: block; margin-top: 16px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--apple-text-tertiary); }
     h1 { margin: 6px 0 8px; font-size: 1.6rem; letter-spacing: -0.03em; }
-    .subtitle { margin: 0 0 24px; color: #6e6e73; font-size: 0.92rem; }
-    form { display: flex; flex-direction: column; gap: 8px; background: #fff; border: 1px solid #e5e5ea; border-radius: 18px; padding: 22px; }
+    .subtitle { margin: 0 0 24px; color: var(--apple-text-secondary); font-size: 0.92rem; }
+    form { display: flex; flex-direction: column; gap: 8px; background: var(--apple-surface); border: 1px solid var(--apple-border-subtle); border-radius: 18px; padding: 22px; }
     .form-title { margin: 0 0 6px; font-size: 1.15rem; letter-spacing: -0.02em; }
     label { font-size: 0.86rem; font-weight: 600; }
-    input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 0.95rem; }
+    input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--apple-border); border-radius: 10px; font-size: 0.95rem; }
     fieldset { margin: 14px 0 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 8px; }
     legend { font-weight: 700; margin-bottom: 8px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .hint { font-size: 0.78rem; color: #86868b; }
-    .field-error { margin: 0; font-size: 0.82rem; color: #b91c1c; font-weight: 600; }
-    .save-btn { margin-top: 16px; padding: 11px 18px; border: none; border-radius: 980px; background: #1d1d1f; color: #fff; font-weight: 600; cursor: pointer; }
+    .hint { font-size: 0.78rem; color: var(--apple-text-tertiary); }
+    .field-error { margin: 0; font-size: 0.82rem; color: var(--apple-danger-fg); font-weight: 600; }
+    .save-btn { margin-top: 16px; padding: 11px 18px; border: none; border-radius: 980px; background: var(--apple-ink); color: var(--apple-on-ink); font-weight: 600; cursor: pointer; }
     .save-btn:disabled { opacity: 0.6; cursor: progress; }
-    .loading { color: #6e6e73; }
+    .loading { color: var(--apple-text-secondary); }
     .alert-error, .alert-success { padding: 13px 16px; margin-bottom: 16px; border-radius: 12px; font-size: 0.88rem; font-weight: 600; }
-    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .alert-success { background: #e8f8ee; color: #166534; border: 1px solid #bbf7d0; }
+    .alert-error { background: var(--apple-danger-bg); color: var(--apple-danger-fg); border: 1px solid var(--apple-danger-border); }
+    .alert-success { background: var(--apple-success-bg); color: var(--apple-success-fg); border: 1px solid var(--apple-success-border); }
   `],
 })
 export class ListingPricingComponent implements OnInit {

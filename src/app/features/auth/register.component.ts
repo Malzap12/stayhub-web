@@ -208,10 +208,10 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
     .apple-card {
       width: 100%;
       max-width: 500px;
-      background: var(--apple-surface, #ffffff);
+      background: var(--apple-surface);
       border-radius: 26px;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--apple-border-subtle);
       padding: 34px 32px;
     }
     .apple-card-header {
@@ -229,13 +229,13 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
       font-size: 1.75rem;
       font-weight: 600;
       letter-spacing: -0.03em;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
       margin: 0;
     }
     .auth-mode-switch {
       display: inline-flex;
       padding: 4px;
-      background: #f2f2f5;
+      background: var(--apple-fill);
       border-radius: 980px;
     }
     .mode-option {
@@ -243,18 +243,18 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
       border-radius: 980px;
       font-size: 0.82rem;
       font-weight: 500;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       text-decoration: none;
     }
     .mode-option.active {
-      background: #ffffff;
-      color: #1d1d1f;
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       font-weight: 600;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
     .apple-subtitle {
       font-size: 0.9rem;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
       margin: 0;
     }
     .apple-form {
@@ -270,20 +270,20 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
     .apple-label {
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--apple-text-primary, #1d1d1f);
+      color: var(--apple-text-primary);
     }
     .apple-required {
-      color: var(--apple-red, #d70015);
+      color: var(--apple-red);
     }
     .field-optional {
       font-weight: 400;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .apple-segmented {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      background: #f5f5f7;
+      background: var(--apple-fill);
       padding: 4px;
       border-radius: 14px;
     }
@@ -298,11 +298,11 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
       align-items: center;
       gap: 2px;
       transition: all 0.2s ease;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .apple-segmented button.active {
-      background: #ffffff;
-      color: var(--apple-text-primary, #1d1d1f);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
     .role-title {
@@ -318,33 +318,34 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
       width: 100%;
       padding: 13px 14px;
       font-size: 0.9375rem;
-      border: 1px solid var(--apple-border, #d2d2d7);
+      border: 1px solid var(--apple-border);
       border-radius: var(--apple-radius-md, 12px);
-      background: #ffffff;
-      color: var(--apple-text-primary, #1d1d1f);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     input:focus {
-      border-color: var(--apple-ink, #1d1d1f);
+      border-color: var(--apple-ink);
       outline: none;
+      box-shadow: 0 0 0 3px var(--apple-focus-ring);
     }
     input.input-error {
-      border-color: var(--apple-red, #d70015);
-      background: var(--apple-red-bg, #fff2f4);
+      border-color: var(--apple-red);
+      background: var(--apple-red-bg);
     }
     .field-hint {
       font-size: 0.75rem;
-      color: var(--apple-text-secondary, #6e6e73);
+      color: var(--apple-text-secondary);
     }
     .field-error {
       font-size: 0.78rem;
       font-weight: 500;
-      color: var(--apple-red, #d70015);
+      color: var(--apple-red);
     }
     .banner-success {
-      background: var(--apple-green-bg, #f2fbf5);
-      border: 1px solid rgba(36, 138, 61, 0.25);
-      color: var(--apple-green, #248a3d);
+      background: var(--apple-green-bg);
+      border: 1px solid var(--apple-success-border);
+      color: var(--apple-green);
       padding: 12px 14px;
       border-radius: 12px;
       display: flex;
@@ -362,15 +363,15 @@ const PHONE_REGEX = /^\+?\d(?:[\s-]?\d){6,14}$/;
       padding: 14px 20px;
       border: none;
       border-radius: 14px;
-      background: var(--apple-ink, #1d1d1f);
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
       transition: background-color 0.2s ease, transform 0.1s ease;
     }
     .apple-btn-primary:hover:not(:disabled) {
-      background: var(--apple-ink-hover, #000000);
+      background: var(--apple-ink-hover);
     }
     .apple-btn-primary:disabled {
       opacity: 0.6;

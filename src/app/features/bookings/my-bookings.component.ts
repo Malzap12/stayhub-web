@@ -457,11 +457,11 @@ export function toBooking(api: ApiBooking): Booking {
         align-items: center;
       }
       .loading-note {
-        color: #64748b;
+        color: var(--apple-text-secondary);
         margin: 1rem 0;
       }
       .arrival-passed {
-        color: #64748b;
+        color: var(--apple-text-secondary);
         font-size: 0.85rem;
         align-self: center;
       }
@@ -469,7 +469,7 @@ export function toBooking(api: ApiBooking): Booking {
         max-width: 1200px;
         margin: 0 auto;
         padding: 3rem 1.5rem 5rem;
-        color: #1d1d1f;
+        color: var(--apple-text-primary);
       }
       .bookings-header {
         display: flex;
@@ -485,7 +485,7 @@ export function toBooking(api: ApiBooking): Booking {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #0071e3;
+        color: var(--apple-accent);
         margin-bottom: 0.5rem;
       }
       h1 {
@@ -497,7 +497,7 @@ export function toBooking(api: ApiBooking): Booking {
       .subtitle {
         font-size: 1rem;
         line-height: 1.5;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
         max-width: 650px;
         margin: 0;
       }
@@ -506,7 +506,7 @@ export function toBooking(api: ApiBooking): Booking {
         gap: 1rem;
       }
       .metric-pill {
-        background: #f5f5f7;
+        background: var(--apple-fill);
         padding: 0.75rem 1.25rem;
         border-radius: 1rem;
         display: flex;
@@ -515,8 +515,8 @@ export function toBooking(api: ApiBooking): Booking {
         min-width: 90px;
       }
       .metric-pill.active {
-        background: #e8f3ff;
-        color: #0071e3;
+        background: var(--apple-accent-soft);
+        color: var(--apple-accent);
       }
       .metric-num {
         font-size: 1.5rem;
@@ -525,12 +525,12 @@ export function toBooking(api: ApiBooking): Booking {
       }
       .metric-label {
         font-size: 0.75rem;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
         margin-top: 0.25rem;
       }
       .feedback-banner {
-        background: #e8f5e9;
-        color: #1b5e20;
+        background: var(--apple-success-bg);
+        color: var(--apple-success-fg);
         padding: 0.875rem 1.25rem;
         border-radius: 0.75rem;
         margin-bottom: 1.5rem;
@@ -538,8 +538,8 @@ export function toBooking(api: ApiBooking): Booking {
         font-weight: 500;
       }
       .feedback-banner.error {
-        background: #ffebee;
-        color: #c62828;
+        background: var(--apple-danger-bg);
+        color: var(--apple-danger-fg);
       }
       .filter-toolbar {
         display: flex;
@@ -555,28 +555,28 @@ export function toBooking(api: ApiBooking): Booking {
         flex-wrap: wrap;
       }
       .pill-btn {
-        background: #f5f5f7;
+        background: var(--apple-fill);
         border: none;
         padding: 0.5rem 1rem;
         border-radius: 9999px;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #1d1d1f;
+        color: var(--apple-text-primary);
         cursor: pointer;
         transition: all 0.2s;
       }
       .pill-btn:hover {
-        background: #e8e8ed;
+        background: var(--apple-fill-strong);
       }
       .pill-btn.active {
-        background: #1d1d1f;
-        color: #ffffff;
+        background: var(--apple-ink);
+        color: var(--apple-on-ink);
       }
       .search-box {
         flex-shrink: 0;
       }
       .search-input {
-        background: #f5f5f7;
+        background: var(--apple-fill);
         border: 1px solid transparent;
         padding: 0.5rem 1rem;
         border-radius: 9999px;
@@ -586,8 +586,8 @@ export function toBooking(api: ApiBooking): Booking {
         transition: all 0.2s;
       }
       .search-input:focus {
-        background: #ffffff;
-        border-color: #0071e3;
+        background: var(--apple-surface);
+        border-color: var(--apple-accent);
         box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
       }
       .bookings-grid {
@@ -596,8 +596,8 @@ export function toBooking(api: ApiBooking): Booking {
         gap: 1.5rem;
       }
       .booking-card {
-        background: #ffffff;
-        border: 1px solid #e5e5ea;
+        background: var(--apple-surface);
+        border: 1px solid var(--apple-border-subtle);
         border-radius: 1.25rem;
         display: flex;
         overflow: hidden;
@@ -608,8 +608,12 @@ export function toBooking(api: ApiBooking): Booking {
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
       }
       .booking-card.cancelled {
-        opacity: 0.85;
-        background: #fafafc;
+        background: var(--apple-fill);
+      }
+      /* Solo se atenúa la foto: atenuar toda la tarjeta dejaba el texto por debajo de WCAG AA */
+      .booking-card.cancelled .card-media {
+        filter: grayscale(60%);
+        opacity: 0.8;
       }
       .card-media {
         width: 320px;
@@ -629,30 +633,30 @@ export function toBooking(api: ApiBooking): Booking {
         font-size: 0.75rem;
         font-weight: 700;
         text-transform: uppercase;
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--apple-surface-glass);
         backdrop-filter: blur(8px);
       }
       .status-tag.confirmada {
-        color: #1b5e20;
+        color: var(--apple-success-fg);
       }
       .status-tag.pendiente_aprobacion {
-        color: #b78103;
+        color: var(--apple-warning-fg);
       }
       .status-tag.en_revision {
-        color: #6a1b9a;
+        color: var(--apple-purple-fg);
       }
       .status-tag.completada {
-        color: #0d47a1;
+        color: var(--apple-accent);
       }
       .status-tag.cancelada {
-        color: #b71c1c;
+        color: var(--apple-danger-fg);
       }
       .card-id {
         align-self: flex-start;
         font-size: 0.75rem;
         font-family: monospace;
         font-weight: 600;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.62); /* texto sobre foto: fijo en ambos temas */
         color: #ffffff;
         padding: 0.25rem 0.5rem;
         border-radius: 0.5rem;
@@ -672,7 +676,7 @@ export function toBooking(api: ApiBooking): Booking {
       }
       .city-label {
         font-size: 0.8125rem;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
         text-transform: uppercase;
         font-weight: 600;
       }
@@ -687,17 +691,17 @@ export function toBooking(api: ApiBooking): Booking {
       .total-label {
         display: block;
         font-size: 0.75rem;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
       }
       .total-amount {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #0071e3;
+        color: var(--apple-accent);
       }
       .dates-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        background: #f5f5f7;
+        background: var(--apple-fill);
         padding: 0.75rem 1rem;
         border-radius: 0.75rem;
         gap: 0.5rem;
@@ -708,25 +712,25 @@ export function toBooking(api: ApiBooking): Booking {
       }
       .date-caption {
         font-size: 0.75rem;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
       }
       .financial-breakdown {
-        background: #fafafc;
-        border: 1px solid #ebebf0;
+        background: var(--apple-fill);
+        border: 1px solid var(--apple-border-subtle);
         padding: 0.75rem 1rem;
         border-radius: 0.75rem;
         font-size: 0.8125rem;
       }
       .breakdown-title {
         font-weight: 600;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
         margin-bottom: 0.35rem;
         display: block;
       }
       .breakdown-row {
         display: flex;
         justify-content: space-between;
-        color: #3a3a3c;
+        color: var(--apple-text-body);
         margin-top: 0.25rem;
       }
       .info-notice {
@@ -735,19 +739,19 @@ export function toBooking(api: ApiBooking): Booking {
         font-size: 0.875rem;
       }
       .info-notice.revision {
-        background: #f3e5f5;
-        color: #4a148c;
+        background: var(--apple-purple-bg);
+        color: var(--apple-purple-fg);
       }
       .info-notice.pending {
-        background: #fff8e1;
-        color: #f57f17;
+        background: var(--apple-warning-bg);
+        color: var(--apple-warning-fg);
       }
       .info-notice.cancelled {
-        background: #ffebee;
-        color: #b71c1c;
+        background: var(--apple-danger-bg);
+        color: var(--apple-danger-fg);
       }
       .review-box {
-        background: #f5f5f7;
+        background: var(--apple-fill);
         padding: 1rem;
         border-radius: 0.75rem;
       }
@@ -767,17 +771,17 @@ export function toBooking(api: ApiBooking): Booking {
         background: none;
         border: none;
         font-size: 1.5rem;
-        color: #d1d1d6;
+        color: var(--apple-text-tertiary);
         cursor: pointer;
         padding: 0;
         line-height: 1;
       }
       .star-btn.filled {
-        color: #ff9500;
+        color: var(--apple-warning-fg);
       }
       .rating-text {
         font-size: 0.8125rem;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
         margin-left: 0.5rem;
       }
       .review-input {
@@ -785,7 +789,7 @@ export function toBooking(api: ApiBooking): Booking {
         box-sizing: border-box;
         padding: 0.5rem;
         border-radius: 0.5rem;
-        border: 1px solid #d1d1d6;
+        border: 1px solid var(--apple-border);
         font-family: inherit;
         font-size: 0.875rem;
         margin-bottom: 0.5rem;
@@ -797,7 +801,7 @@ export function toBooking(api: ApiBooking): Booking {
       }
       .star-display {
         font-weight: 700;
-        color: #ff9500;
+        color: var(--apple-warning-fg);
       }
       .review-text {
         font-style: italic;
@@ -806,7 +810,7 @@ export function toBooking(api: ApiBooking): Booking {
       }
       .review-meta {
         font-size: 0.75rem;
-        color: #1b5e20;
+        color: var(--apple-success-fg);
         font-weight: 600;
       }
       .card-actions {
@@ -825,25 +829,25 @@ export function toBooking(api: ApiBooking): Booking {
         transition: all 0.2s;
       }
       .action-btn.primary {
-        background: #0071e3;
+        background: #0066cc;
         color: #ffffff;
       }
       .action-btn.primary:hover {
-        background: #0077ed;
+        background: #0058b0;
       }
       .action-btn.danger {
-        background: #ff3b30;
+        background: #d70015;
         color: #ffffff;
       }
       .action-btn.danger:hover {
-        background: #e02d23;
+        background: #b80012;
       }
       .action-btn.secondary {
-        background: #f5f5f7;
-        color: #1d1d1f;
+        background: var(--apple-fill);
+        color: var(--apple-text-primary);
       }
       .action-btn.secondary:hover {
-        background: #e8e8ed;
+        background: var(--apple-fill-strong);
       }
       .action-btn.small {
         padding: 0.35rem 0.75rem;
@@ -852,7 +856,7 @@ export function toBooking(api: ApiBooking): Booking {
       .empty-state {
         text-align: center;
         padding: 4rem 1rem;
-        background: #f5f5f7;
+        background: var(--apple-fill);
         border-radius: 1rem;
       }
       .pagination-bar {
@@ -861,9 +865,9 @@ export function toBooking(api: ApiBooking): Booking {
         justify-content: space-between;
         align-items: center;
         padding: 1rem 0;
-        border-top: 1px solid #e5e5ea;
+        border-top: 1px solid var(--apple-border-subtle);
         font-size: 0.875rem;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
         flex-wrap: wrap;
         gap: 1rem;
       }
@@ -873,7 +877,7 @@ export function toBooking(api: ApiBooking): Booking {
         gap: 0.75rem;
       }
       .page-btn {
-        background: #f5f5f7;
+        background: var(--apple-fill);
         border: none;
         padding: 0.4rem 0.85rem;
         border-radius: 0.5rem;
@@ -888,7 +892,7 @@ export function toBooking(api: ApiBooking): Booking {
       .modal-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.4);
+        background: var(--apple-overlay);
         backdrop-filter: blur(4px);
         display: flex;
         align-items: center;
@@ -897,7 +901,7 @@ export function toBooking(api: ApiBooking): Booking {
         padding: 1rem;
       }
       .modal-card {
-        background: #ffffff;
+        background: var(--apple-surface);
         border-radius: 1.25rem;
         max-width: 500px;
         width: 100%;
@@ -919,10 +923,10 @@ export function toBooking(api: ApiBooking): Booking {
         border: none;
         font-size: 1.25rem;
         cursor: pointer;
-        color: #6e6e73;
+        color: var(--apple-text-secondary);
       }
       .refund-calc {
-        background: #f5f5f7;
+        background: var(--apple-fill);
         padding: 0.75rem 1rem;
         border-radius: 0.75rem;
         margin: 1rem 0;
@@ -934,13 +938,13 @@ export function toBooking(api: ApiBooking): Booking {
         margin-bottom: 0.25rem;
       }
       .calc-row.fee {
-        color: #ff3b30;
+        color: var(--apple-danger-fg);
       }
       .calc-row.total {
         font-weight: 700;
-        color: #1b5e20;
+        color: var(--apple-success-fg);
         padding-top: 0.5rem;
-        border-top: 1px solid #e5e5ea;
+        border-top: 1px solid var(--apple-border-subtle);
         margin-top: 0.5rem;
       }
       .input-label {
@@ -953,9 +957,9 @@ export function toBooking(api: ApiBooking): Booking {
         width: 100%;
         padding: 0.6rem;
         border-radius: 0.5rem;
-        border: 1px solid #d1d1d6;
+        border: 1px solid var(--apple-border);
         font-size: 0.875rem;
-        background: #ffffff;
+        background: var(--apple-surface);
       }
       .modal-actions {
         display: flex;

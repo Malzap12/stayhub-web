@@ -172,19 +172,19 @@ type ApiError = { message?: string | string[] };
       max-width: 720px;
       margin: 0 auto;
       padding: 36px 24px 72px;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .page-header {
       margin-bottom: 24px;
       padding-bottom: 18px;
-      border-bottom: 1px solid #e5e5ea;
+      border-bottom: 1px solid var(--apple-border-subtle);
     }
     .eyebrow {
       font-size: 0.74rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     h1 {
       margin: 6px 0 8px;
@@ -193,11 +193,11 @@ type ApiError = { message?: string | string[] };
     }
     .subtitle {
       margin: 0;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.92rem;
     }
     .loading {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .alert-error {
       display: flex;
@@ -207,24 +207,24 @@ type ApiError = { message?: string | string[] };
       gap: 12px;
       padding: 13px 16px;
       border-radius: 12px;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
       font-size: 0.88rem;
       font-weight: 600;
     }
     .retry-btn {
       padding: 6px 14px;
       border-radius: 980px;
-      border: 1px solid #fecaca;
-      background: #ffffff;
-      color: #991b1b;
+      border: 1px solid var(--apple-danger-border);
+      background: var(--apple-surface);
+      color: var(--apple-danger-fg);
       font-weight: 600;
       cursor: pointer;
     }
     .profile-card {
-      background: #ffffff;
-      border: 1px solid #e5e5ea;
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-border-subtle);
       border-radius: 20px;
       padding: 24px;
       margin-bottom: 18px;
@@ -240,8 +240,8 @@ type ApiError = { message?: string | string[] };
       height: 56px;
       flex-shrink: 0;
       border-radius: 50%;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 1.4rem;
       font-weight: 600;
       display: inline-flex;
@@ -262,11 +262,11 @@ type ApiError = { message?: string | string[] };
       border-radius: 980px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #f5f5f7;
-      color: #3a3a3c;
+      background: var(--apple-fill);
+      color: var(--apple-text-body);
     }
-    .status-badge[data-status='ACTIVA'] { background: #e8f8ee; color: #166534; }
-    .status-badge[data-status='RESTRINGIDA'] { background: #fef2f2; color: #991b1b; }
+    .status-badge[data-status='ACTIVA'] { background: var(--apple-success-bg); color: var(--apple-success-fg); }
+    .status-badge[data-status='RESTRINGIDA'] { background: var(--apple-danger-bg); color: var(--apple-danger-fg); }
     .profile-form {
       display: flex;
       flex-direction: column;
@@ -280,11 +280,11 @@ type ApiError = { message?: string | string[] };
     label, .label {
       font-size: 0.84rem;
       font-weight: 600;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
     }
     .optional {
       font-weight: 400;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .value {
       font-size: 0.92rem;
@@ -295,24 +295,24 @@ type ApiError = { message?: string | string[] };
       box-sizing: border-box;
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid #d2d2d7;
+      border: 1px solid var(--apple-border);
       font-size: 0.92rem;
-      color: #1d1d1f;
-      background: #ffffff;
+      color: var(--apple-text-primary);
+      background: var(--apple-surface);
     }
     input:focus {
-      border-color: #1d1d1f;
+      border-color: var(--apple-border-strong);
       outline: none;
     }
     input:disabled {
-      background: #f5f5f7;
-      color: #6e6e73;
+      background: var(--apple-fill);
+      color: var(--apple-text-secondary);
       cursor: not-allowed;
     }
     .hint {
       margin: -6px 0 0;
       font-size: 0.78rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .field .hint {
       margin: 0;
@@ -321,7 +321,7 @@ type ApiError = { message?: string | string[] };
       margin: 0;
       font-size: 0.78rem;
       font-weight: 500;
-      color: #d70015;
+      color: var(--apple-danger-fg);
     }
     .welcome-back {
       margin-bottom: 18px;
@@ -333,22 +333,22 @@ type ApiError = { message?: string | string[] };
       font-weight: 600;
     }
     .alert-success {
-      background: #e8f8ee;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+      background: var(--apple-success-bg);
+      color: var(--apple-success-fg);
+      border: 1px solid var(--apple-success-border);
     }
     .alert-inline-error {
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
     }
     .primary-btn {
       align-self: flex-start;
       padding: 10px 18px;
       border-radius: 980px;
       border: none;
-      background: #1d1d1f;
-      color: #ffffff;
+      background: var(--apple-ink);
+      color: var(--apple-on-ink);
       font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;

@@ -138,7 +138,7 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       flex-wrap: wrap;
       gap: 12px;
       font-size: 0.78rem;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
     }
     .legend li {
       display: inline-flex;
@@ -154,7 +154,7 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
     .summary, .muted {
       margin: 0 0 14px;
       font-size: 0.86rem;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
     }
     .alert-error {
       display: flex;
@@ -163,18 +163,18 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       gap: 10px;
       padding: 10px 14px;
       border-radius: 12px;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
+      border: 1px solid var(--apple-danger-border);
       font-size: 0.86rem;
       font-weight: 600;
     }
     .retry-btn {
       padding: 4px 12px;
       border-radius: 980px;
-      border: 1px solid #fecaca;
-      background: #ffffff;
-      color: #991b1b;
+      border: 1px solid var(--apple-danger-border);
+      background: var(--apple-surface);
+      color: var(--apple-danger-fg);
       font-weight: 600;
       cursor: pointer;
     }
@@ -187,8 +187,8 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
       font-size: 1.1rem;
       line-height: 1;
       cursor: pointer;
@@ -220,7 +220,7 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       text-align: center;
       font-size: 0.66rem;
       font-weight: 700;
-      color: #86868b;
+      color: var(--apple-text-tertiary);
     }
     .day {
       aspect-ratio: 1;
@@ -235,15 +235,15 @@ export function monthGrid(days: Array<{ date: string; status: CalendarDayStatus 
       background: transparent;
     }
     .day.today {
-      outline: 2px solid #1d1d1f;
+      outline: 2px solid var(--apple-border-strong);
       outline-offset: -2px;
     }
-    [data-status='DISPONIBLE'] { background: #dcfce7; color: #166534; }
-    [data-status='NO_DISPONIBLE'] { background: #f1f1f3; color: #a1a1a6; text-decoration: line-through; }
-    [data-status='RESERVADA'] { background: #dbeafe; color: #1e40af; }
-    [data-status='BLOQUEADA'] { background: #fee2e2; color: #991b1b; }
-    [data-status='SIN_PERIODO'] { background: #f5f5f7; color: #a1a1a6; }
-    [data-status='PASADA'] { background: transparent; color: #c7c7cc; }
+    [data-status='DISPONIBLE'] { background: var(--apple-success-bg); color: var(--apple-success-fg); }
+    [data-status='NO_DISPONIBLE'] { background: var(--apple-fill); color: var(--apple-text-tertiary); text-decoration: line-through; }
+    [data-status='RESERVADA'] { background: var(--apple-accent-soft); color: var(--apple-accent); }
+    [data-status='BLOQUEADA'] { background: var(--apple-danger-bg); color: var(--apple-danger-fg); }
+    [data-status='SIN_PERIODO'] { background: var(--apple-fill); color: var(--apple-text-tertiary); }
+    [data-status='PASADA'] { background: transparent; color: var(--apple-text-tertiary); }
     .swatch[data-status='NO_DISPONIBLE'] { text-decoration: none; }
   `],
 })

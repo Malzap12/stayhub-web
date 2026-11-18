@@ -83,17 +83,17 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
       margin-top: 20px;
       padding: 24px;
       border-radius: 20px;
-      background: #ffffff;
-      border: 1px solid #f5c2c7;
+      background: var(--apple-surface);
+      border: 1px solid var(--apple-danger-border);
     }
     h2 {
       margin: 0 0 6px;
       font-size: 1.1rem;
-      color: #b42318;
+      color: var(--apple-danger-fg);
     }
     .intro {
       margin: 0 0 16px;
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.9rem;
       line-height: 1.45;
     }
@@ -101,8 +101,8 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
       margin-bottom: 12px;
       padding: 10px 14px;
       border-radius: 12px;
-      background: #fdecec;
-      color: #b42318;
+      background: var(--apple-danger-bg);
+      color: var(--apple-danger-fg);
       font-size: 0.88rem;
       font-weight: 600;
     }
@@ -114,9 +114,9 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
       cursor: pointer;
     }
     .danger-outline-btn {
-      border: 1px solid #d70015;
-      background: #ffffff;
-      color: #d70015;
+      border: 1px solid var(--apple-danger-fg);
+      background: var(--apple-surface);
+      color: var(--apple-danger-fg);
     }
     .danger-btn {
       border: none;
@@ -124,9 +124,9 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
       color: #ffffff;
     }
     .secondary-btn {
-      border: 1px solid #d2d2d7;
-      background: #ffffff;
-      color: #1d1d1f;
+      border: 1px solid var(--apple-border);
+      background: var(--apple-surface);
+      color: var(--apple-text-primary);
     }
     button:disabled {
       opacity: 0.6;
@@ -136,20 +136,20 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
       padding: 14px 16px;
       border-radius: 14px;
       font-size: 0.88rem;
-      color: #3a3a3c;
+      color: var(--apple-text-body);
       line-height: 1.45;
     }
     .blocked-box {
-      background: #fffaf3;
-      border: 1px solid #f5d0a9;
+      background: var(--apple-warning-bg);
+      border: 1px solid var(--apple-warning-border);
     }
     .confirm-box {
-      background: #fff2f4;
-      border: 1px solid rgba(215, 0, 21, 0.25);
+      background: var(--apple-danger-bg);
+      border: 1px solid var(--apple-danger-border);
     }
     .blocked-box strong, .confirm-box strong {
       display: block;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
     }
     .blocked-box p, .confirm-box p {
       margin: 4px 0 12px;
@@ -165,7 +165,7 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
       align-items: center;
       gap: 12px;
       padding: 10px 0;
-      border-top: 1px solid #f0e2cf;
+      border-top: 1px solid var(--apple-warning-border);
     }
     .stay-item > div {
       display: flex;
@@ -174,15 +174,15 @@ type Step = 'idle' | 'checking' | 'blocked' | 'confirm' | 'deactivating';
     }
     .stay-title {
       font-weight: 600;
-      color: #1d1d1f;
+      color: var(--apple-text-primary);
       overflow-wrap: anywhere;
     }
     .stay-meta {
-      color: #6e6e73;
+      color: var(--apple-text-secondary);
       font-size: 0.82rem;
     }
     .stay-link {
-      color: #0071e3;
+      color: var(--apple-accent);
       font-weight: 600;
       text-decoration: none;
       white-space: nowrap;

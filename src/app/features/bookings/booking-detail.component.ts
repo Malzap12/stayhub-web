@@ -135,33 +135,33 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
   styles: [
     `
       .detail-shell { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem 4rem; }
-      .back { color: #0071e3; text-decoration: none; font-weight: 600; }
-      .note { color: #64748b; }
-      .error { margin-top: 1.5rem; padding: 1rem 1.25rem; border-radius: 12px; background: #fdecec; color: #b42318; font-weight: 600; }
+      .back { color: var(--apple-accent); text-decoration: none; font-weight: 600; }
+      .note { color: var(--apple-text-secondary); }
+      .error { margin-top: 1.5rem; padding: 1rem 1.25rem; border-radius: 12px; background: var(--apple-danger-bg); color: var(--apple-danger-fg); font-weight: 600; }
       .header { display: flex; gap: 1.5rem; align-items: center; margin: 1.5rem 0; }
-      .media { width: 180px; height: 130px; border-radius: 16px; background: #e2e8f0 center / cover no-repeat; flex-shrink: 0; }
-      .city { text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.08em; color: #64748b; font-weight: 700; }
+      .media { width: 180px; height: 130px; border-radius: 16px; background: var(--apple-fill-strong) center / cover no-repeat; flex-shrink: 0; }
+      .city { text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.08em; color: var(--apple-text-secondary); font-weight: 700; }
       h1 { margin: 0.25rem 0; font-size: 1.8rem; }
-      .link { color: #0071e3; font-size: 0.9rem; }
-      .code { color: #64748b; font-size: 0.85rem; margin: 0.4rem 0 0; }
-      .status { display: flex; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-radius: 14px; background: #f1f5f9; margin-bottom: 1.5rem; }
+      .link { color: var(--apple-accent); font-size: 0.9rem; }
+      .code { color: var(--apple-text-secondary); font-size: 0.85rem; margin: 0.4rem 0 0; }
+      .status { display: flex; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-radius: 14px; background: var(--apple-fill); margin-bottom: 1.5rem; }
       .status p { margin: 0; }
-      .status-tag { font-weight: 700; padding: 0.3rem 0.8rem; border-radius: 999px; background: #fff; }
-      .status.confirmada { background: #e8f7ee; }
-      .status.pendiente { background: #fff7e6; }
-      .status.cancelada { background: #fdecec; }
+      .status-tag { font-weight: 700; padding: 0.3rem 0.8rem; border-radius: 999px; background: var(--apple-surface); }
+      .status.confirmada { background: var(--apple-success-bg); }
+      .status.pendiente { background: var(--apple-warning-bg); }
+      .status.cancelada { background: var(--apple-danger-bg); }
       .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
-      .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.25rem; }
+      .card { background: var(--apple-surface); border: 1px solid var(--apple-border-subtle); border-radius: 16px; padding: 1.25rem; }
       .card h2 { font-size: 1.05rem; margin: 0 0 1rem; }
       dl { margin: 0; display: grid; gap: 0.6rem; }
       dl div { display: flex; justify-content: space-between; gap: 1rem; }
-      dt { color: #64748b; }
+      dt { color: var(--apple-text-secondary); }
       dd { margin: 0; font-weight: 600; }
       .row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; }
-      .row.discount { color: #15803d; }
-      .row.total { border-top: 1px solid #e2e8f0; margin-top: 0.5rem; padding-top: 0.75rem; font-weight: 700; }
-      .payment { color: #64748b; font-size: 0.85rem; margin: 0.75rem 0 0; }
-      .cancelled { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 12px; background: #fdecec; color: #b42318; }
+      .row.discount { color: var(--apple-success-fg); }
+      .row.total { border-top: 1px solid var(--apple-border-subtle); margin-top: 0.5rem; padding-top: 0.75rem; font-weight: 700; }
+      .payment { color: var(--apple-text-secondary); font-size: 0.85rem; margin: 0.75rem 0 0; }
+      .cancelled { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 12px; background: var(--apple-danger-bg); color: var(--apple-danger-fg); }
       @media (max-width: 600px) { .header { flex-direction: column; align-items: flex-start; } .media { width: 100%; } }
     `,
   ],
